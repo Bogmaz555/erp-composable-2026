@@ -2,5 +2,9 @@
   "name": "@erp/plm",
   "version": "1.0.0",
   "main": "dist/index.js",
-  "scripts": { "build": "tsc" }
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/main.js",
+    "test": "jest --passWithNoTests"
+  }
 }

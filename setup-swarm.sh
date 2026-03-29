@@ -109,7 +109,11 @@ for MOD in "${MODULES[@]}"; do
   "name": "@erp/$MOD",
   "version": "1.0.0",
   "main": "dist/index.js",
-  "scripts": { "build": "tsc" }
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/main.js",
+    "test": "jest --passWithNoTests"
+  }
 }
 EOF
 

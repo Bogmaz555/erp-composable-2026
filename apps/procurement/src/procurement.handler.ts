@@ -1,4 +1,4 @@
-import { CommandHandler, ICommandHandler, EventPublisher } from '@nestjs/cqrs';
+import { CommandHandler, ICommandHandler, EventPublisher, AggregateRoot } from '@nestjs/cqrs';
 
 export class CreateProcurementCommand {
   constructor(public readonly id: string, public readonly payload: any) {}
@@ -8,12 +8,16 @@ export class ProcurementCreatedEvent {
   constructor(public readonly id: string, public readonly payload: any) {}
 }
 
-export class ProcurementAggregate {
-  constructor(private readonly id: string) {}
+export class ProcurementAggregate extends AggregateRoot {
+  constructor(private readonly aggregateId: string) {
+    super();
+  }
   create(payload: any) {
     // DOMAIN LOGIC: Verify business rule
     if (!payload) throw new Error("Invalid Payload for Procurement");
-    return new ProcurementCreatedEvent(this.id, payload);
+    const event = new ProcurementCreatedEvent(this.aggregateId, payload);
+    this.apply(event);
+    return event;
   }
 }
 

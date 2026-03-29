@@ -1,4 +1,4 @@
-import { CommandHandler, ICommandHandler, EventPublisher } from '@nestjs/cqrs';
+import { CommandHandler, ICommandHandler, EventPublisher, AggregateRoot } from '@nestjs/cqrs';
 
 export class CreateManufacturingCommand {
   constructor(public readonly id: string, public readonly payload: any) {}
@@ -8,12 +8,16 @@ export class ManufacturingCreatedEvent {
   constructor(public readonly id: string, public readonly payload: any) {}
 }
 
-export class ManufacturingAggregate {
-  constructor(private readonly id: string) {}
+export class ManufacturingAggregate extends AggregateRoot {
+  constructor(private readonly aggregateId: string) {
+    super();
+  }
   create(payload: any) {
     // DOMAIN LOGIC: Verify business rule
     if (!payload) throw new Error("Invalid Payload for Manufacturing");
-    return new ManufacturingCreatedEvent(this.id, payload);
+    const event = new ManufacturingCreatedEvent(this.aggregateId, payload);
+    this.apply(event);
+    return event;
   }
 }
 

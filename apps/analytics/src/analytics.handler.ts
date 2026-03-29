@@ -1,4 +1,4 @@
-import { CommandHandler, ICommandHandler, EventPublisher } from '@nestjs/cqrs';
+import { CommandHandler, ICommandHandler, EventPublisher, AggregateRoot } from '@nestjs/cqrs';
 
 export class CreateAnalyticsCommand {
   constructor(public readonly id: string, public readonly payload: any) {}
@@ -8,12 +8,16 @@ export class AnalyticsCreatedEvent {
   constructor(public readonly id: string, public readonly payload: any) {}
 }
 
-export class AnalyticsAggregate {
-  constructor(private readonly id: string) {}
+export class AnalyticsAggregate extends AggregateRoot {
+  constructor(private readonly aggregateId: string) {
+    super();
+  }
   create(payload: any) {
     // DOMAIN LOGIC: Verify business rule
     if (!payload) throw new Error("Invalid Payload for Analytics");
-    return new AnalyticsCreatedEvent(this.id, payload);
+    const event = new AnalyticsCreatedEvent(this.aggregateId, payload);
+    this.apply(event);
+    return event;
   }
 }
 
