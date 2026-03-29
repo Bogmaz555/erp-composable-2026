@@ -1,0 +1,32 @@
+swarm:
+  name: erp-swarm-max-speed-2026
+  mode: nuclear-parallel
+  max_concurrent_agents: 20
+  max_parallel_modules: 6
+  dependency_graph: true
+  auto_sync_events: true
+  retry_on_failure: 5
+  timeout_per_mission: 72h
+  cloud_scaling: true
+  gemini_model: gemini-3-pro-flash
+  
+  modules_dependency:
+    tax-legal: []
+    shared-kernel: []
+    manufacturing: [tax-legal, inventory]
+    inventory: [tax-legal]
+    quality: [manufacturing]
+    eam: [iot-ai]
+    procurement: [inventory, manufacturing]
+    sales: [manufacturing, inventory]
+    hr: [tax-legal]
+    plm: [manufacturing]
+    analytics: [all]
+    iot-ai: [manufacturing]
+    
+  pipeline:
+    phase1: [shared-kernel, tax-legal]
+    phase2: [manufacturing, inventory, quality, eam]
+    phase3: [procurement, sales, hr, plm]
+    phase4: [analytics, iot-ai]
+    phase5: [integration, final-tests, load-5000]

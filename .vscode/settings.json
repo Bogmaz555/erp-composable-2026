@@ -1,0 +1,7 @@
+{
+    "antigravity.terminal.autoRun": true,
+    "antigravity.terminal.requireConfirmation": false,
+    "antigravity.terminal.alwaysProceed": true,
+    "antigravity.artifact.autoAccept": true,
+    "antigravity.unattendedMode": true
+}

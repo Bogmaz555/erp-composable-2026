@@ -1,0 +1,11 @@
+{
+  "name": "@erp/frontend",
+  "version": "1.0.0",
+  "dependencies": {
+    "next": "15.0.0",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "tailwindcss": "3.4.0",
+    "zustand": "^4.5.2"
+  }
+}
