@@ -16,12 +16,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: 11
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'pnpm'
-      - run: pnpm install
+      - run: pnpm install --no-frozen-lockfile
       - run: pnpm run ci:contracts
       - run: CI_AUTH_ENFORCE=true npx tsx scripts/ci-auth-enforce-probe.ts
       - run: CI_PLAYWRIGHT_PM_BI=true npx tsx scripts/ci-playwright-pm-bi-probe.ts
@@ -77,12 +77,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: 11
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'pnpm'
-      - run: pnpm install
+      - run: pnpm install --no-frozen-lockfile
       - run: CI_AUTH_ENFORCE_REGRESSION=true npx tsx scripts/ci-auth-enforce-regression-probe.ts
       - run: pnpm run build:fin
       - run: pnpm run regression:report || echo "SKIP live regression (services not up)"
@@ -98,12 +98,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: 11
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'pnpm'
-      - run: pnpm install
+      - run: pnpm install --no-frozen-lockfile
       - run: CI_PLAYWRIGHT_REQUIRED=true npx tsx scripts/ci-playwright-required-probe.ts
       - run: CI_PLAYWRIGHT_STACK=true npx tsx scripts/ci-playwright-stack-probe.ts
       - run: bash scripts/ci-playwright-stack-boot.sh
@@ -121,12 +121,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: 11
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'pnpm'
-      - run: pnpm install
+      - run: pnpm install --no-frozen-lockfile
       - run: CI_PLAYWRIGHT_MATRIX=true npx tsx scripts/ci-playwright-matrix-probe.ts
       - run: CI_PLAYWRIGHT_STACK=true npx tsx scripts/ci-playwright-stack-probe.ts
       - run: bash scripts/ci-playwright-stack-boot.sh
@@ -144,12 +144,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: 11
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'pnpm'
-      - run: pnpm install
+      - run: pnpm install --no-frozen-lockfile
       - run: CI_PLAYWRIGHT_CROSS_CHAIN=true npx tsx scripts/ci-playwright-cross-chain-probe.ts
       - run: CI_PLAYWRIGHT_STACK=true npx tsx scripts/ci-playwright-stack-probe.ts
       - run: bash scripts/ci-playwright-stack-boot.sh
@@ -167,12 +167,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: 11
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'pnpm'
-      - run: pnpm install
+      - run: pnpm install --no-frozen-lockfile
       - run: CI_PLAYWRIGHT_PROC_INV_QUALITY=true npx tsx scripts/ci-playwright-proc-inv-quality-probe.ts
       - run: CI_PLAYWRIGHT_STACK=true npx tsx scripts/ci-playwright-stack-probe.ts
       - run: bash scripts/ci-playwright-stack-boot.sh
@@ -190,12 +190,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: 11
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'pnpm'
-      - run: pnpm install
+      - run: pnpm install --no-frozen-lockfile
       - run: CI_PLAYWRIGHT_MES_EAM_CRM=true npx tsx scripts/ci-playwright-mes-eam-crm-probe.ts
       - run: CI_PLAYWRIGHT_STACK=true npx tsx scripts/ci-playwright-stack-probe.ts
       - run: bash scripts/ci-playwright-stack-boot.sh
@@ -213,12 +213,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: 11
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'pnpm'
-      - run: pnpm install
+      - run: pnpm install --no-frozen-lockfile
       - run: CI_PLAYWRIGHT_HR_PLM_PM=true npx tsx scripts/ci-playwright-hr-plm-pm-probe.ts
       - run: CI_PLAYWRIGHT_STACK=true npx tsx scripts/ci-playwright-stack-probe.ts
       - run: bash scripts/ci-playwright-stack-boot.sh
@@ -236,12 +236,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: 11
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'pnpm'
-      - run: pnpm install
+      - run: pnpm install --no-frozen-lockfile
       - run: CI_PLAYWRIGHT_CHAIN_MATRIX=true npx tsx scripts/ci-playwright-chain-matrix-probe.ts
       - run: CI_PLAYWRIGHT_STACK=true npx tsx scripts/ci-playwright-stack-probe.ts
       - run: bash scripts/ci-playwright-stack-boot.sh
@@ -259,12 +259,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: 11
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'pnpm'
-      - run: pnpm install
+      - run: pnpm install --no-frozen-lockfile
       - run: CI_PLAYWRIGHT_VISUAL=true npx tsx scripts/ci-playwright-visual-probe.ts
       - run: CI_PLAYWRIGHT_STACK=true npx tsx scripts/ci-playwright-stack-probe.ts
       - run: bash scripts/ci-playwright-stack-boot.sh
@@ -282,12 +282,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: 11
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'pnpm'
-      - run: pnpm install
+      - run: pnpm install --no-frozen-lockfile
       - run: CI_PLAYWRIGHT_VISUAL_DIFF=true npx tsx scripts/ci-playwright-visual-diff-probe.ts
       - run: CI_PLAYWRIGHT_STACK=true npx tsx scripts/ci-playwright-stack-probe.ts
       - run: bash scripts/ci-playwright-stack-boot.sh
@@ -303,12 +303,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: 11
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'pnpm'
-      - run: pnpm install
+      - run: pnpm install --no-frozen-lockfile
       - run: npx playwright install chromium --with-deps
       - run: PW_SKIP_SERVER=1 npx playwright test e2e/pm-bi-panel.spec.ts || echo "SKIP pm-bi e2e (stack not up)"
 
@@ -325,12 +325,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: 11
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'pnpm'
-      - run: pnpm install
+      - run: pnpm install --no-frozen-lockfile
       - run: CI_AUTH_ENFORCE_PROD=true npx tsx scripts/ci-auth-enforce-prod-probe.ts
       - run: CI_AUTH_ENFORCE_KEYCLOAK=true npx tsx scripts/ci-auth-keycloak-regression-probe.ts
       - run: CI_AUTH_ENFORCE_LIVE=true npx tsx scripts/ci-auth-enforce-live-probe.ts
@@ -346,12 +346,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: 11
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'pnpm'
-      - run: pnpm install
+      - run: pnpm install --no-frozen-lockfile
       - run: docker compose up -d proc-db pm-db fin-db inv-db
       - run: sleep 15
       - run: bash scripts/ensure-databases.sh proc-service pm-service finance || true
