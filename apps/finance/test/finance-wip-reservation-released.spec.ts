@@ -2,29 +2,38 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { CqrsModule, CommandBus } from '@nestjs/cqrs';
 import { FinanceController } from '../src/finance.controller';
 import { PrismaService } from '../src/prisma.service';
+import { ProjectAccountingService } from '../src/project-accounting.service';
 
 // Basic test for the new Finance WIP listener on reservation release
 describe('Finance: WIP Listener on inventory.reservation.released.v1', () => {
   let controller: FinanceController;
-  let commandBus: CommandBus;
+  let commandBus: any;
   let prisma: PrismaService;
 
   beforeEach(async () => {
-    const mockPrisma = {
+    commandBus = { execute: jest.fn().mockResolvedValue({}) };
+    const mockTx = {
       projectCost: {
-        create: jest.fn().mockResolvedValue({ id: 'pc-1' }),
+        createMany: jest.fn().mockResolvedValue({ count: 2 }),
+        findMany: jest.fn().mockResolvedValue([]),
       },
       wipAccount: {
         upsert: jest.fn().mockResolvedValue({ id: 'wip-1' }),
       },
     };
 
+    const mockPrisma = {
+      $transaction: jest.fn().mockImplementation(async (cb) => cb(mockTx)),
+      projectCost: { createMany: mockTx.projectCost.createMany, findMany: mockTx.projectCost.findMany },
+      wipAccount: { upsert: mockTx.wipAccount.upsert },
+    };
+
     const moduleRef: TestingModule = await Test.createTestingModule({
-      imports: [CqrsModule],
       controllers: [FinanceController],
       providers: [
-        CommandBus,
+        { provide: CommandBus, useValue: commandBus },
         { provide: PrismaService, useValue: mockPrisma },
+        { provide: ProjectAccountingService, useValue: {} } // Mock
       ],
     }).compile();
 
@@ -34,8 +43,6 @@ describe('Finance: WIP Listener on inventory.reservation.released.v1', () => {
   });
 
   it('should record a WIP relief transaction when reservation is released', async () => {
-    const spy = jest.spyOn(commandBus, 'execute').mockResolvedValue({});
-
     const payload = {
       workOrderId: 'wo-123',
       tenantId: 'tenant-1',
@@ -47,7 +54,7 @@ describe('Finance: WIP Listener on inventory.reservation.released.v1', () => {
 
     await (controller as any).handleReservationReleased(payload);
 
-    expect(spy).toHaveBeenCalledWith(
+    expect(commandBus.execute).toHaveBeenCalledWith(
       expect.objectContaining({
         accountId: 'mock-wip-account-id',
         amount: 8, // 5 + 3
@@ -57,21 +64,29 @@ describe('Finance: WIP Listener on inventory.reservation.released.v1', () => {
     );
 
     // Real ETO ProjectCost actual costing (SILENT-51)
-    expect((prisma as any).projectCost.create).toHaveBeenCalledTimes(2);
+    expect((prisma as any).$transaction).toHaveBeenCalled();
+    expect((prisma as any).projectCost.createMany).toHaveBeenCalledTimes(1);
+    expect((prisma as any).projectCost.createMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.arrayContaining([
+          expect.objectContaining({ amount: 5 }),
+          expect.objectContaining({ amount: 3 })
+        ])
+      })
+    );
 
     // WipAccount update on reservation release (SILENT-54)
-    expect((prisma as any).wipAccount.upsert).toHaveBeenCalledTimes(2);
+    // Both reservations default to wo-123, so they are aggregated into 1 upsert
+    expect((prisma as any).wipAccount.upsert).toHaveBeenCalledTimes(1);
     expect((prisma as any).wipAccount.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { projectId: 'wo-123' },
-        update: expect.objectContaining({ wipBalance: { increment: expect.any(Number) } }),
+        update: expect.objectContaining({ wipBalance: { increment: 8 } }),
       })
     );
   });
 
   it('should handle user claims from NATS headers for audit (TD-001)', async () => {
-    const spy = jest.spyOn(commandBus, 'execute').mockResolvedValue({});
-
     const payload = {
       workOrderId: 'wo-claim-1',
       tenantId: 'tenant-1',
@@ -88,7 +103,7 @@ describe('Finance: WIP Listener on inventory.reservation.released.v1', () => {
 
     await (controller as any).handleReservationReleased(payload, mockCtx);
 
-    expect(spy).toHaveBeenCalled();
+    expect(commandBus.execute).toHaveBeenCalled();
     // Description now includes actor when user present (see controller impl)
   });
 });

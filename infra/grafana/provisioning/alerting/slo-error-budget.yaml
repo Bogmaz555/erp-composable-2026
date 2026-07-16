@@ -1,0 +1,75 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: erp-slo-error-budget
+    folder: ERP
+    interval: 1m
+    rules:
+      - uid: erp-slo-fast-burn
+        title: SLO Fast Burn Rate High
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 3600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: increase(erp_bi_snapshot_total[5m]) / increase(erp_bi_snapshot_total[1h])
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 3600
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    params: [0.14]
+                    type: gt
+        for: 5m
+        noDataState: NoData
+        execErrState: Error
+        annotations:
+          summary: SLO error budget fast burn (Grafana → Alertmanager)
+        labels:
+          domain: slo
+          severity: critical
+          burn_window: fast
+
+      - uid: erp-slo-slow-burn
+        title: SLO Slow Burn Rate High
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 21600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: increase(erp_bi_snapshot_total[1h]) / increase(erp_bi_snapshot_total[6h])
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 21600
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    params: [0.25]
+                    type: gt
+        for: 15m
+        noDataState: NoData
+        execErrState: Error
+        annotations:
+          summary: SLO error budget slow burn (Grafana → Alertmanager)
+        labels:
+          domain: slo
+          severity: warning
+          burn_window: slow

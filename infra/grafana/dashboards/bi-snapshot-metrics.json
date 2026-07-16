@@ -1,0 +1,34 @@
+{
+  "uid": "erp-bi-snapshot-metrics",
+  "title": "ERP BI Snapshot Metrics",
+  "tags": ["erp", "bi", "analytics"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "panels": [
+    {
+      "id": 1,
+      "title": "BI Snapshot Total",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 8, "x": 0, "y": 0 },
+      "targets": [{ "expr": "erp_bi_snapshot_total", "legendFormat": "snapshots" }]
+    },
+    {
+      "id": 2,
+      "title": "Last Purge Count",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 8, "x": 8, "y": 0 },
+      "targets": [{ "expr": "erp_bi_snapshot_purged_last", "legendFormat": "purged" }]
+    },
+    {
+      "id": 3,
+      "title": "TTL Hours",
+      "type": "gauge",
+      "gridPos": { "h": 4, "w": 8, "x": 16, "y": 0 },
+      "targets": [{ "expr": "erp_bi_snapshot_ttl_hours", "legendFormat": "hours" }]
+    }
+  ],
+  "templating": { "list": [] },
+  "annotations": { "list": [] }
+}

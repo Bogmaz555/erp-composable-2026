@@ -1,0 +1,134 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../../node_modules/.prisma/client-mes"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("MES_DATABASE_URL")
+}
+
+model WorkOrder {
+  id           String   @id @default(uuid())
+  tenantId     String   @default("default")
+  orderNumber  String   @unique
+  itemId       String?   // link to PLM Item (as-designed)
+  bomVersionId String?  // snapshot of which BOM version was used
+  projectId    String?  // link to PM for ETO
+  quantity     Int
+  status       String   @default("PENDING")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  createdBy    String?
+
+  operations           Operation[]
+  materialRequirements MaterialRequirement[]
+  materialConsumptions MaterialConsumption[]
+  productionRecords    ProductionRecord[]
+  asBuiltRecords       AsBuiltRecord[]
+}
+
+model Operation {
+  id            String   @id @default(uuid())
+  tenantId      String   @default("default")
+  workOrderId   String
+  workOrder     WorkOrder @relation(fields: [workOrderId], references: [id])
+  sequence      Int
+  name          String
+  workCenter    String?
+  standardTimeMinutes Float?
+  status        String   @default("PENDING")
+  startedAt     DateTime?
+  completedAt   DateTime?
+  createdAt     DateTime @default(now())
+  @@index([tenantId, workOrderId, status])
+}
+
+model MaterialRequirement {
+  id             String   @id @default(uuid())
+  tenantId       String   @default("default")
+  workOrderId    String
+  workOrder      WorkOrder @relation(fields: [workOrderId], references: [id])
+  bomComponentId String?  // direct traceability link to PLM BomComponent (as-designed line item)
+  itemId         String
+  quantity       Float
+  reservedQty    Float    @default(0)
+  status         String   @default("PENDING")  // PENDING | RESERVED | PARTIALLY_ISSUED | ISSUED
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  @@index([tenantId, workOrderId])
+  @@index([bomComponentId])
+  @@index([itemId, status])
+}
+
+model MaterialConsumption {
+  id             String   @id @default(uuid())
+  tenantId       String   @default("default")
+  workOrderId    String
+  workOrder      WorkOrder @relation(fields: [workOrderId], references: [id])
+  bomComponentId String?  // traceability: which exact BOM line was consumed
+  itemId         String
+  lotId          String?   // for traceability
+  quantity       Float
+  consumedAt     DateTime @default(now())
+  operatorId     String?
+  @@index([tenantId, workOrderId, bomComponentId])
+}
+
+model ProductionRecord {
+  id            String   @id @default(uuid())
+  tenantId      String   @default("default")
+  workOrderId   String
+  workOrder     WorkOrder @relation(fields: [workOrderId], references: [id])
+  quantityGood  Int      @default(0)
+  quantityScrap Int      @default(0)
+  operatorId    String?
+  recordedAt    DateTime @default(now())
+  notes         String?
+  @@index([tenantId, workOrderId])
+}
+
+// AsBuiltRecord + AsBuiltComponent = full genealogy "as-built" for the machine (ETO requirement)
+model AsBuiltRecord {
+  id          String   @id @default(uuid())
+  tenantId    String   @default("default")
+  workOrderId String
+  workOrder   WorkOrder @relation(fields: [workOrderId], references: [id])
+  serialNumber String? @unique   // the final machine serial
+  itemId      String
+  quantity    Int
+  completedAt DateTime?
+  createdAt   DateTime @default(now())
+  asBuiltComponents AsBuiltComponent[]
+}
+
+model AsBuiltComponent {
+  id              String   @id @default(uuid())
+  asBuiltRecordId String
+  asBuiltRecord   AsBuiltRecord @relation(fields: [asBuiltRecordId], references: [id])
+  bomComponentId  String?  // link to original design
+  itemId          String
+  lotId           String?
+  serialNumber    String?
+  quantity        Float
+  consumedAt      DateTime?
+}
+
+enum OutboxStatus {
+  PENDING
+  PROCESSED
+  FAILED
+}
+
+model OutboxEvent {
+  id            String       @id @default(uuid())
+  tenantId      String       @default("default")
+  aggregateId   String
+  aggregateType String
+  eventType     String
+  payload       Json
+  status        OutboxStatus @default(PENDING)
+  createdAt     DateTime     @default(now())
+  processedAt   DateTime?
+  @@index([tenantId, status])
+}

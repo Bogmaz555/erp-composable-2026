@@ -1,0 +1,504 @@
+[
+  {
+    "correlationId": "eto-demo-chain",
+    "projectId": "proj-eto-live",
+    "status": "ACTIVE",
+    "completedSteps": [
+      "plm.bom.released.v2",
+      "mes.production.recorded.v1",
+      "inventory.reservation.created.v1",
+      "inventory.reservation.released.v1",
+      "pm.material.requested.v1",
+      "mes.workorder.planned",
+      "finance.wip.cost.recorded"
+    ],
+    "lastEventAt": "2026-07-16T22:41:14.956Z",
+    "percentComplete": 100
+  },
+  {
+    "correlationId": "95db4e33-884a-4345-85c3-44a87f61d8c4",
+    "projectId": "95db4e33-884a-4345-85c3-44a87f61d8c4",
+    "status": "ACTIVE",
+    "completedSteps": [],
+    "lastEventAt": "2026-07-16T12:56:33.882Z",
+    "percentComplete": 0
+  },
+  {
+    "correlationId": "35032024-8d02-40bf-a362-c87125245835",
+    "projectId": "35032024-8d02-40bf-a362-c87125245835",
+    "status": "ACTIVE",
+    "completedSteps": [],
+    "lastEventAt": "2026-07-16T12:56:30.884Z",
+    "percentComplete": 0
+  },
+  {
+    "correlationId": "proj-eto-demo",
+    "projectId": "proj-eto-demo",
+    "status": "ACTIVE",
+    "completedSteps": [
+      "inventory.reservation.created.v1"
+    ],
+    "lastEventAt": "2026-06-06T20:00:53.078Z",
+    "percentComplete": 14
+  },
+  {
+    "correlationId": "eto-1780776052344",
+    "projectId": "proj-eto-demo",
+    "status": "ACTIVE",
+    "completedSteps": [
+      "plm.bom.released.v2",
+      "pm.material.requested.v1",
+      "inventory.reservation.created.v1",
+      "mes.workorder.planned"
+    ],
+    "lastEventAt": "2026-06-06T20:00:52.517Z",
+    "percentComplete": 57
+  },
+  {
+    "correlationId": "eto-1780776033995",
+    "projectId": "proj-eto-demo",
+    "status": "ACTIVE",
+    "completedSteps": [
+      "plm.bom.released.v2",
+      "pm.material.requested.v1",
+      "inventory.reservation.created.v1",
+      "mes.workorder.planned"
+    ],
+    "lastEventAt": "2026-06-06T20:00:34.049Z",
+    "percentComplete": 57
+  },
+  {
+    "correlationId": "eto-1780769040578",
+    "projectId": "proj-eto-demo",
+    "status": "ACTIVE",
+    "completedSteps": [
+      "plm.bom.released.v2",
+      "pm.material.requested.v1",
+      "inventory.reservation.created.v1",
+      "mes.workorder.planned"
+    ],
+    "lastEventAt": "2026-06-06T18:04:00.697Z",
+    "percentComplete": 57
+  },
+  {
+    "correlationId": "eto-1780769039996",
+    "projectId": "proj-eto-demo",
+    "status": "ACTIVE",
+    "completedSteps": [
+      "plm.bom.released.v2",
+      "pm.material.requested.v1",
+      "inventory.reservation.created.v1",
+      "mes.workorder.planned"
+    ],
+    "lastEventAt": "2026-06-06T18:04:00.079Z",
+    "percentComplete": 57
+  },
+  {
+    "correlationId": "eto-1780769038881",
+    "projectId": "proj-eto-demo",
+    "status": "ACTIVE",
+    "completedSteps": [
+      "plm.bom.released.v2",
+      "pm.material.requested.v1",
+      "inventory.reservation.created.v1",
+      "mes.workorder.planned"
+    ],
+    "lastEventAt": "2026-06-06T18:03:59.165Z",
+    "percentComplete": 57
+  },
+  {
+    "correlationId": "rollback-1780679946233",
+    "projectId": "proj-eto-demo",
+    "status": "ACTIVE",
+    "completedSteps": [],
+    "lastEventAt": "2026-06-05T17:19:09.237Z",
+    "percentComplete": 0
+  },
+  {
+    "correlationId": "orch-1780679924863",
+    "projectId": "proj-eto-demo",
+    "status": "ACTIVE",
+    "completedSteps": [
+      "plm.bom.released.v2",
+      "pm.material.requested.v1",
+      "inventory.reservation.created.v1",
+      "mes.workorder.planned",
+      "mes.production.recorded.v1",
+      "inventory.reservation.released.v1",
+      "finance.wip.cost.recorded"
+    ],
+    "lastEventAt": "2026-06-05T17:18:57.908Z",
+    "percentComplete": 100
+  },
+  {
+    "correlationId": "stock-1780679932338",
+    "projectId": "proj-eto-demo",
+    "status": "ACTIVE",
+    "completedSteps": [],
+    "lastEventAt": "2026-06-05T17:18:52.339Z",
+    "percentComplete": 0
+  },
+  {
+    "correlationId": "eto-1780679918482",
+    "projectId": "proj-eto-demo",
+    "status": "ACTIVE",
+    "completedSteps": [
+      "plm.bom.released.v2",
+      "pm.material.requested.v1",
+      "inventory.reservation.created.v1",
+      "mes.workorder.planned"
+    ],
+    "lastEventAt": "2026-06-05T17:18:38.840Z",
+    "percentComplete": 57
+  },
+  {
+    "correlationId": "wf-smoke-1780679902873",
+    "projectId": "proj-eto-demo",
+    "status": "ACTIVE",
+    "completedSteps": [
+      "plm.bom.released.v2",
+      "pm.material.requested.v1",
+      "inventory.reservation.created.v1",
+      "mes.workorder.planned",
+      "mes.production.recorded.v1",
+      "inventory.reservation.released.v1",
+      "finance.wip.cost.recorded"
+    ],
+    "lastEventAt": "2026-06-05T17:18:37.896Z",
+    "percentComplete": 100
+  },
+  {
+    "correlationId": "rollback-1780679690352",
+    "projectId": "proj-eto-demo",
+    "status": "ACTIVE",
+    "completedSteps": [],
+    "lastEventAt": "2026-06-05T17:14:53.358Z",
+    "percentComplete": 0
+  },
+  {
+    "correlationId": "stock-1780679678880",
+    "projectId": "proj-eto-demo",
+    "status": "ACTIVE",
+    "completedSteps": [],
+    "lastEventAt": "2026-06-05T17:14:38.884Z",
+    "percentComplete": 0
+  },
+  {
+    "correlationId": "e2e-orch-1780679097357",
+    "projectId": "proj-eto-demo",
+    "status": "ACTIVE",
+    "completedSteps": [
+      "plm.bom.released.v2",
+      "pm.material.requested.v1",
+      "inventory.reservation.created.v1",
+      "mes.workorder.planned",
+      "mes.production.recorded.v1",
+      "inventory.reservation.released.v1",
+      "finance.wip.cost.recorded"
+    ],
+    "lastEventAt": "2026-06-05T17:05:10.664Z",
+    "percentComplete": 100
+  },
+  {
+    "correlationId": "nats-orch-1780679084922",
+    "projectId": "proj-eto-demo",
+    "status": "ACTIVE",
+    "completedSteps": [
+      "plm.bom.released.v2",
+      "pm.material.requested.v1",
+      "inventory.reservation.created.v1",
+      "mes.workorder.planned",
+      "mes.production.recorded.v1",
+      "inventory.reservation.released.v1",
+      "finance.wip.cost.recorded"
+    ],
+    "lastEventAt": "2026-06-05T17:05:00.650Z",
+    "percentComplete": 100
+  },
+  {
+    "correlationId": "eto-1780679084610",
+    "projectId": "proj-eto-demo",
+    "status": "COMPENSATED",
+    "completedSteps": [],
+    "lastEventAt": "2026-06-05T17:04:44.918Z",
+    "percentComplete": 0
+  },
+  {
+    "correlationId": "rollback-1780679068283",
+    "projectId": "proj-eto-demo",
+    "status": "ACTIVE",
+    "completedSteps": [],
+    "lastEventAt": "2026-06-05T17:04:31.290Z",
+    "percentComplete": 0
+  },
+  {
+    "correlationId": "e2e-orch-1780678784179",
+    "projectId": "proj-eto-demo",
+    "status": "ACTIVE",
+    "completedSteps": [
+      "plm.bom.released.v2",
+      "pm.material.requested.v1",
+      "inventory.reservation.created.v1",
+      "mes.workorder.planned",
+      "mes.production.recorded.v1",
+      "inventory.reservation.released.v1",
+      "finance.wip.cost.recorded"
+    ],
+    "lastEventAt": "2026-06-05T16:59:58.863Z",
+    "percentComplete": 100
+  },
+  {
+    "correlationId": "eto-1780678745140",
+    "projectId": "proj-eto-demo",
+    "status": "COMPENSATED",
+    "completedSteps": [],
+    "lastEventAt": "2026-06-05T16:59:05.322Z",
+    "percentComplete": 0
+  },
+  {
+    "correlationId": "nats-orch-1780678730588",
+    "projectId": "proj-eto-demo",
+    "status": "ACTIVE",
+    "completedSteps": [
+      "plm.bom.released.v2",
+      "pm.material.requested.v1",
+      "inventory.reservation.created.v1",
+      "mes.workorder.planned",
+      "mes.production.recorded.v1",
+      "inventory.reservation.released.v1",
+      "finance.wip.cost.recorded"
+    ],
+    "lastEventAt": "2026-06-05T16:59:03.853Z",
+    "percentComplete": 100
+  },
+  {
+    "correlationId": "eto-1780678730235",
+    "projectId": "proj-eto-demo",
+    "status": "COMPENSATED",
+    "completedSteps": [],
+    "lastEventAt": "2026-06-05T16:58:50.582Z",
+    "percentComplete": 0
+  },
+  {
+    "correlationId": "live-1780678361719",
+    "projectId": "proj-eto-live",
+    "status": "ACTIVE",
+    "completedSteps": [
+      "plm.bom.released.v2",
+      "pm.material.requested.v1",
+      "inventory.reservation.created.v1",
+      "mes.workorder.planned",
+      "mes.production.recorded.v1",
+      "inventory.reservation.released.v1",
+      "finance.wip.cost.recorded"
+    ],
+    "lastEventAt": "2026-06-05T16:52:48.931Z",
+    "percentComplete": 100
+  },
+  {
+    "correlationId": "proj-eto-live",
+    "projectId": "proj-eto-live",
+    "status": "ACTIVE",
+    "completedSteps": [
+      "inventory.reservation.created.v1"
+    ],
+    "lastEventAt": "2026-06-05T16:52:43.771Z",
+    "percentComplete": 14
+  },
+  {
+    "correlationId": "eto-1780678353206",
+    "projectId": "proj-eto-demo",
+    "status": "COMPENSATED",
+    "completedSteps": [],
+    "lastEventAt": "2026-06-05T16:52:33.378Z",
+    "percentComplete": 0
+  },
+  {
+    "correlationId": "eto-1780678337618",
+    "projectId": "proj-eto-demo",
+    "status": "COMPENSATED",
+    "completedSteps": [],
+    "lastEventAt": "2026-06-05T16:52:17.782Z",
+    "percentComplete": 0
+  },
+  {
+    "correlationId": "eto-1780678305108",
+    "projectId": "proj-eto-demo",
+    "status": "ACTIVE",
+    "completedSteps": [
+      "plm.bom.released.v2",
+      "pm.material.requested.v1",
+      "inventory.reservation.created.v1",
+      "mes.workorder.planned"
+    ],
+    "lastEventAt": "2026-06-05T16:51:45.218Z",
+    "percentComplete": 57
+  },
+  {
+    "correlationId": "eto-1780678305098",
+    "projectId": "proj-eto-demo",
+    "status": "ACTIVE",
+    "completedSteps": [
+      "plm.bom.released.v2",
+      "pm.material.requested.v1",
+      "inventory.reservation.created.v1",
+      "mes.workorder.planned"
+    ],
+    "lastEventAt": "2026-06-05T16:51:45.214Z",
+    "percentComplete": 57
+  },
+  {
+    "correlationId": "live-1780678156669",
+    "projectId": "proj-eto-live",
+    "status": "ACTIVE",
+    "completedSteps": [
+      "plm.bom.released.v2",
+      "pm.material.requested.v1",
+      "inventory.reservation.created.v1",
+      "mes.workorder.planned",
+      "mes.production.recorded.v1",
+      "inventory.reservation.released.v1",
+      "finance.wip.cost.recorded"
+    ],
+    "lastEventAt": "2026-06-05T16:49:23.958Z",
+    "percentComplete": 100
+  },
+  {
+    "correlationId": "live-1780677577301",
+    "projectId": "proj-eto-live",
+    "status": "ACTIVE",
+    "completedSteps": [
+      "plm.bom.released.v2",
+      "pm.material.requested.v1",
+      "inventory.reservation.created.v1",
+      "mes.workorder.planned",
+      "mes.production.recorded.v1",
+      "inventory.reservation.released.v1",
+      "finance.wip.cost.recorded"
+    ],
+    "lastEventAt": "2026-06-05T16:39:44.513Z",
+    "percentComplete": 100
+  },
+  {
+    "correlationId": "live-1780677539300",
+    "projectId": "proj-eto-live",
+    "status": "ACTIVE",
+    "completedSteps": [
+      "plm.bom.released.v2",
+      "pm.material.requested.v1",
+      "inventory.reservation.created.v1",
+      "mes.workorder.planned",
+      "mes.production.recorded.v1",
+      "inventory.reservation.released.v1",
+      "finance.wip.cost.recorded"
+    ],
+    "lastEventAt": "2026-06-05T16:39:06.514Z",
+    "percentComplete": 100
+  },
+  {
+    "correlationId": "live-1780677126825",
+    "projectId": "proj-eto-live",
+    "status": "ACTIVE",
+    "completedSteps": [
+      "plm.bom.released.v2",
+      "mes.production.recorded.v1",
+      "inventory.reservation.released.v1"
+    ],
+    "lastEventAt": "2026-06-05T16:32:10.833Z",
+    "percentComplete": 43
+  },
+  {
+    "correlationId": "live-1780676978399",
+    "projectId": "proj-eto-live",
+    "status": "ACTIVE",
+    "completedSteps": [
+      "plm.bom.released.v2",
+      "mes.production.recorded.v1",
+      "inventory.reservation.released.v1"
+    ],
+    "lastEventAt": "2026-06-05T16:29:42.434Z",
+    "percentComplete": 43
+  },
+  {
+    "correlationId": "live-1780676934179",
+    "projectId": "proj-eto-live",
+    "status": "ACTIVE",
+    "completedSteps": [
+      "plm.bom.released.v2",
+      "mes.production.recorded.v1",
+      "inventory.reservation.released.v1"
+    ],
+    "lastEventAt": "2026-06-05T16:28:58.186Z",
+    "percentComplete": 43
+  },
+  {
+    "correlationId": "eto-1780676924978",
+    "projectId": "proj-eto-demo",
+    "status": "ACTIVE",
+    "completedSteps": [
+      "plm.bom.released.v2",
+      "inventory.reservation.created.v1"
+    ],
+    "lastEventAt": "2026-06-05T16:28:45.119Z",
+    "percentComplete": 29
+  },
+  {
+    "correlationId": "live-1780676834136",
+    "projectId": "proj-eto-live",
+    "status": "ACTIVE",
+    "completedSteps": [
+      "plm.bom.released.v2",
+      "mes.production.recorded.v1",
+      "inventory.reservation.released.v1"
+    ],
+    "lastEventAt": "2026-06-05T16:27:18.163Z",
+    "percentComplete": 43
+  },
+  {
+    "correlationId": "live-1780676671381",
+    "projectId": "proj-eto-live",
+    "status": "ACTIVE",
+    "completedSteps": [
+      "plm.bom.released.v2",
+      "mes.production.recorded.v1",
+      "inventory.reservation.released.v1"
+    ],
+    "lastEventAt": "2026-06-05T16:24:35.387Z",
+    "percentComplete": 43
+  },
+  {
+    "correlationId": "live-1780676630651",
+    "projectId": "proj-eto-live",
+    "status": "ACTIVE",
+    "completedSteps": [
+      "plm.bom.released.v2",
+      "mes.production.recorded.v1",
+      "inventory.reservation.released.v1"
+    ],
+    "lastEventAt": "2026-06-05T16:23:54.659Z",
+    "percentComplete": 43
+  },
+  {
+    "correlationId": "eto-1780676620029",
+    "projectId": "proj-eto-demo",
+    "status": "ACTIVE",
+    "completedSteps": [
+      "plm.bom.released.v2",
+      "inventory.reservation.created.v1"
+    ],
+    "lastEventAt": "2026-06-05T16:23:40.196Z",
+    "percentComplete": 29
+  },
+  {
+    "correlationId": "live-1780676369917",
+    "projectId": "proj-eto-live",
+    "status": "ACTIVE",
+    "completedSteps": [
+      "plm.bom.released.v2",
+      "mes.production.recorded.v1",
+      "inventory.reservation.released.v1"
+    ],
+    "lastEventAt": "2026-06-05T16:19:33.925Z",
+    "percentComplete": 43
+  }
+]

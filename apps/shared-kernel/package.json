@@ -2,9 +2,13 @@
   "name": "@erp/shared-kernel",
   "version": "1.0.0",
   "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "start": "node dist/main.js",
-    "test": "jest --passWithNoTests"
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "^5.0.0"
   }
 }

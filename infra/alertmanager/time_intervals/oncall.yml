@@ -1,0 +1,17 @@
+# W107 — ERP on-call rotation reference (mirrored in alertmanager.yml time_intervals)
+name: erp-oncall-business-hours
+weekdays: monday:friday
+start_time: "08:00"
+end_time: "20:00"
+location: Europe/Warsaw
+timezone: CET
+
+name: erp-oncall-off-hours
+weekdays: monday:friday
+start_time: "20:00"
+end_time: "08:00"
+location: Europe/Warsaw
+
+name: erp-oncall-weekend
+weekdays: saturday,sunday
+location: Europe/Warsaw

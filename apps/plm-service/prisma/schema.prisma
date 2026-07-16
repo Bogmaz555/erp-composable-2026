@@ -1,0 +1,153 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../../node_modules/@prisma/client-plm"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("PLM_DATABASE_URL")
+}
+
+model Item {
+  id            String   @id @default(uuid())
+  partNumber    String   @unique
+  name          String
+  description   String?
+  type          ItemType @default(PART)
+  unitOfMeasure String   @default("szt")
+  category      String?
+  material      String?
+  weightKg      Float?
+  attributes    Json?    // elastyczne atrybuty techniczne
+
+  // Enterprise master-data (Product/Article Master, źródło prawdy)
+  lifecycleStatus ItemLifecycle @default(ACTIVE) // DRAFT/ACTIVE/OBSOLETE
+  makeBuy         MakeBuy       @default(BUY)     // MAKE/BUY/PHANTOM
+  revision        String?       // bieżąca rewizja kartoteki
+  barcode         String?       // EAN/kod kreskowy
+  leadTimeDays    Int?          // czas dostawy/wytworzenia (dni)
+  standardCost    Float?        // koszt standardowy
+  currency        String        @default("PLN")
+  isActive        Boolean       @default(true)   // soft-delete / dezaktywacja
+  createdBy       String?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  bomVersionsAsParent BomComponent[] @relation("ComponentParent")
+  bomVersionsAsChild  BomComponent[] @relation("ComponentChild")
+  bomVersions         BomVersion[]
+
+  @@index([type, lifecycleStatus, isActive])
+}
+
+enum ItemLifecycle {
+  DRAFT
+  ACTIVE
+  OBSOLETE
+}
+
+enum MakeBuy {
+  MAKE
+  BUY
+  PHANTOM
+}
+
+enum ItemType {
+  PART
+  ASSEMBLY
+  MACHINE
+  TOOL
+  CONSUMABLE
+  SERVICE
+}
+
+model BomVersion {
+  id            String   @id @default(uuid())
+  itemId        String
+  item          Item     @relation(fields: [itemId], references: [id])
+  revision      String
+  status        BomStatus @default(DRAFT)
+  effectivityFrom DateTime?
+  effectivityTo   DateTime?
+  description   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  components      BomComponent[]
+  linkedAsSubBom  BomComponent[] @relation("SubBomLink")
+}
+
+enum BomStatus {
+  DRAFT
+  RELEASED
+  SUPERSEDED
+  OBSOLETE
+}
+
+model BomComponent {
+  id             String   @id @default(uuid())
+  bomVersionId   String
+  bomVersion     BomVersion @relation(fields: [bomVersionId], references: [id])
+
+  parentItemId   String
+  parentItem     Item     @relation("ComponentParent", fields: [parentItemId], references: [id])
+
+  childItemId    String
+  childItem      Item     @relation("ComponentChild", fields: [childItemId], references: [id])
+
+  quantity       Float
+  position       Int?
+  scrapFactor    Float    @default(0)
+  notes          String?
+
+  // Double BOM — jawne powiązanie z wersją sub-BOM (zamiast auto-pick RELEASED)
+  subBomVersionId String?
+  subBomVersion   BomVersion? @relation("SubBomLink", fields: [subBomVersionId], references: [id])
+
+  // Effectivity per component (może nadpisywać wersję BOM)
+  effectivityFrom DateTime?
+  effectivityTo   DateTime?
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model EngineeringChangeOrder {
+  id          String   @id @default(uuid())
+  ecoNumber   String   @unique
+  title       String
+  description String
+  status      EcoStatus @default(PENDING)
+  reason      String?
+  impactSummary Json?   // JSON z podsumowaniem wpływu (na początek)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  affectedBoms Json?    // na początek lista ID wersji BOM (później relacja)
+}
+
+enum EcoStatus {
+  PENDING
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  IMPLEMENTED
+}
+
+enum OutboxStatus {
+  PENDING
+  PROCESSED
+  FAILED
+}
+
+model OutboxEvent {
+  id            String       @id @default(uuid())
+  aggregateId   String
+  aggregateType String
+  eventType     String
+  payload       Json
+  status        OutboxStatus @default(PENDING)
+  createdAt     DateTime     @default(now())
+  processedAt   DateTime?
+}

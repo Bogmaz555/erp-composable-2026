@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: plm-service
+  namespace: erp
+  labels:
+    app: plm-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: plm-service
+  template:
+    metadata:
+      labels:
+        app: plm-service
+    spec:
+      containers:
+        - name: plm-service
+          image: erp/plm-service:latest
+          ports:
+            - containerPort: 4007
+          env:
+            - name: NATS_URL
+              value: nats://nats:4222
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 4007
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 4007
+            initialDelaySeconds: 5
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: plm-service
+  namespace: erp
+spec:
+  selector:
+    app: plm-service
+  ports:
+    - port: 4007
+      targetPort: 4007
+  type: ClusterIP

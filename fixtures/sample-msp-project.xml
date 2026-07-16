@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Project xmlns="http://schemas.microsoft.com/project">
+  <Tasks>
+    <Task>
+      <UID>1</UID>
+      <Name>Engineering Design</Name>
+      <Start>2026-06-01T08:00:00</Start>
+      <Finish>2026-06-15T17:00:00</Finish>
+    </Task>
+    <Task>
+      <UID>2</UID>
+      <Name>Procurement Lead Time</Name>
+      <Start>2026-06-10T08:00:00</Start>
+      <Finish>2026-06-25T17:00:00</Finish>
+    </Task>
+    <Task>
+      <UID>3</UID>
+      <Name>Assembly &amp; FAT</Name>
+      <Start>2026-06-20T08:00:00</Start>
+      <Finish>2026-07-10T17:00:00</Finish>
+    </Task>
+  </Tasks>
+  <PredecessorLink>
+    <PredecessorUID>1</PredecessorUID>
+    <SuccessorUID>2</SuccessorUID>
+    <Type>1</Type>
+    <LinkLag>0</LinkLag>
+  </PredecessorLink>
+  <PredecessorLink>
+    <PredecessorUID>2</PredecessorUID>
+    <SuccessorUID>3</SuccessorUID>
+    <Type>1</Type>
+    <LinkLag>0</LinkLag>
+  </PredecessorLink>
+</Project>

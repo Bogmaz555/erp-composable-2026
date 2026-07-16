@@ -1,11 +1,40 @@
 {
   "name": "@erp/frontend",
   "version": "1.0.0",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
   "dependencies": {
+    "@nestjs/common": "^11.1.19",
+    "@nestjs/core": "^11.1.19",
+    "@nestjs/cqrs": "^11.0.3",
+    "@nestjs/microservices": "^11.1.19",
+    "@nestjs/platform-fastify": "^11.0.0",
+    "@tanstack/react-query": "^5.96.2",
+    "@tanstack/react-query-devtools": "^5.96.2",
+    "autoprefixer": "^10.4.27",
+    "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
+    "gantt-task-react": "^0.3.9",
+    "lucide-react": "^1.7.0",
     "next": "15.0.0",
+    "postcss": "^8.4.31",
     "react": "19.0.0",
     "react-dom": "19.0.0",
+    "recharts": "^3.8.1",
+    "sonner": "^2.0.7",
+    "swr": "^2.4.1",
+    "tailwind-merge": "^3.5.0",
     "tailwindcss": "3.4.0",
+    "xlsx": "^0.18.5",
     "zustand": "^4.5.2"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.60.0",
+    "@types/node": "25.5.0",
+    "@types/react": "19.2.14",
+    "typescript": "6.0.2"
   }
 }

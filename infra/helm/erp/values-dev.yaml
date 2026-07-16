@@ -1,0 +1,14 @@
+global:
+  namespace: erp-dev
+
+apiGateway:
+  replicaCount: 1
+  authEnforce: false
+
+analyticsService:
+  replicaCount: 1
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi

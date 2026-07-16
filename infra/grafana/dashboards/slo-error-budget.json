@@ -1,0 +1,58 @@
+{
+  "uid": "erp-slo-error-budget",
+  "title": "ERP SLO Error Budget",
+  "tags": ["erp", "slo", "observability"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "panels": [
+    {
+      "id": 1,
+      "title": "Error Budget Remaining (%)",
+      "type": "gauge",
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "100 - (increase(erp_bi_snapshot_total[1h]) / increase(erp_bi_snapshot_total[6h]) * 25)",
+          "legendFormat": "budget_remaining"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Fast Burn Rate (5m/1h)",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 0 },
+      "targets": [
+        {
+          "expr": "increase(erp_bi_snapshot_total[5m]) / increase(erp_bi_snapshot_total[1h])",
+          "legendFormat": "fast_burn"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Slow Burn Rate (1h/6h)",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 0 },
+      "targets": [
+        {
+          "expr": "increase(erp_bi_snapshot_total[1h]) / increase(erp_bi_snapshot_total[6h])",
+          "legendFormat": "slow_burn"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "SLO Burn Alerts (Prometheus)",
+      "type": "text",
+      "gridPos": { "h": 4, "w": 24, "x": 0, "y": 6 },
+      "options": {
+        "content": "Alerts: SloBurnRateFast (5m/1h critical), SloBurnRateSlow (1h/6h warning) — see infra/prometheus/alerts/slo-burn-rate.yml"
+      }
+    }
+  ],
+  "templating": { "list": [] },
+  "annotations": { "list": [] }
+}

@@ -1,0 +1,116 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../../node_modules/.prisma/client-pm"
+}
+datasource db {
+  provider = "postgresql"
+  url = env("PM_DATABASE_URL")
+}
+model Project {
+  id              String       @id @default(uuid())
+  tenantId        String       @default("default")
+  name            String
+  status          String       @default("DRAFT")
+  bomVersionId    String?      // link to released PLM BOM for this ETO build (as-designed)
+  createdAt       DateTime     @default(now())
+  createdBy       String?
+  
+  // ETO / CCPM Fields
+  budget          Float?       @default(0)
+  ccpmBufferPct   Float?       @default(0)
+  feverZone       String?      @default("GREEN")
+  totalChainDays  Int?         @default(0)
+  totalBufferDays Int?         @default(0)
+  usedBufferDays  Int?         @default(0)
+
+  wbsElements     WbsElement[]
+  tasks           Task[]
+  @@index([tenantId, bomVersionId])
+}
+model WbsElement {
+  id             String       @id @default(uuid())
+  tenantId       String       @default("default")
+  projectId      String
+  project        Project      @relation(fields: [projectId], references: [id])
+  bomComponentId String?      // optional link to specific PLM BOM line for material WBS
+  name           String
+  type           String       @default("TASK")
+  status         String       @default("PENDING")
+  startDate      DateTime?
+  endDate        DateTime?
+  createdAt      DateTime     @default(now())
+  createdBy      String?
+  parentId       String?
+  parent         WbsElement?  @relation("WbsHierarchy", fields: [parentId], references: [id])
+  children       WbsElement[] @relation("WbsHierarchy")
+  @@index([tenantId, projectId, bomComponentId])
+}
+
+model TaskDependency {
+  id            String   @id @default(uuid())
+  tenantId      String   @default("default")
+  projectId     String
+  predecessorId String
+  successorId   String
+  type          String   @default("FS")
+  lagDays       Int      @default(0)
+  createdAt     DateTime @default(now())
+  @@index([tenantId, projectId])
+}
+
+// Baseline harmonogramu (MS Project parity) + resource assignment
+model ScheduleBaseline {
+  id         String   @id @default(uuid())
+  tenantId   String   @default("default")
+  projectId  String
+  name       String
+  snapshot   Json     // { nodes: ScheduleNode[], capturedAt }
+  isActive   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  createdBy  String?
+  @@index([tenantId, projectId])
+}
+
+model ResourceAssignment {
+  id           String   @id @default(uuid())
+  tenantId     String   @default("default")
+  projectId    String
+  wbsElementId String
+  resourceName String
+  units        Float    @default(1) // FTE 0-1+
+  createdAt    DateTime @default(now())
+  @@index([tenantId, projectId, wbsElementId])
+}
+
+model Task {
+  id             String   @id @default(uuid())
+  tenantId       String   @default("default")
+  projectId      String
+  project        Project  @relation(fields: [projectId], references: [id])
+  bomComponentId String?  // traceability to BOM component
+  name           String
+  description    String?
+  status         String   @default("TODO")
+  createdAt      DateTime @default(now())
+  createdBy      String?
+  @@index([tenantId, projectId])
+}
+
+enum OutboxStatus {
+  PENDING
+  PROCESSED
+  FAILED
+}
+
+model OutboxEvent {
+  id            String       @id @default(uuid())
+  tenantId      String       @default("default")
+  aggregateId   String
+  aggregateType String
+  eventType     String
+  payload       Json
+  status        OutboxStatus @default(PENDING)
+  createdAt     DateTime     @default(now())
+  processedAt   DateTime?
+  @@index([tenantId, status, createdAt])
+}

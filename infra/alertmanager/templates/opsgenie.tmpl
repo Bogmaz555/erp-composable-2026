@@ -1,0 +1,3 @@
+{{ define "opsgenie.message" }}[{{ .Status | toUpper }}] {{ .CommonLabels.alertname }} ({{ .CommonLabels.domain }}){{ end }}
+{{ define "opsgenie.description" }}{{ range .Alerts }}{{ .Annotations.summary }}
+{{ end }}{{ end }}

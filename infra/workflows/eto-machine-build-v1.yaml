@@ -1,0 +1,43 @@
+# ETO Machine Build Saga — Temporal-compatible workflow definition (v1)
+# Used by analytics EtoWorkflowService + EtoOrchestratorService
+workflow:
+  name: EtoMachineBuild
+  version: v1
+  taskQueue: erp-eto-saga
+  correlationKey: correlationId
+  tenantKey: tenantId
+
+steps:
+  - id: plm.bom.released.v2
+    service: plm
+    timeout: 30s
+    compensate: plm.bom.unreleased
+  - id: pm.material.requested.v1
+    service: pm
+    timeout: 20s
+    compensate: pm.material.request.cancelled
+  - id: inventory.reservation.created.v1
+    service: inv
+    timeout: 20s
+    compensate: inventory.reservation.released.v1
+  - id: mes.workorder.planned
+    service: mes
+    timeout: 30s
+    compensate: mes.workorder.cancelled
+  - id: mes.production.recorded.v1
+    service: mes
+    timeout: 60s
+    compensate: mes.production.reversed
+  - id: inventory.reservation.released.v1
+    service: inv
+    timeout: 20s
+    compensate: inventory.reservation.restored
+  - id: finance.wip.cost.recorded
+    service: finance
+    timeout: 30s
+    compensate: finance.wip.cost.reversed
+
+retryPolicy:
+  initialInterval: 2s
+  maxAttempts: 5
+  backoffCoefficient: 1.5

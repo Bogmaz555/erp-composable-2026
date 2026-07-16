@@ -1,0 +1,32 @@
+---
+description: Zasady inkrementalnego rozwoju ERP Composable 2026 (bez rewolucji strukturalnej)
+globs:
+  - apps/**/*
+  - scripts/**/*
+  - apps/shared-kernel/**/*
+---
+
+# ERP 2026 — Inkrementalny rozwój ETO
+
+## Architektura (nie zmieniaj bez ADR)
+- Monorepo `apps/*` + `apps/shared-kernel` — **nie** twórz `libs/events` ani nowych mikroserwisów orchestratora.
+- DB-per-service + Prisma — zero JOIN między domenami.
+- Komunikacja między backendami: **NATS pub/sub** (REST tylko przez gateway → UI).
+
+## Eventy operacyjne ETO
+Każdy event modyfikujący koszt/materiał/czas **musi** mieć:
+- `projectId` (wymagane)
+- `wbsElementId` lub `bomComponentId` (co najmniej jedno, gdy dotyczy WBS/materiału)
+- `tenantId` (domyślnie `default`)
+
+## Kaskada zmian (atomowo w jednym PR)
+1. Prisma schema (jeśli potrzeba)
+2. Kontrakt w `shared-kernel` (typy eventów)
+3. Handler NestJS + outbox
+4. Smoke script + regression endpoint
+5. UI tylko gdy user-facing
+
+## Zakazane bez explicit request
+- Nowy microservice (`agent-orchestrator`, `bi-service`, `pm-aps-service`)
+- MCP runtime servers, WebXR, Vision AI, pełny Zero Trust/mTLS
+- Migracja Turborepo lub rename projektu

@@ -21,6 +21,12 @@ describe('MES: Full Production Traceability (bomComponentId + AsBuilt + Events)'
             materialRequirement: { findMany: jest.fn().mockResolvedValue([]) },
             asBuiltRecord: { create: jest.fn() },
             outboxEvent: { create: jest.fn() },
+            workOrder: {
+              findUnique: jest.fn().mockResolvedValue({
+                projectId: 'proj-eto-1',
+                tenantId: 'default',
+              }),
+            },
           },
         },
       ],
@@ -49,7 +55,7 @@ describe('MES: Full Production Traceability (bomComponentId + AsBuilt + Events)'
       { id: 'req-2', itemId: 'item-b', quantity: 3, bomComponentId: 'bom-comp-uuid-2', reservedQty: 3 },
     ]);
 
-    const command = new RecordProductionCommand('wo-eto-spine-1', 4, 0, 'op-auth-user');
+    const command = new RecordProductionCommand('wo-eto-spine-1', 4, 0, 'op-auth-user', 6);
 
     await handler.execute(command);
 
@@ -60,6 +66,8 @@ describe('MES: Full Production Traceability (bomComponentId + AsBuilt + Events)'
           workOrderId: 'wo-eto-spine-1',
           bomComponentIds: expect.arrayContaining(['bom-comp-uuid-1', 'bom-comp-uuid-2']),
           operatorId: 'op-auth-user',
+          laborHours: 6,
+          projectId: 'proj-eto-1',
         }),
       })
     );

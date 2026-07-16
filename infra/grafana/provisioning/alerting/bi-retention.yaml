@@ -1,0 +1,40 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: erp-bi-retention
+    folder: ERP
+    interval: 1m
+    rules:
+      - uid: erp-bi-snapshot-high
+        title: BI Snapshot Total High
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: erp_bi_snapshot_total
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    params: [500]
+                    type: gt
+        for: 2m
+        noDataState: NoData
+        execErrState: Error
+        annotations:
+          summary: BI snapshot count elevated (Grafana rule)
+        labels:
+          domain: bi
+          severity: warning

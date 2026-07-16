@@ -9,9 +9,9 @@
 
 | ID | Problem | Wpływ | Wysiłek | Sugerowana Kolejność | Notatki |
 |----|---------|-------|---------|----------------------|---------|
-| TD-001 | Brak jakiejkolwiek autoryzacji / Auth | Krytyczny (nie nadaje się do użytku) | Wysoki | 1 | Zaczynaj od Gateway (patrz SECURITY-ROADMAP.md) |
-| TD-002 | Niespójny mechanizm proxy w API Gateway | Wysoki (niestabilność, trudna rozbudowa) | Średni | 2 | Główny dokument: GATEWAY-STABILIZATION-PLAN.md |
-| TD-003 | Brak realnej Saga Orchestracji dla długich procesów | Bardzo wysoki przy integracjach ETO | Wysoki | 3 | Rozważ Temporal lub lekki własny orchestrator |
+| TD-001 | Brak jakiejkolwiek autoryzacji / Auth | Krytyczny (nie nadaje się do użytku) | Wysoki | — | 🟡 W37: platform/auth/readiness, RBAC 7 ról |
+| TD-002 | Niespójny mechanizm proxy w API Gateway | Wysoki (niestabilność, trudna rozbudowa) | Średni | — | 🟡 W42: `GET /platform/gateway/readiness`, proxy probes (FA/PM/INV/HR), smoke + contract |
+| TD-003 | Brak realnej Saga Orchestracji dla długich procesów | Bardzo wysoki przy integracjach ETO | Wysoki | 3 | 🟡 W29: readiness API (orchestrator + temporal + workflow), yellow-minimum |
 | TD-004 | Płytkie modele domenowe w kluczowych modułach (PLM, MES, INV, Finance) | Bardzo wysoki (rdzeń wartości systemu) | Bardzo wysoki | 4 | To jest głównie praca domenowa, nie "dług" |
 
 ---
@@ -21,10 +21,10 @@
 | ID | Problem | Wpływ | Wysiłek | Kolejność | Notatki |
 |----|---------|-------|---------|-----------|---------|
 | TD-005 | Brak wersjonowania eventów w kodzie | Wysoki | Średni | Po TD-002 | Używać Event Registry jako źródła prawdy |
-| TD-006 | Mnóstwo `fix-*.js` na root + chaotyczny monorepo | Średni-wysoki (utrudnia pracę) | Niski | Wczesna Faza 1 | Usunąć lub skonsolidować |
+| TD-006 | Mnóstwo `fix-*.js` na root + chaotyczny monorepo | Średni-wysoki (utrudnia pracę) | Niski | — | ✅ Usunięte 2026-06-06 (`scripts/repo-cleanup.sh`) |
 | TD-007 | Niespójne Prisma client outputs i generowanie | Wysoki | Średni | Wczesna Faza 1 | Standaryzacja ścieżek i nazw |
-| TD-008 | Brak centralnego mechanizmu retry / circuit breaker | Średni | Średni | Po TD-002 | Najlepiej na poziomie Gateway + biblioteka w shared-kernel |
-| TD-009 | Słaba observability (tracing tylko częściowy) | Średni | Średni | Średnia Faza 1 | Rozwinąć OpenTelemetry we wszystkich serwisach |
+| TD-008 | Brak centralnego mechanizmu retry / circuit breaker | Średni | Średni | — | 🟡 W28+W34: outbox DLQ + observability readiness |
+| TD-009 | Słaba observability (tracing tylko częściowy) | Średni | Średni | — | 🟡 W26+W34: Jaeger + otel/status + readiness API |
 
 ---
 
@@ -32,10 +32,11 @@
 
 | ID | Problem | Wpływ | Wysiłek | Notatki |
 |----|---------|-------|---------|---------|
-| TD-010 | Różne wersje NestJS w overrides | Ryzyko | Niski | Ujednolicić |
-| TD-011 | Brak standaryzowanego `pnpm run boot:all` / docker dev experience | Uciążliwy | Średni | Poprawić developer experience |
-| TD-012 | Brak pełnego testowania kontraktowego (Pact) | Średni | Średni-wysoki | Wprowadzać stopniowo przy nowych integracjach |
-| TD-013 | Brak centralnego Audit Log | Wysoki (compliance + bezpieczeństwo) | Średni | Szczególnie ważne dla ECO, faktur, release projektów |
+| TD-010 | Różne wersje NestJS w overrides | Ryzyko | Niski | 🟡 W32: pnpm overrides 11.1.19 + audit API |
+| TD-011 | Brak standaryzowanego `pnpm run boot:all` / docker dev experience | Uciążliwy | Średni | 🟡 W44: ensure-core-stack.sh, stack/readiness, regression 59/59 |
+| F2-TAX | TaxLegal KSeF/JPK produkcyjny | Średni | Po Faza 2 | 🟡 W45: `/platform/tax/readiness`, KSeF sandbox env-gated |
+| TD-012 | Brak pełnego testowania kontraktowego (Pact) | Średni | Średni-wysoki | 🟡 W48: Event Registry readiness API; Pact broker odłożony |
+| TD-013 | Brak centralnego Audit Log | 🟡 W36 — structured fields + readiness API |
 
 ---
 
@@ -60,7 +61,9 @@
 - Consistent x-user-id / x-roles extraction + audit logging now live in NATS listeners for plm.bom.released.v2, mes.production.recorded.v1, inventory.reservation.released.v1 (INV + MES + Finance WIP).
 - Basic RBAC examples (@Roles + RolesGuard or inline) on BOM release and production start/finish.
 - ETO traceability spine (bomComponentId flows) is now identity-aware end-to-end.
-- Status: TD-001 significantly advanced in Manufacturing Core cluster. Remaining: full Keycloak realm + JWKS in gateway, broader RBAC matrix, mTLS later.
+- Status: TD-001 significantly advanced in Manufacturing Core cluster.
+- **SILENT-60:** Keycloak 24 w docker-compose (realm `erp`), `USE_KEYCLOAK_JWKS=true` w gateway, demo user `demo.engineer`.
+- Remaining: end-to-end JWT smoke, broader RBAC matrix, mTLS later.
 
 | Problem | Wpływ | Priorytet | Wysiłek |
 |--------|-------|---------|---------|

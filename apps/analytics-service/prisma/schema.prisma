@@ -1,0 +1,73 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../../node_modules/.prisma/client-analytics"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("ANALYTICS_DATABASE_URL")
+}
+
+model EtoSaga {
+  correlationId   String   @id
+  projectId       String
+  tenantId        String   @default("default")
+  status          String   @default("ACTIVE")
+  completedSteps  String[]
+  lastEventAt     DateTime
+  percentComplete Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  compensations   EtoSagaCompensation[]
+}
+
+model EtoSagaCompensation {
+  id            String   @id @default(uuid())
+  correlationId String
+  step          String
+  action        String
+  status        String   @default("DONE")
+  createdAt     DateTime @default(now())
+  saga          EtoSaga  @relation(fields: [correlationId], references: [correlationId], onDelete: Cascade)
+
+  @@index([correlationId])
+}
+
+model EtoOrchestrationJob {
+  id            String   @id @default(uuid())
+  correlationId String
+  tenantId      String   @default("default")
+  step          String
+  status        String   @default("PENDING")
+  attempts      Int      @default(0)
+  lastError     String?
+  nextRunAt     DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([status, nextRunAt])
+  @@index([correlationId])
+}
+
+model ImportStagingBatch {
+  id        String   @id
+  tenantId  String   @default("default")
+  rows      Json
+  rowCount  Int
+  status    String   @default("STAGED")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId, status])
+}
+
+model BiProjectSnapshot {
+  projectId   String   @id
+  tenantId    String   @default("default")
+  payload     Json
+  refreshedAt DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([tenantId, refreshedAt])
+}

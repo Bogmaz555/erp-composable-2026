@@ -1,0 +1,211 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../../node_modules/@prisma/client-finance"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("FINANCE_DATABASE_URL")
+}
+
+model Account {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  name        String
+  type        AccountType
+  balance     Float    @default(0.0)
+  currency    String   @default("PLN")
+  entries     JournalEntry[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model JournalEntry {
+  id          String   @id @default(uuid())
+  tenantId    String   @default("default")
+  accountId   String
+  amount      Float
+  type        EntryType
+  referenceId String?  // ID of the source event (e.g., invoice ID, PO ID, WO ID)
+  source      String?  // The source module (e.g., 'PROCUREMENT', 'SALES', 'MANUFACTURING_WIP')
+  description String?
+  account     Account  @relation(fields: [accountId], references: [id])
+  createdAt   DateTime @default(now())
+  @@index([tenantId, referenceId])
+}
+
+enum AccountType {
+  ASSET
+  LIABILITY
+  EQUITY
+  REVENUE
+  EXPENSE
+}
+
+enum EntryType {
+  DEBIT
+  CREDIT
+}
+
+// Universal Journal lite — płaska księga mikrokosztów (bez rewolucji GL)
+model UniversalJournalEntry {
+  id           String   @id @default(uuid())
+  tenantId     String   @default("default")
+  projectId    String?
+  wbsElementId String?
+  eventType    String
+  sourceModule String
+  amount       Float
+  currency     String   @default("PLN")
+  referenceId  String?
+  description  String?
+  bookedAt     DateTime @default(now())
+  @@index([tenantId, projectId, bookedAt])
+  @@index([eventType])
+}
+
+// ETO / Project Manufacturing WIP & Costing (Faza 1 alignment)
+model ProjectCost {
+  id          String   @id @default(uuid())
+  tenantId    String   @default("default")
+  projectId   String
+  workOrderId String?
+  costType    String   // MATERIAL | LABOR | OVERHEAD | SUBCONTRACT
+  amount      Float
+  currency    String   @default("PLN")
+  reference   String?
+  bookedAt    DateTime @default(now())
+  @@index([tenantId, projectId, costType])
+  @@index([workOrderId])
+}
+
+model WipAccount {
+  id          String   @id @default(uuid())
+  tenantId    String   @default("default")
+  projectId   String   @unique
+  wipBalance  Float    @default(0)
+  materialReserved Float @default(0)  // from INV reservations
+  laborCost   Float    @default(0)
+  updatedAt   DateTime @updatedAt
+}
+
+model MilestoneBilling {
+  id          String   @id @default(uuid())
+  tenantId    String   @default("default")
+  projectId   String
+  milestone   String   // e.g. FAT, SAT, SHIPMENT, FINAL
+  amount      Float
+  percent     Float?
+  status      String   @default("PENDING") // PENDING | READY | INVOICED | PAID
+  dueDate     DateTime?
+  invoicedAt    DateTime?
+  reachedAt     DateTime?
+  recognizedAt  DateTime?
+  @@index([tenantId, projectId, status])
+  @@unique([tenantId, projectId, milestone])
+}
+
+model Payable {
+  id        String    @id @default(uuid())
+  tenantId  String    @default("default")
+  vendor    String
+  amount    Float
+  currency  String    @default("PLN")
+  dueDate   DateTime?
+  status    String    @default("PENDING") // PENDING | PAID | OVERDUE
+  orderRef  String?
+  createdAt DateTime  @default(now())
+  @@index([tenantId, status])
+}
+
+model Receivable {
+  id         String    @id @default(uuid())
+  tenantId   String    @default("default")
+  client     String
+  amount     Float
+  currency   String    @default("PLN")
+  dueDate    DateTime?
+  status     String    @default("PENDING")
+  invoiceRef String?
+  projectId  String?
+  createdAt  DateTime  @default(now())
+  @@index([tenantId, status])
+}
+
+model RevenueRecognition {
+  id                  String   @id @default(uuid())
+  tenantId            String   @default("default")
+  projectId           String
+  milestone           String
+  amount              Float
+  currency            String   @default("PLN")
+  ksefReferenceNumber String?
+  recognizedAt        DateTime @default(now())
+  @@index([tenantId, projectId])
+}
+
+// Project/operation cost rates (Faza 2 — replaces env-only defaults)
+model CostRate {
+  id           String   @id @default(uuid())
+  tenantId     String   @default("default")
+  projectId    String?
+  costType     String   // LABOR | OVERHEAD | MATERIAL
+  rateValue    Float
+  unit         String   @default("HOUR") // HOUR | PCT | PLN_PER_UNIT
+  effectiveFrom DateTime @default(now())
+  effectiveTo   DateTime?
+  @@index([tenantId, projectId, costType])
+}
+
+// Środki trwałe — amortyzacja liniowa (enterprise FA)
+model FixedAsset {
+  id                     String   @id @default(uuid())
+  tenantId               String   @default("default")
+  code                   String   @unique
+  name                   String
+  category               String   @default("MACHINERY") // MACHINERY | VEHICLE | IT | BUILDING
+  acquisitionCost        Float
+  salvageValue           Float    @default(0)
+  usefulLifeMonths       Int      @default(60)
+  depreciationMethod     String   @default("STRAIGHT_LINE")
+  accumulatedDepreciation Float   @default(0)
+  netBookValue           Float
+  status                 String   @default("ACTIVE") // ACTIVE | DISPOSED | FULLY_DEPRECIATED
+  acquiredAt             DateTime @default(now())
+  lastDepreciationAt     DateTime?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  depreciations          FixedAssetDepreciation[]
+  @@index([tenantId, status, category])
+}
+
+model FixedAssetDepreciation {
+  id           String     @id @default(uuid())
+  tenantId     String     @default("default")
+  assetId      String
+  asset        FixedAsset @relation(fields: [assetId], references: [id])
+  period       String     // YYYY-MM
+  amount       Float
+  netBookAfter Float
+  postedAt     DateTime   @default(now())
+  @@index([tenantId, assetId, period])
+}
+
+enum OutboxStatus {
+  PENDING
+  PROCESSED
+  FAILED
+}
+
+model OutboxEvent {
+  id            String       @id @default(uuid())
+  tenantId      String       @default("default")
+  aggregateId   String
+  aggregateType String
+  eventType     String
+  payload       Json
+  status        OutboxStatus @default(PENDING)
+  createdAt     DateTime     @default(now())
+  processedAt   DateTime?
+  @@index([tenantId, status, createdAt])
+}

@@ -1,0 +1,43 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../../node_modules/.prisma/client-tax-legal"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("TAX_LEGAL_DATABASE_URL")
+}
+
+model TaxInvoice {
+  id                  String   @id @default(uuid())
+  tenantId            String   @default("default")
+  projectId           String
+  milestone           String
+  amount              Float
+  currency            String   @default("PLN")
+  buyerNip            String?
+  ksefReferenceNumber String?
+  status              String   @default("DRAFT") // DRAFT | SENT | ACCEPTED | REJECTED
+  faSchemaVersion     String   @default("FA(3)")
+  sentAt              DateTime?
+  createdAt           DateTime @default(now())
+  @@index([tenantId, projectId, milestone])
+}
+
+enum OutboxStatus {
+  PENDING
+  PROCESSED
+  FAILED
+}
+
+model OutboxEvent {
+  id            String       @id @default(uuid())
+  tenantId      String       @default("default")
+  aggregateId   String
+  aggregateType String
+  eventType     String
+  payload       Json
+  status        OutboxStatus @default(PENDING)
+  createdAt     DateTime     @default(now())
+  processedAt   DateTime?
+}

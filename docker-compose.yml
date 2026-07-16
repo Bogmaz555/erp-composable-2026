@@ -1,0 +1,571 @@
+##############################################################################
+# ERP Composable 2026 — Target Dev Infrastructure
+# Źródło: target_architecture.md § 12
+# Uruchomienie: docker compose up -d
+# Weryfikacja: docker compose ps
+##############################################################################
+
+services:
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # DATABASE-PER-SERVICE — Izolowane bazy PostgreSQL 16 per PBC
+  # Architektura: specs/ERP_Architecture.md § 1 (Strict: Database-per-Service)
+  # Bezpośrednie JOINy między bazami różnych modułów są ZABRONIONE.
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  crm-db:
+    image: postgres:16-alpine
+    container_name: erp-crm-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: crm_db
+      POSTGRES_USER: erp_user
+      POSTGRES_PASSWORD: erp_password
+    ports:
+      - "5433:5432"
+    volumes:
+      - crm_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U erp_user -d crm_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - erp-network
+
+  pm-db:
+    image: postgres:16-alpine
+    container_name: erp-pm-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: pm_db
+      POSTGRES_USER: erp_user
+      POSTGRES_PASSWORD: erp_password
+    ports:
+      - "5434:5432"
+    volumes:
+      - pm_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U erp_user -d pm_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - erp-network
+
+  mfg-db:
+    image: postgres:16-alpine
+    container_name: erp-mfg-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: mfg_db
+      POSTGRES_USER: erp_user
+      POSTGRES_PASSWORD: erp_password
+    ports:
+      - "5435:5432"
+    volumes:
+      - mfg_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U erp_user -d mfg_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - erp-network
+
+  inv-db:
+    image: postgres:16-alpine
+    container_name: erp-inv-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: inv_db
+      POSTGRES_USER: erp_user
+      POSTGRES_PASSWORD: erp_password
+    ports:
+      - "5436:5432"
+    volumes:
+      - inv_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U erp_user -d inv_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - erp-network
+
+  proc-db:
+    image: postgres:16-alpine
+    container_name: erp-proc-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: proc_db
+      POSTGRES_USER: erp_user
+      POSTGRES_PASSWORD: erp_password
+    ports:
+      - "5437:5432"
+    volumes:
+      - proc_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U erp_user -d proc_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - erp-network
+
+  fin-db:
+    image: postgres:16-alpine
+    container_name: erp-fin-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: fin_db
+      POSTGRES_USER: erp_user
+      POSTGRES_PASSWORD: erp_password
+    ports:
+      - "5438:5432"
+    volumes:
+      - fin_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U erp_user -d fin_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - erp-network
+
+  quality-db:
+    image: postgres:16-alpine
+    container_name: erp-quality-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: quality_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5439:5432"
+    volumes:
+      - quality_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d quality_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - erp-network
+
+  eam-db:
+    image: postgres:16-alpine
+    container_name: erp-eam-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: eam_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5440:5432"
+    volumes:
+      - eam_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d eam_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - erp-network
+
+  tax-db:
+    image: postgres:16-alpine
+    container_name: erp-tax-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: tax_legal_db
+      POSTGRES_USER: erp_user
+      POSTGRES_PASSWORD: erp_password
+    ports:
+      - "5442:5432"
+    volumes:
+      - tax_pgdata:/var/lib/postgresql/data
+    networks:
+      - erp-network
+
+  hr-db:
+    image: postgres:16-alpine
+    container_name: erp-hr-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: hr_db
+      POSTGRES_USER: erp_user
+      POSTGRES_PASSWORD: erp_password
+    ports:
+      - "5443:5432"
+    volumes:
+      - hr_pgdata:/var/lib/postgresql/data
+    networks:
+      - erp-network
+
+  plm-db:
+    image: postgres:16-alpine
+    container_name: erp-plm-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: plm_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5441:5432"
+    volumes:
+      - plm_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d plm_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - erp-network
+
+  analytics-db:
+    image: postgres:16-alpine
+    container_name: erp-analytics-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: analytics_db
+      POSTGRES_USER: erp_user
+      POSTGRES_PASSWORD: erp_password
+    ports:
+      - "5445:5432"
+    volumes:
+      - analytics_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U erp_user -d analytics_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - erp-network
+  # ═══════════════════════════════════════════════════════════════════════════
+  # EVENT BUS — NATS JetStream
+  # Architektura: specs/ERP_Architecture.md § 1 (Komunikacja Międzyserwisowa)
+  # Wszystkie PBC komunikują się wyłącznie przez emisję/nasłuchiwanie zdarzeń.
+  # Port 4222: Client connections (publish/subscribe)
+  # Port 8222: HTTP monitoring dashboard
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # WORKFLOW ENGINE — Temporal (optional profile)
+  # Uruchomienie: docker compose --profile temporal up -d temporal temporal-ui
+  # ERP analytics orchestrator używa YAML workflow; Temporal = upgrade path.
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  temporal:
+    image: temporalio/auto-setup:1.24.2
+    container_name: erp-temporal
+    profiles: ["temporal"]
+    restart: unless-stopped
+    environment:
+      DB: postgresql
+      DB_PORT: 5432
+      POSTGRES_USER: erp_user
+      POSTGRES_PWD: erp_password
+      POSTGRES_SEEDS: temporal-db
+      DYNAMIC_CONFIG_FILE_PATH: config/dynamicconfig/development-sql.yaml
+    ports:
+      - "7233:7233"
+    depends_on:
+      temporal-db:
+        condition: service_healthy
+    networks:
+      - erp-network
+
+  temporal-db:
+    image: postgres:16-alpine
+    container_name: erp-temporal-db
+    profiles: ["temporal"]
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: temporal
+      POSTGRES_USER: erp_user
+      POSTGRES_PASSWORD: erp_password
+    volumes:
+      - temporal_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U erp_user -d temporal"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - erp-network
+
+  temporal-ui:
+    image: temporalio/ui:2.31.2
+    container_name: erp-temporal-ui
+    profiles: ["temporal"]
+    restart: unless-stopped
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_CORS_ORIGINS: http://localhost:3001
+    ports:
+      - "8088:8080"
+    depends_on:
+      - temporal
+    networks:
+      - erp-network
+
+  # OBSERVABILITY — Jaeger OTLP (optional profile)
+  # Uruchomienie: docker compose --profile otel up -d jaeger
+  # UI: http://localhost:16686 | OTLP: http://localhost:4318/v1/traces
+  jaeger:
+    image: jaegertracing/all-in-one:1.57
+    container_name: erp-jaeger
+    profiles: ["otel"]
+    restart: unless-stopped
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - "4318:4318"
+      - "16686:16686"
+    networks:
+      - erp-network
+
+  # OBSERVABILITY — Prometheus + Grafana (optional profile)
+  # Uruchomienie: docker compose --profile observability up -d prometheus grafana alertmanager
+  # Prod stack: docker compose --profile prod-observability up -d prometheus grafana alertmanager vault
+  # Grafana: http://localhost:3000 (admin/admin) | Prometheus: http://localhost:9090
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    container_name: erp-prometheus
+    profiles: ["observability", "prod-observability"]
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./infra/prometheus/alerts:/etc/prometheus/alerts:ro
+    networks:
+      - erp-network
+
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    container_name: erp-alertmanager
+    profiles: ["observability", "prod-observability"]
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./infra/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - ./infra/alertmanager/templates:/etc/alertmanager/templates:ro
+    networks:
+      - erp-network
+
+  grafana:
+    image: grafana/grafana:11.1.0
+    container_name: erp-grafana
+    profiles: ["observability", "prod-observability"]
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_DEFAULT_THEME: dark
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infra/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+      - alertmanager
+    networks:
+      - erp-network
+
+  # SECURITY — Vault dev + TLS certs (optional profile)
+  # Uruchomienie: docker compose --profile prod-security up -d vault
+  # HA stub: docker compose --profile prod-observability up -d vault vault-ha
+  vault:
+    image: hashicorp/vault:1.17
+    container_name: erp-vault
+    profiles: ["prod-security", "prod-observability"]
+    restart: unless-stopped
+    cap_add:
+      - IPC_LOCK
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: dev-root
+      VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
+    ports:
+      - "8200:8200"
+    volumes:
+      - vault_data:/vault/data
+      - ./infra/vault/vault.hcl:/vault/config/vault.hcl:ro
+    networks:
+      - erp-network
+
+  vault-ha:
+    image: hashicorp/vault:1.17
+    container_name: erp-vault-ha
+    profiles: ["prod-observability"]
+    restart: unless-stopped
+    cap_add:
+      - IPC_LOCK
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: dev-root-ha
+      VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8201
+    ports:
+      - "8201:8201"
+    volumes:
+      - vault_ha_data:/vault/data
+      - ./infra/vault/ha/ha-config.hcl:/vault/config/vault.hcl:ro
+    networks:
+      - erp-network
+
+  vault-raft:
+    image: hashicorp/vault:1.17
+    container_name: erp-vault-raft
+    profiles: ["prod-observability"]
+    restart: unless-stopped
+    cap_add:
+      - IPC_LOCK
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: dev-root-raft
+      VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8202
+    ports:
+      - "8202:8202"
+    volumes:
+      - vault_raft_data:/vault/data
+      - ./infra/vault/raft/raft-config.hcl:/vault/config/vault.hcl:ro
+    networks:
+      - erp-network
+
+  nats:
+    image: nats:2.10-alpine
+    container_name: erp-nats
+    restart: unless-stopped
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+    volumes:
+      - nats_data:/data
+      - ./infra/nats/nats.conf:/etc/nats/nats-server.conf:ro
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8222/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - erp-network
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # CACHE & SESSIONS — Redis 7
+  # Zastosowania: Token cache, session storage, rate limiting (API Gateway),
+  # Zustand persistence, TanStack Query hydration cache
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # IDENTITY — Keycloak (dev / smoke; see docs/SECURITY-ROADMAP.md)
+  # Admin: admin / admin | Realm: erp | Demo: demo.engineer / demo123
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0
+    container_name: erp-keycloak
+    restart: unless-stopped
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_HTTP_PORT: 8080
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./infra/keycloak/realm-erp.json:/opt/keycloak/data/import/realm-erp.json:ro
+    networks:
+      - erp-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: erp-redis
+    restart: unless-stopped
+    command:
+      - "redis-server"
+      - "--appendonly"
+      - "yes"
+      - "--maxmemory"
+      - "256mb"
+      - "--maxmemory-policy"
+      - "allkeys-lru"
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - erp-network
+
+# ═════════════════════════════════════════════════════════════════════════════
+# NAMED VOLUMES — Persistent storage per service
+# ═════════════════════════════════════════════════════════════════════════════
+
+volumes:
+  crm_pgdata:
+    driver: local
+  pm_pgdata:
+    driver: local
+  mfg_pgdata:
+    driver: local
+  inv_pgdata:
+    driver: local
+  proc_pgdata:
+    driver: local
+  fin_pgdata:
+    driver: local
+  quality_pgdata:
+    driver: local
+  eam_pgdata:
+    driver: local
+  plm_pgdata:
+    driver: local
+  tax_pgdata:
+    driver: local
+  hr_pgdata:
+    driver: local
+  analytics_pgdata:
+    driver: local
+  temporal_pgdata:
+    driver: local
+  nats_data:
+    driver: local
+  redis_data:
+    driver: local
+  grafana_data:
+    driver: local
+  vault_data:
+  vault_ha_data:
+  vault_raft_data:
+    driver: local
+
+# ═════════════════════════════════════════════════════════════════════════════
+# NETWORK — Izolowana sieć wewnętrzna dla wszystkich usług ERP
+# ═════════════════════════════════════════════════════════════════════════════
+
+networks:
+  erp-network:
+    driver: bridge
+    name: erp-composable-network

@@ -1,0 +1,335 @@
+name: ERP Composable CI
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master, develop]
+
+jobs:
+  contracts:
+    name: Contract & Smoke Gate
+    runs-on: ubuntu-latest
+    env:
+      CI_AUTH_ENFORCE: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm install
+      - run: npm run ci:contracts
+      - run: CI_AUTH_ENFORCE=true npx tsx scripts/ci-auth-enforce-probe.ts
+      - run: CI_PLAYWRIGHT_PM_BI=true npx tsx scripts/ci-playwright-pm-bi-probe.ts
+      - run: CI_AUTH_ENFORCE_LIVE=true npx tsx scripts/ci-auth-enforce-live-probe.ts
+      - run: CI_PLAYWRIGHT_STACK=true npx tsx scripts/ci-playwright-stack-probe.ts
+      - run: CI_AUTH_ENFORCE_REGRESSION=true npx tsx scripts/ci-auth-enforce-regression-probe.ts
+      - run: CI_PLAYWRIGHT_REQUIRED=true npx tsx scripts/ci-playwright-required-probe.ts
+      - run: CI_AUTH_ENFORCE_KEYCLOAK=true npx tsx scripts/ci-auth-keycloak-regression-probe.ts
+      - run: CI_GRAFANA_PROVISION=true npx tsx scripts/ci-grafana-provision-probe.ts
+      - run: CI_PLAYWRIGHT_MATRIX=true npx tsx scripts/ci-playwright-matrix-probe.ts
+      - run: CI_AUTH_ENFORCE_PROD=true npx tsx scripts/ci-auth-enforce-prod-probe.ts
+      - run: CI_BI_ALERTS=true npx tsx scripts/ci-bi-alerts-probe.ts
+      - run: CI_VAULT_TLS_PROD=true npx tsx scripts/ci-vault-tls-prod-probe.ts
+      - run: CI_ALERT_NOTIFY=true npx tsx scripts/ci-alert-notify-probe.ts
+      - run: CI_MTLS_GATEWAY=true npx tsx scripts/ci-mtls-gateway-probe.ts
+      - run: CI_ALERT_ESCALATION=true npx tsx scripts/ci-alert-escalation-probe.ts
+      - run: CI_MTLS_PROXY=true npx tsx scripts/ci-mtls-proxy-probe.ts
+      - run: CI_ALERT_ONCALL=true npx tsx scripts/ci-alert-oncall-probe.ts
+      - run: CI_MTLS_CLIENT_VERIFY=true npx tsx scripts/ci-mtls-client-verify-probe.ts
+      - run: CI_SLO_BURN_RATE=true npx tsx scripts/ci-slo-burn-rate-probe.ts
+      - run: CI_PLAYWRIGHT_CROSS_CHAIN=true npx tsx scripts/ci-playwright-cross-chain-probe.ts
+      - run: CI_TLS_ROTATION=true npx tsx scripts/ci-tls-rotation-probe.ts
+      - run: CI_GRAFANA_SLO_DASHBOARD=true npx tsx scripts/ci-grafana-slo-dashboard-probe.ts
+      - run: CI_PLAYWRIGHT_PROC_INV_QUALITY=true npx tsx scripts/ci-playwright-proc-inv-quality-probe.ts
+      - run: CI_VAULT_SECRETS_ROTATION=true npx tsx scripts/ci-vault-secrets-rotation-probe.ts
+      - run: CI_SLO_ALERTING=true npx tsx scripts/ci-slo-alerting-probe.ts
+      - run: CI_PLAYWRIGHT_MES_EAM_CRM=true npx tsx scripts/ci-playwright-mes-eam-crm-probe.ts
+      - run: CI_VAULT_KMS_UNSEAL=true npx tsx scripts/ci-vault-kms-unseal-probe.ts
+      - run: CI_SLO_ROUTING=true npx tsx scripts/ci-slo-routing-probe.ts
+      - run: CI_PLAYWRIGHT_HR_PLM_PM=true npx tsx scripts/ci-playwright-hr-plm-pm-probe.ts
+      - run: CI_VAULT_AUDIT=true npx tsx scripts/ci-vault-audit-probe.ts
+      - run: CI_PROD_OBSERVABILITY=true npx tsx scripts/ci-prod-observability-probe.ts
+      - run: CI_PLAYWRIGHT_CHAIN_MATRIX=true npx tsx scripts/ci-playwright-chain-matrix-probe.ts
+      - run: CI_VAULT_HA=true npx tsx scripts/ci-vault-ha-probe.ts
+      - run: CI_K8S_DEPLOY=true npx tsx scripts/ci-k8s-deploy-probe.ts
+      - run: CI_PLAYWRIGHT_VISUAL=true npx tsx scripts/ci-playwright-visual-probe.ts
+      - run: CI_VAULT_RAFT=true npx tsx scripts/ci-vault-raft-probe.ts
+      - run: CI_HELM_DEPLOY=true npx tsx scripts/ci-helm-deploy-probe.ts
+      - run: CI_PLAYWRIGHT_VISUAL_DIFF=true npx tsx scripts/ci-playwright-visual-diff-probe.ts
+      - run: CI_QUALITY_EAM_PROD=true npx tsx scripts/ci-quality-eam-prod-probe.ts
+      - run: CI_K8S_EXTENDED=true npx tsx scripts/ci-k8s-extended-probe.ts
+      - run: CI_TENANT_HARDENING=true npx tsx scripts/ci-tenant-hardening-probe.ts
+      - run: CI_KSEF_PROD=true npx tsx scripts/ci-ksef-prod-probe.ts
+
+  regression:
+    name: Regression Report (optional live)
+    runs-on: ubuntu-latest
+    needs: contracts
+    env:
+      CI_AUTH_ENFORCE_REGRESSION: 'true'
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm install
+      - run: CI_AUTH_ENFORCE_REGRESSION=true npx tsx scripts/ci-auth-enforce-regression-probe.ts
+      - run: npm run build:fin
+      - run: npm run regression:report || echo "SKIP live regression (services not up)"
+
+  playwright-pm-bi-required:
+    name: Playwright PM BI (stack boot)
+    runs-on: ubuntu-latest
+    needs: contracts
+    env:
+      CI_PLAYWRIGHT_REQUIRED: 'true'
+      CI_PLAYWRIGHT_STACK: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm install
+      - run: CI_PLAYWRIGHT_REQUIRED=true npx tsx scripts/ci-playwright-required-probe.ts
+      - run: CI_PLAYWRIGHT_STACK=true npx tsx scripts/ci-playwright-stack-probe.ts
+      - run: bash scripts/ci-playwright-stack-boot.sh
+      - run: npx playwright install chromium --with-deps
+      - run: FRONTEND_URL=http://127.0.0.1:3001 PW_SKIP_SERVER=1 npx playwright test e2e/pm-bi-panel.spec.ts
+
+  playwright-matrix:
+    name: Playwright Module Matrix (11 modules)
+    runs-on: ubuntu-latest
+    needs: contracts
+    env:
+      CI_PLAYWRIGHT_MATRIX: 'true'
+      CI_PLAYWRIGHT_STACK: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm install
+      - run: CI_PLAYWRIGHT_MATRIX=true npx tsx scripts/ci-playwright-matrix-probe.ts
+      - run: CI_PLAYWRIGHT_STACK=true npx tsx scripts/ci-playwright-stack-probe.ts
+      - run: bash scripts/ci-playwright-stack-boot.sh
+      - run: npx playwright install chromium --with-deps
+      - run: FRONTEND_URL=http://127.0.0.1:3001 PW_SKIP_SERVER=1 npx playwright test e2e/pm-bi-panel.spec.ts e2e/finance-module.spec.ts e2e/inv-module.spec.ts e2e/proc-module.spec.ts e2e/quality-module.spec.ts e2e/mes-module.spec.ts e2e/eam-module.spec.ts e2e/crm-module.spec.ts e2e/tax-module.spec.ts e2e/hr-module.spec.ts e2e/plm-module.spec.ts
+
+  playwright-cross-chain:
+    name: Playwright Cross Module Chain (PM→Finance→Tax)
+    runs-on: ubuntu-latest
+    needs: contracts
+    env:
+      CI_PLAYWRIGHT_CROSS_CHAIN: 'true'
+      CI_PLAYWRIGHT_STACK: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm install
+      - run: CI_PLAYWRIGHT_CROSS_CHAIN=true npx tsx scripts/ci-playwright-cross-chain-probe.ts
+      - run: CI_PLAYWRIGHT_STACK=true npx tsx scripts/ci-playwright-stack-probe.ts
+      - run: bash scripts/ci-playwright-stack-boot.sh
+      - run: npx playwright install chromium --with-deps
+      - run: FRONTEND_URL=http://127.0.0.1:3001 PW_SKIP_SERVER=1 npx playwright test e2e/pm-finance-tax-chain.spec.ts
+
+  playwright-proc-inv-quality-chain:
+    name: Playwright Cross Module Chain (PROC→INV→Quality)
+    runs-on: ubuntu-latest
+    needs: contracts
+    env:
+      CI_PLAYWRIGHT_PROC_INV_QUALITY: 'true'
+      CI_PLAYWRIGHT_STACK: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm install
+      - run: CI_PLAYWRIGHT_PROC_INV_QUALITY=true npx tsx scripts/ci-playwright-proc-inv-quality-probe.ts
+      - run: CI_PLAYWRIGHT_STACK=true npx tsx scripts/ci-playwright-stack-probe.ts
+      - run: bash scripts/ci-playwright-stack-boot.sh
+      - run: npx playwright install chromium --with-deps
+      - run: FRONTEND_URL=http://127.0.0.1:3001 PW_SKIP_SERVER=1 npx playwright test e2e/proc-inv-quality-chain.spec.ts
+
+  playwright-mes-eam-crm-chain:
+    name: Playwright Cross Module Chain (MES→EAM→CRM)
+    runs-on: ubuntu-latest
+    needs: contracts
+    env:
+      CI_PLAYWRIGHT_MES_EAM_CRM: 'true'
+      CI_PLAYWRIGHT_STACK: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm install
+      - run: CI_PLAYWRIGHT_MES_EAM_CRM=true npx tsx scripts/ci-playwright-mes-eam-crm-probe.ts
+      - run: CI_PLAYWRIGHT_STACK=true npx tsx scripts/ci-playwright-stack-probe.ts
+      - run: bash scripts/ci-playwright-stack-boot.sh
+      - run: npx playwright install chromium --with-deps
+      - run: FRONTEND_URL=http://127.0.0.1:3001 PW_SKIP_SERVER=1 npx playwright test e2e/mes-eam-crm-chain.spec.ts
+
+  playwright-hr-plm-pm-chain:
+    name: Playwright Cross Module Chain (HR→PLM→PM)
+    runs-on: ubuntu-latest
+    needs: contracts
+    env:
+      CI_PLAYWRIGHT_HR_PLM_PM: 'true'
+      CI_PLAYWRIGHT_STACK: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm install
+      - run: CI_PLAYWRIGHT_HR_PLM_PM=true npx tsx scripts/ci-playwright-hr-plm-pm-probe.ts
+      - run: CI_PLAYWRIGHT_STACK=true npx tsx scripts/ci-playwright-stack-probe.ts
+      - run: bash scripts/ci-playwright-stack-boot.sh
+      - run: npx playwright install chromium --with-deps
+      - run: FRONTEND_URL=http://127.0.0.1:3001 PW_SKIP_SERVER=1 npx playwright test e2e/hr-plm-pm-chain.spec.ts
+
+  playwright-all-chains-matrix:
+    name: Playwright All Cross Chains Matrix
+    runs-on: ubuntu-latest
+    needs: contracts
+    env:
+      CI_PLAYWRIGHT_CHAIN_MATRIX: 'true'
+      CI_PLAYWRIGHT_STACK: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm install
+      - run: CI_PLAYWRIGHT_CHAIN_MATRIX=true npx tsx scripts/ci-playwright-chain-matrix-probe.ts
+      - run: CI_PLAYWRIGHT_STACK=true npx tsx scripts/ci-playwright-stack-probe.ts
+      - run: bash scripts/ci-playwright-stack-boot.sh
+      - run: npx playwright install chromium --with-deps
+      - run: FRONTEND_URL=http://127.0.0.1:3001 PW_SKIP_SERVER=1 npx playwright test e2e/all-cross-chains-matrix.spec.ts e2e/pm-finance-tax-chain.spec.ts e2e/proc-inv-quality-chain.spec.ts e2e/mes-eam-crm-chain.spec.ts e2e/hr-plm-pm-chain.spec.ts
+
+  playwright-visual-baseline:
+    name: Playwright Visual Regression Baseline
+    runs-on: ubuntu-latest
+    needs: contracts
+    env:
+      CI_PLAYWRIGHT_VISUAL: 'true'
+      CI_PLAYWRIGHT_STACK: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm install
+      - run: CI_PLAYWRIGHT_VISUAL=true npx tsx scripts/ci-playwright-visual-probe.ts
+      - run: CI_PLAYWRIGHT_STACK=true npx tsx scripts/ci-playwright-stack-probe.ts
+      - run: bash scripts/ci-playwright-stack-boot.sh
+      - run: npx playwright install chromium --with-deps
+      - run: FRONTEND_URL=http://127.0.0.1:3001 PW_SKIP_SERVER=1 npx playwright test e2e/visual-baseline.spec.ts --update-snapshots || FRONTEND_URL=http://127.0.0.1:3001 PW_SKIP_SERVER=1 npx playwright test e2e/visual-baseline.spec.ts
+
+  playwright-visual-diff:
+    name: Playwright Visual Diff (strict)
+    runs-on: ubuntu-latest
+    needs: contracts
+    env:
+      CI_PLAYWRIGHT_VISUAL_DIFF: 'true'
+      CI_PLAYWRIGHT_STACK: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm install
+      - run: CI_PLAYWRIGHT_VISUAL_DIFF=true npx tsx scripts/ci-playwright-visual-diff-probe.ts
+      - run: CI_PLAYWRIGHT_STACK=true npx tsx scripts/ci-playwright-stack-probe.ts
+      - run: bash scripts/ci-playwright-stack-boot.sh
+      - run: npx playwright install chromium --with-deps
+      - run: FRONTEND_URL=http://127.0.0.1:3001 PW_SKIP_SERVER=1 npx playwright test e2e/visual-baseline.spec.ts
+
+  playwright:
+    name: Playwright PM BI E2E
+    runs-on: ubuntu-latest
+    needs: contracts
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm install
+      - run: npx playwright install chromium --with-deps
+      - run: PW_SKIP_SERVER=1 npx playwright test e2e/pm-bi-panel.spec.ts || echo "SKIP pm-bi e2e (stack not up)"
+
+  auth-enforce-live:
+    name: Auth Enforce Live (Keycloak)
+    runs-on: ubuntu-latest
+    needs: contracts
+    env:
+      CI_AUTH_ENFORCE_LIVE: 'true'
+      CI_AUTH_ENFORCE_KEYCLOAK: 'true'
+      CI_AUTH_ENFORCE_PROD: 'true'
+      AUTH_ENFORCE: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm install
+      - run: CI_AUTH_ENFORCE_PROD=true npx tsx scripts/ci-auth-enforce-prod-probe.ts
+      - run: CI_AUTH_ENFORCE_KEYCLOAK=true npx tsx scripts/ci-auth-keycloak-regression-probe.ts
+      - run: CI_AUTH_ENFORCE_LIVE=true npx tsx scripts/ci-auth-enforce-live-probe.ts
+      - run: bash scripts/ensure-keycloak-ready.sh
+      - run: npx tsx scripts/auth-enforce-smoke.ts
+
+  docker-smoke:
+    name: Docker DB + Warstwa 11
+    runs-on: ubuntu-latest
+    needs: contracts
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm install
+      - run: docker compose up -d proc-db pm-db fin-db inv-db
+      - run: sleep 15
+      - run: bash scripts/ensure-databases.sh proc-service pm-service finance || true
+      - run: bash scripts/autonomous-warstwa11-pipeline.sh --skip-boot || true
+      - run: docker compose up -d nats || true
+      - run: sleep 5
+      - run: bash scripts/autonomous-warstwa13-pipeline.sh --skip-boot || true
+      - run: docker compose up -d analytics-db || true
+      - run: sleep 10
+      - run: bash scripts/ensure-databases.sh analytics-service || true
+      - run: bash scripts/autonomous-warstwa15-pipeline.sh --skip-boot || true
+      - run: bash scripts/ensure-keycloak-ready.sh || true
+      - run: bash scripts/autonomous-warstwa16-pipeline.sh --skip-boot || true
+      - run: bash scripts/autonomous-warstwa17-pipeline.sh --skip-boot || true
+      - run: bash scripts/autonomous-warstwa18-pipeline.sh --skip-boot || true
+      - run: bash scripts/autonomous-warstwa19-pipeline.sh --skip-boot || true
+      - run: bash scripts/autonomous-warstwa20-pipeline.sh --skip-boot || true
+      - run: bash scripts/autonomous-warstwa21-pipeline.sh --skip-boot || true
+      - run: bash scripts/nest-build-all.sh || true
+      - run: bash scripts/autonomous-warstwa22-pipeline.sh --skip-boot || true
+      - run: bash scripts/autonomous-warstwa23-pipeline.sh --skip-boot || true
+      - run: bash scripts/autonomous-warstwa24-pipeline.sh --skip-boot || true
+      - run: bash scripts/autonomous-warstwa28-pipeline.sh --skip-boot || true

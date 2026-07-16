@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: quality-service
+  namespace: erp
+  labels:
+    app: quality-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: quality-service
+  template:
+    metadata:
+      labels:
+        app: quality-service
+    spec:
+      containers:
+        - name: quality-service
+          image: erp/quality-service:latest
+          ports:
+            - containerPort: 4008
+          env:
+            - name: NATS_URL
+              value: nats://nats:4222
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 4008
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 4008
+            initialDelaySeconds: 5
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: quality-service
+  namespace: erp
+spec:
+  selector:
+    app: quality-service
+  ports:
+    - port: 4008
+      targetPort: 4008
+  type: ClusterIP

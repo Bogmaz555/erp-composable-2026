@@ -1,0 +1,9 @@
+global:
+  namespace: erp-staging
+
+apiGateway:
+  replicaCount: 2
+  authEnforce: true
+
+analyticsService:
+  replicaCount: 2

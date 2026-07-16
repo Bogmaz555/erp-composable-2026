@@ -1,0 +1,21 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../../node_modules/@prisma/client-dms"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DMS_DATABASE_URL")
+}
+
+model Document {
+  id                String   @id @default(uuid())
+  fileName          String
+  fileUrl           String
+  mimeType          String   @default("application/pdf")
+  tags              String[]
+  engineeringItemId String?
+  projectId         String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}

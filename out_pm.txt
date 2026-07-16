@@ -1,0 +1,3 @@
+apps/pm-service/src/crm-integration.controller.ts:2:import { EventPattern, Payload, Ctx, NatsContext } from '@nestjs/microservices';
+apps/pm-service/src/crm-integration.controller.ts:13:  @EventPattern('crm.opportunity.accepted.v1')
+apps/pm-service/src/crm-integration.controller.ts:39:  @EventPattern('procurement.order.rejected')

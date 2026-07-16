@@ -1,0 +1,127 @@
+route:
+  receiver: erp-default
+  group_by: ['alertname', 'domain']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  routes:
+    - match:
+        severity: critical
+      receiver: erp-critical
+      continue: true
+    - match:
+        severity: critical
+      receiver: erp-pagerduty
+      active_time_intervals:
+        - erp-oncall-business-hours
+        - erp-oncall-weekend
+    - match:
+        severity: critical
+      receiver: erp-opsgenie
+      active_time_intervals:
+        - erp-oncall-off-hours
+    - match:
+        severity: warning
+      receiver: erp-slack
+    - match:
+        domain: slo
+      receiver: erp-slo
+      continue: true
+    - match:
+        domain: slo
+        severity: critical
+      receiver: erp-pagerduty
+      active_time_intervals:
+        - erp-oncall-business-hours
+        - erp-oncall-weekend
+      continue: true
+    - match:
+        domain: slo
+        severity: critical
+      receiver: erp-opsgenie
+      active_time_intervals:
+        - erp-oncall-off-hours
+
+time_intervals:
+  - name: erp-oncall-business-hours
+    time_intervals:
+      - weekdays: ['monday:friday']
+        times:
+          - start_time: '08:00'
+            end_time: '20:00'
+        location: 'Europe/Warsaw'
+  - name: erp-oncall-off-hours
+    time_intervals:
+      - weekdays: ['monday:friday']
+        times:
+          - start_time: '20:00'
+            end_time: '08:00'
+        location: 'Europe/Warsaw'
+  - name: erp-oncall-weekend
+    time_intervals:
+      - weekdays: ['saturday', 'sunday']
+        location: 'Europe/Warsaw'
+
+receivers:
+  - name: erp-default
+    webhook_configs:
+      - url: http://host.docker.internal:4011/platform/bi-alerts/webhook
+        send_resolved: true
+
+  - name: erp-slack
+    slack_configs:
+      - api_url: http://host.docker.internal:4011/platform/alert-notify/slack-sink
+        channel: '#erp-alerts'
+        title: '{{ template "slack.title" . }}'
+        text: '{{ template "slack.text" . }}'
+        send_resolved: true
+
+  - name: erp-critical
+    email_configs:
+      - to: erp-ops@localhost
+        from: alerts@erp.local
+        smarthost: host.docker.internal:4011
+        require_tls: false
+        headers:
+          Subject: '{{ template "email.subject" . }}'
+        html: '{{ template "email.html" . }}'
+    webhook_configs:
+      - url: http://host.docker.internal:4011/platform/bi-alerts/webhook
+        send_resolved: true
+
+  - name: erp-pagerduty
+    pagerduty_configs:
+      - routing_key: dev-erp-pagerduty
+        url: http://host.docker.internal:4011/platform/alert-escalation/pagerduty-sink
+        description: '{{ template "pagerduty.description" . }}'
+        severity: '{{ .CommonLabels.severity }}'
+        send_resolved: true
+
+  - name: erp-opsgenie
+    opsgenie_configs:
+      - api_key: dev-erp-opsgenie
+        api_url: http://host.docker.internal:4011/platform/alert-escalation/opsgenie-sink
+        message: '{{ template "opsgenie.message" . }}'
+        description: '{{ template "opsgenie.description" . }}'
+        send_resolved: true
+
+  - name: erp-slo
+    webhook_configs:
+      - url: http://host.docker.internal:4011/platform/bi-alerts/webhook
+        send_resolved: true
+    slack_configs:
+      - api_url: http://host.docker.internal:4011/platform/alert-notify/slack-sink
+        channel: '#erp-slo-alerts'
+        title: 'SLO Error Budget Alert'
+        text: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+        send_resolved: true
+
+templates:
+  - /etc/alertmanager/templates/*.tmpl
+
+inhibit_rules:
+  - source_match:
+      severity: critical
+    target_match:
+      severity: warning
+    equal: ['domain']

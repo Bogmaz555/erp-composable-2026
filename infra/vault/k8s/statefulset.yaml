@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: vault
+  namespace: vault
+  labels:
+    app.kubernetes.io/name: vault
+    app.kubernetes.io/instance: vault
+spec:
+  serviceName: vault-internal
+  podManagementPolicy: Parallel
+  replicas: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: vault
+      app.kubernetes.io/instance: vault
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: vault
+        app.kubernetes.io/instance: vault
+    spec:
+      terminationGracePeriodSeconds: 10
+      containers:
+        - name: vault
+          image: hashicorp/vault:1.15.2
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/sh
+            - -ec
+            - |
+              # Dynamic IP config to allow Raft to bind to POD_IP
+              sed -e "s/vault-node/${HOSTNAME}/g" /vault/config/vault.json > /tmp/vault.json
+              vault server -config=/tmp/vault.json
+          env:
+            - name: HOSTNAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: VAULT_API_ADDR
+              value: "http://$(HOSTNAME).vault-internal:8200"
+            - name: VAULT_CLUSTER_ADDR
+              value: "http://$(HOSTNAME).vault-internal:8201"
+          ports:
+            - containerPort: 8200
+              name: http
+            - containerPort: 8201
+              name: https-internal
+            - containerPort: 8202
+              name: http-rep
+          readinessProbe:
+            exec:
+              command: ["/bin/sh", "-ec", "VAULT_ADDR=http://127.0.0.1:8200 vault status"]
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            successThreshold: 1
+            timeoutSeconds: 3
+          volumeMounts:
+            - name: config
+              mountPath: /vault/config
+            - name: data
+              mountPath: /vault/data
+      volumes:
+        - name: config
+          configMap:
+            name: vault-config
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: 2Gi

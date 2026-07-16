@@ -1,0 +1,195 @@
+import { Module } from '@nestjs/common';
+import { AnalyticsController } from './analytics.controller';
+import { PlatformController } from './platform.controller';
+import { AuthController } from './auth.controller';
+import { TenantController } from './tenant.controller';
+import { MailerController } from './mailer.controller';
+import { MailerService } from './mailer.service';
+import { ApprovalController } from './approval.controller';
+import { ApprovalService } from './approval.service';
+import { PlatformService } from './platform.service';
+import { OperationsController } from './operations.controller';
+import { OperationsService } from './operations.service';
+import { TenantIsolationService } from './tenant-isolation.service';
+import { TraceabilityController } from './traceability.controller';
+import { TraceabilityService } from './traceability.service';
+import { EtoChainController } from './eto-chain.controller';
+import { EtoChainService } from './eto-chain.service';
+import { EtoNatsPublisherService } from './eto-nats-publisher.service';
+import { EtoOrchestratorService } from './eto-orchestrator.service';
+import { EtoWorkflowService } from './eto-workflow.service';
+import { EtoTemporalBridgeService } from './eto-temporal-bridge.service';
+import { PrismaService } from './prisma.service';
+import { OtelController } from './otel.controller';
+import { OutboxDlqController } from './outbox-dlq.controller';
+import { EtoPayloadController } from './eto-payload.controller';
+import { EtoPayloadService } from './eto-payload.service';
+import { TaxReadinessController } from './tax-readiness.controller';
+import { TaxReadinessService } from './tax-readiness.service';
+import { MesReadinessController } from './mes-readiness.controller';
+import { MesReadinessService } from './mes-readiness.service';
+import { PactReadinessController } from './pact-readiness.controller';
+import { PactReadinessService } from './pact-readiness.service';
+import { PlmDomainReadinessController } from './plm-domain-readiness.controller';
+import { PlmDomainReadinessService } from './plm-domain-readiness.service';
+import { MesDomainReadinessController } from './mes-domain-readiness.controller';
+import { MesDomainReadinessService } from './mes-domain-readiness.service';
+import { FinanceDomainReadinessController } from './finance-domain-readiness.controller';
+import { FinanceDomainReadinessService } from './finance-domain-readiness.service';
+import { QualityDomainReadinessController } from './quality-domain-readiness.controller';
+import { QualityDomainReadinessService } from './quality-domain-readiness.service';
+import { ProcDomainReadinessController } from './proc-domain-readiness.controller';
+import { ProcDomainReadinessService } from './proc-domain-readiness.service';
+import { EamDomainReadinessController } from './eam-domain-readiness.controller';
+import { EamDomainReadinessService } from './eam-domain-readiness.service';
+import { ProjectCostSummaryController } from './project-cost-summary.controller';
+import { ProjectCostSummaryService } from './project-cost-summary.service';
+import { DataIntegrityReadinessController } from './data-integrity-readiness.controller';
+import { DataIntegrityReadinessService } from './data-integrity-readiness.service';
+import { ImportReadinessController } from './import-readiness.controller';
+import { ImportReadinessService } from './import-readiness.service';
+import { AuthEnforcementReadinessController } from './auth-enforcement-readiness.controller';
+import { AuthEnforcementReadinessService } from './auth-enforcement-readiness.service';
+import { ImportStagingController } from './import-staging.controller';
+import { ImportStagingService } from './import-staging.service';
+import { ValidationReadinessController } from './validation-readiness.controller';
+import { ValidationReadinessService } from './validation-readiness.service';
+import { BiProjectDashboardController } from './bi-project-dashboard.controller';
+import { BiProjectDashboardService } from './bi-project-dashboard.service';
+import { BiReadinessController } from './bi-readiness.controller';
+import { BiReadinessService } from './bi-readiness.service';
+import { CiAuthReadinessController } from './ci-auth-readiness.controller';
+import { CiAuthReadinessService } from './ci-auth-readiness.service';
+import { ImportStagingPersistenceReadinessController } from './import-staging-persistence-readiness.controller';
+import { ImportStagingPersistenceReadinessService } from './import-staging-persistence-readiness.service';
+import { BiProjectionController } from './bi-projection.controller';
+import { BiProjectionService } from './bi-projection.service';
+import { BiProjectionReadinessController } from './bi-projection-readiness.controller';
+import { BiProjectionReadinessService } from './bi-projection-readiness.service';
+import { ScheduleModule } from '@nestjs/schedule';
+import { FrontendBiReadinessController } from './frontend-bi-readiness.controller';
+import { FrontendBiReadinessService } from './frontend-bi-readiness.service';
+import { BiRefreshSchedulerService } from './bi-refresh-scheduler.service';
+import { BiSchedulerController } from './bi-scheduler.controller';
+import { BiSchedulerReadinessController } from './bi-scheduler-readiness.controller';
+import { BiSchedulerReadinessService } from './bi-scheduler-readiness.service';
+import { PmE2eReadinessController } from './pm-e2e-readiness.controller';
+import { PmE2eReadinessService } from './pm-e2e-readiness.service';
+import { CiAuthEnforceReadinessController } from './ci-auth-enforce-readiness.controller';
+import { CiAuthEnforceReadinessService } from './ci-auth-enforce-readiness.service';
+import { BiSnapshotRetentionService } from './bi-snapshot-retention.service';
+import { BiRetentionController } from './bi-retention.controller';
+import { BiRetentionReadinessController } from './bi-retention-readiness.controller';
+import { BiRetentionReadinessService } from './bi-retention-readiness.service';
+import { PlaywrightCiReadinessController } from './playwright-ci-readiness.controller';
+import { PlaywrightCiReadinessService } from './playwright-ci-readiness.service';
+import { CiAuthLiveReadinessController } from './ci-auth-live-readiness.controller';
+import { CiAuthLiveReadinessService } from './ci-auth-live-readiness.service';
+import { BiRetentionMetricsService } from './bi-retention-metrics.service';
+import { BiMetricsController } from './bi-metrics.controller';
+import { BiMetricsReadinessController } from './bi-metrics-readiness.controller';
+import { BiMetricsReadinessService } from './bi-metrics-readiness.service';
+import { PlaywrightStackReadinessController } from './playwright-stack-readiness.controller';
+import { PlaywrightStackReadinessService } from './playwright-stack-readiness.service';
+import { CiAuthRegressionReadinessController } from './ci-auth-regression-readiness.controller';
+import { CiAuthRegressionReadinessService } from './ci-auth-regression-readiness.service';
+import { BiGrafanaController } from './bi-grafana.controller';
+import { GrafanaBiReadinessController } from './grafana-bi-readiness.controller';
+import { GrafanaBiReadinessService } from './grafana-bi-readiness.service';
+import { PlaywrightRequiredReadinessController } from './playwright-required-readiness.controller';
+import { PlaywrightRequiredReadinessService } from './playwright-required-readiness.service';
+import { CiAuthKeycloakReadinessController } from './ci-auth-keycloak-readiness.controller';
+import { CiAuthKeycloakReadinessService } from './ci-auth-keycloak-readiness.service';
+import { GrafanaProvisionReadinessController } from './grafana-provision-readiness.controller';
+import { GrafanaProvisionReadinessService } from './grafana-provision-readiness.service';
+import { PlaywrightMatrixReadinessController } from './playwright-matrix-readiness.controller';
+import { PlaywrightMatrixReadinessService } from './playwright-matrix-readiness.service';
+import { CiAuthEnforceProdReadinessController } from './ci-auth-enforce-prod-readiness.controller';
+import { CiAuthEnforceProdReadinessService } from './ci-auth-enforce-prod-readiness.service';
+import { BiAlertsController } from './bi-alerts.controller';
+import { BiAlertsReadinessController } from './bi-alerts-readiness.controller';
+import { BiAlertsReadinessService } from './bi-alerts-readiness.service';
+import { VaultTlsProdReadinessController } from './vault-tls-prod-readiness.controller';
+import { VaultTlsProdReadinessService } from './vault-tls-prod-readiness.service';
+import { AlertNotifyController } from './alert-notify.controller';
+import { AlertNotifyReadinessController } from './alert-notify-readiness.controller';
+import { AlertNotifyReadinessService } from './alert-notify-readiness.service';
+import { MtlsGatewayReadinessController } from './mtls-gateway-readiness.controller';
+import { MtlsGatewayReadinessService } from './mtls-gateway-readiness.service';
+import { AlertEscalationController } from './alert-escalation.controller';
+import { AlertEscalationReadinessController } from './alert-escalation-readiness.controller';
+import { AlertEscalationReadinessService } from './alert-escalation-readiness.service';
+import { MtlsProxyReadinessController } from './mtls-proxy-readiness.controller';
+import { MtlsProxyReadinessService } from './mtls-proxy-readiness.service';
+import { AlertOncallReadinessController } from './alert-oncall-readiness.controller';
+import { AlertOncallReadinessService } from './alert-oncall-readiness.service';
+import { MtlsClientVerifyReadinessController } from './mtls-client-verify-readiness.controller';
+import { MtlsClientVerifyReadinessService } from './mtls-client-verify-readiness.service';
+import { SloBurnRateReadinessController } from './slo-burn-rate-readiness.controller';
+import { SloBurnRateReadinessService } from './slo-burn-rate-readiness.service';
+import { PlaywrightCrossChainReadinessController } from './playwright-cross-chain-readiness.controller';
+import { PlaywrightCrossChainReadinessService } from './playwright-cross-chain-readiness.service';
+import { TlsRotationReadinessController } from './tls-rotation-readiness.controller';
+import { TlsRotationReadinessService } from './tls-rotation-readiness.service';
+import { GrafanaSloDashboardReadinessController } from './grafana-slo-dashboard-readiness.controller';
+import { GrafanaSloDashboardReadinessService } from './grafana-slo-dashboard-readiness.service';
+import { PlaywrightProcInvQualityReadinessController } from './playwright-proc-inv-quality-readiness.controller';
+import { PlaywrightProcInvQualityReadinessService } from './playwright-proc-inv-quality-readiness.service';
+import { VaultSecretsRotationReadinessController } from './vault-secrets-rotation-readiness.controller';
+import { VaultSecretsRotationReadinessService } from './vault-secrets-rotation-readiness.service';
+import { SloAlertingReadinessController } from './slo-alerting-readiness.controller';
+import { SloAlertingReadinessService } from './slo-alerting-readiness.service';
+import { PlaywrightMesEamCrmReadinessController } from './playwright-mes-eam-crm-readiness.controller';
+import { PlaywrightMesEamCrmReadinessService } from './playwright-mes-eam-crm-readiness.service';
+import { VaultKmsUnsealReadinessController } from './vault-kms-unseal-readiness.controller';
+import { VaultKmsUnsealReadinessService } from './vault-kms-unseal-readiness.service';
+import { SloRoutingReadinessController } from './slo-routing-readiness.controller';
+import { SloRoutingReadinessService } from './slo-routing-readiness.service';
+import { PlaywrightHrPlmPmReadinessController } from './playwright-hr-plm-pm-readiness.controller';
+import { PlaywrightHrPlmPmReadinessService } from './playwright-hr-plm-pm-readiness.service';
+import { VaultAuditReadinessController } from './vault-audit-readiness.controller';
+import { VaultAuditReadinessService } from './vault-audit-readiness.service';
+import { ProdObservabilityReadinessController } from './prod-observability-readiness.controller';
+import { ProdObservabilityReadinessService } from './prod-observability-readiness.service';
+import { PlaywrightChainMatrixReadinessController } from './playwright-chain-matrix-readiness.controller';
+import { PlaywrightChainMatrixReadinessService } from './playwright-chain-matrix-readiness.service';
+import { VaultHaReadinessController } from './vault-ha-readiness.controller';
+import { VaultHaReadinessService } from './vault-ha-readiness.service';
+import { K8sDeployReadinessController } from './k8s-deploy-readiness.controller';
+import { K8sDeployReadinessService } from './k8s-deploy-readiness.service';
+import { PlaywrightVisualReadinessController } from './playwright-visual-readiness.controller';
+import { PlaywrightVisualReadinessService } from './playwright-visual-readiness.service';
+import { VaultRaftReadinessController } from './vault-raft-readiness.controller';
+import { VaultRaftReadinessService } from './vault-raft-readiness.service';
+import { HelmDeployReadinessController } from './helm-deploy-readiness.controller';
+import { HelmDeployReadinessService } from './helm-deploy-readiness.service';
+import { PlaywrightVisualDiffReadinessController } from './playwright-visual-diff-readiness.controller';
+import { PlaywrightVisualDiffReadinessService } from './playwright-visual-diff-readiness.service';
+import { QualityEamProdReadinessController } from './quality-eam-prod-readiness.controller';
+import { QualityEamProdReadinessService } from './quality-eam-prod-readiness.service';
+import { K8sExtendedReadinessController } from './k8s-extended-readiness.controller';
+import { K8sExtendedReadinessService } from './k8s-extended-readiness.service';
+import { TenantHardeningReadinessController } from './tenant-hardening-readiness.controller';
+import { TenantHardeningReadinessService } from './tenant-hardening-readiness.service';
+import { KsefProdReadinessController } from './ksef-prod-readiness.controller';
+import { KsefProdReadinessService } from './ksef-prod-readiness.service';
+import { OutboxDlqService } from './outbox-dlq.service';
+import { ClientsModule, Transport } from '@nestjs/microservices';
+
+@Module({
+  imports: [
+    ScheduleModule.forRoot(),
+    ClientsModule.register([
+      {
+        name: 'NATS_SERVICE',
+        transport: Transport.NATS,
+        options: {
+          servers: ['nats://localhost:4222'],
+        },
+      },
+    ]),
+  ],
+  controllers: [AnalyticsController, PlatformController, AuthController, ApprovalController, TenantController, MailerController, OperationsController, TraceabilityController, EtoChainController, EtoPayloadController, TaxReadinessController, MesReadinessController, PactReadinessController, PlmDomainReadinessController, MesDomainReadinessController, FinanceDomainReadinessController, QualityDomainReadinessController, ProcDomainReadinessController, EamDomainReadinessController, ProjectCostSummaryController, DataIntegrityReadinessController, ImportReadinessController, ImportStagingController, AuthEnforcementReadinessController, ValidationReadinessController, BiProjectDashboardController, BiReadinessController, CiAuthReadinessController, ImportStagingPersistenceReadinessController, BiProjectionController, BiProjectionReadinessController, FrontendBiReadinessController, BiSchedulerController, BiSchedulerReadinessController, PmE2eReadinessController, CiAuthEnforceReadinessController, BiRetentionController, BiRetentionReadinessController, PlaywrightCiReadinessController, CiAuthLiveReadinessController, BiMetricsController, BiMetricsReadinessController, PlaywrightStackReadinessController, CiAuthRegressionReadinessController, BiGrafanaController, GrafanaBiReadinessController, PlaywrightRequiredReadinessController, CiAuthKeycloakReadinessController, GrafanaProvisionReadinessController, PlaywrightMatrixReadinessController, CiAuthEnforceProdReadinessController, BiAlertsController, BiAlertsReadinessController, VaultTlsProdReadinessController, AlertNotifyController, AlertNotifyReadinessController, MtlsGatewayReadinessController, AlertEscalationController, AlertEscalationReadinessController, MtlsProxyReadinessController, AlertOncallReadinessController, MtlsClientVerifyReadinessController, SloBurnRateReadinessController, PlaywrightCrossChainReadinessController, TlsRotationReadinessController, GrafanaSloDashboardReadinessController, PlaywrightProcInvQualityReadinessController, VaultSecretsRotationReadinessController, SloAlertingReadinessController, PlaywrightMesEamCrmReadinessController, VaultKmsUnsealReadinessController, SloRoutingReadinessController, PlaywrightHrPlmPmReadinessController, VaultAuditReadinessController, ProdObservabilityReadinessController, PlaywrightChainMatrixReadinessController, VaultHaReadinessController, K8sDeployReadinessController, PlaywrightVisualReadinessController, VaultRaftReadinessController, HelmDeployReadinessController, PlaywrightVisualDiffReadinessController, QualityEamProdReadinessController, K8sExtendedReadinessController, TenantHardeningReadinessController, KsefProdReadinessController, OtelController, OutboxDlqController],
+  providers: [PlatformService, ApprovalService, MailerService, OperationsService, TenantIsolationService, TraceabilityService, EtoPayloadService, TaxReadinessService, MesReadinessService, PactReadinessService, PlmDomainReadinessService, MesDomainReadinessService, FinanceDomainReadinessService, QualityDomainReadinessService, ProcDomainReadinessService, EamDomainReadinessService, ProjectCostSummaryService, DataIntegrityReadinessService, ImportReadinessService, ImportStagingService, AuthEnforcementReadinessService, ValidationReadinessService, BiProjectDashboardService, BiReadinessService, CiAuthReadinessService, ImportStagingPersistenceReadinessService, BiProjectionService, BiProjectionReadinessService, FrontendBiReadinessService, BiRefreshSchedulerService, BiSchedulerReadinessService, PmE2eReadinessService, CiAuthEnforceReadinessService, BiSnapshotRetentionService, BiRetentionReadinessService, PlaywrightCiReadinessService, CiAuthLiveReadinessService, BiRetentionMetricsService, BiMetricsReadinessService, PlaywrightStackReadinessService, CiAuthRegressionReadinessService, GrafanaBiReadinessService, PlaywrightRequiredReadinessService, CiAuthKeycloakReadinessService, GrafanaProvisionReadinessService, PlaywrightMatrixReadinessService, CiAuthEnforceProdReadinessService, BiAlertsReadinessService, VaultTlsProdReadinessService, AlertNotifyReadinessService, MtlsGatewayReadinessService, AlertEscalationReadinessService, MtlsProxyReadinessService, AlertOncallReadinessService, MtlsClientVerifyReadinessService, SloBurnRateReadinessService, PlaywrightCrossChainReadinessService, TlsRotationReadinessService, GrafanaSloDashboardReadinessService, PlaywrightProcInvQualityReadinessService, VaultSecretsRotationReadinessService, SloAlertingReadinessService, PlaywrightMesEamCrmReadinessService, VaultKmsUnsealReadinessService, SloRoutingReadinessService, PlaywrightHrPlmPmReadinessService, VaultAuditReadinessService, ProdObservabilityReadinessService, PlaywrightChainMatrixReadinessService, VaultHaReadinessService, K8sDeployReadinessService, PlaywrightVisualReadinessService, VaultRaftReadinessService, HelmDeployReadinessService, PlaywrightVisualDiffReadinessService, QualityEamProdReadinessService, K8sExtendedReadinessService, TenantHardeningReadinessService, KsefProdReadinessService, PrismaService, EtoNatsPublisherService, EtoOrchestratorService, EtoWorkflowService, EtoTemporalBridgeService, EtoChainService, OutboxDlqService],
+})
+export class AppModule {}

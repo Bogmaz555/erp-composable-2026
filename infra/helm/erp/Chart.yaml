@@ -1,0 +1,6 @@
+apiVersion: v2
+name: erp
+description: ERP Composable 2026 — Helm chart for core services
+type: application
+version: 0.1.0
+appVersion: "2026"

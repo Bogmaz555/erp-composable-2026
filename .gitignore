@@ -2,3 +2,16 @@ node_modules/
 dist/
 .next/
 coverage/
+*.log
+*.tsbuildinfo
+.env
+.env.local
+.env.*.local
+.agents/swarm/*.log
+.agents/swarm/progress-warstwa*.md
+.agents/swarm/regression-report.json
+.agents/swarm/last-keycloak-token.txt
+.agents/swarm/final_diff.diff
+.agents/orchestrator/CHECKPOINTS/FAZA*-AUTONOMOUS-*.md
+.agents/orchestrator/CHECKPOINTS/MISSION-WORKER-LATEST.md
+cluster-keys.json

@@ -1,0 +1,67 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../../node_modules/.prisma/client-eam"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("EAM_DATABASE_URL")
+}
+
+model Equipment {
+  id               String            @id @default(uuid())
+  name             String
+  model            String?
+  serialNumber     String?
+  status           EquipmentStatus   @default(OPERATIONAL)
+  location         String?
+  maintenanceTasks MaintenanceTask[]
+  breakdownEvents  BreakdownEvent[]
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+}
+
+model MaintenanceTask {
+  id            String            @id @default(uuid())
+  equipmentId   String
+  type          MaintenanceType
+  status        MaintenanceStatus @default(SCHEDULED)
+  description   String
+  scheduledDate DateTime
+  completedDate DateTime?
+  equipment     Equipment         @relation(fields: [equipmentId], references: [id])
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+}
+
+enum EquipmentStatus {
+  OPERATIONAL
+  MAINTENANCE
+  BROKEN
+  DECOMMISSIONED
+}
+
+enum MaintenanceType {
+  PREVENTIVE
+  CORRECTIVE
+  CALIBRATION
+}
+
+enum MaintenanceStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model BreakdownEvent {
+  id          String    @id @default(uuid())
+  equipmentId String
+  equipment   Equipment @relation(fields: [equipmentId], references: [id])
+  reason      String
+  severity    String    @default("HIGH")
+  source      String    @default("IOT")
+  detectedAt  DateTime  @default(now())
+
+  @@index([equipmentId, detectedAt])
+}

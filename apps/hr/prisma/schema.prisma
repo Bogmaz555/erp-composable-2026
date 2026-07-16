@@ -1,0 +1,59 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../../node_modules/@prisma/client-hr"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("HR_DATABASE_URL")
+}
+
+model Employee {
+  id           String      @id @default(uuid())
+  tenantId     String      @default("default")
+  badgeId      String      @unique
+  firstName    String
+  lastName     String
+  hourlyRate   Float       @default(50.0)
+  role         Role        @default(OPERATOR)
+  isActive     Boolean     @default(true)
+  createdAt    DateTime    @default(now())
+  timeEntries  TimeEntry[]
+}
+
+model TimeEntry {
+  id          String   @id @default(uuid())
+  tenantId    String   @default("default")
+  employeeId  String
+  employee    Employee @relation(fields: [employeeId], references: [id])
+  projectId   String
+  workOrderId String?
+  hours       Float
+  entryDate   DateTime @default(now())
+  createdAt   DateTime @default(now())
+  @@index([tenantId, projectId, employeeId])
+}
+
+enum OutboxStatus {
+  PENDING
+  PROCESSED
+  FAILED
+}
+
+model OutboxEvent {
+  id            String       @id @default(uuid())
+  tenantId      String       @default("default")
+  aggregateId   String
+  aggregateType String
+  eventType     String
+  payload       Json
+  status        OutboxStatus @default(PENDING)
+  createdAt     DateTime     @default(now())
+  processedAt   DateTime?
+}
+
+enum Role {
+  OPERATOR
+  INSPECTOR
+  MANAGER
+}

@@ -1,0 +1,43 @@
+groups:
+  - name: erp_slo_burn_rate
+    rules:
+      # Fast burn — 5m window vs 1h baseline (multi-window SLO)
+      - alert: SloBurnRateFast
+        expr: |
+          erp_bi_snapshot_total > 800
+          and
+          increase(erp_bi_snapshot_total[5m]) > increase(erp_bi_snapshot_total[1h]) * 0.14
+        for: 5m
+        labels:
+          severity: critical
+          domain: slo
+          burn_window: fast
+        annotations:
+          summary: SLO error budget burning fast (5m/1h)
+          description: BI snapshot growth exceeds fast burn threshold
+
+      # Slow burn — 1h window vs 6h baseline
+      - alert: SloBurnRateSlow
+        expr: |
+          erp_bi_snapshot_total > 400
+          and
+          increase(erp_bi_snapshot_total[1h]) > increase(erp_bi_snapshot_total[6h]) * 0.25
+        for: 15m
+        labels:
+          severity: warning
+          domain: slo
+          burn_window: slow
+        annotations:
+          summary: SLO error budget burning slow (1h/6h)
+          description: BI snapshot growth exceeds slow burn threshold
+
+      - alert: SloAvailabilityBudgetLow
+        expr: erp_bi_snapshot_ttl_hours > 0 and erp_bi_snapshot_total > 600
+        for: 30m
+        labels:
+          severity: warning
+          domain: slo
+          burn_window: budget
+        annotations:
+          summary: SLO availability budget low
+          description: Combined TTL active with elevated snapshot count

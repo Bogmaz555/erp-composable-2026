@@ -1,0 +1,32 @@
+groups:
+  - name: erp_bi_retention
+    rules:
+      - alert: BiSnapshotTotalHigh
+        expr: erp_bi_snapshot_total > 500
+        for: 2m
+        labels:
+          severity: warning
+          domain: bi
+        annotations:
+          summary: BI snapshot count elevated
+          description: erp_bi_snapshot_total exceeded threshold (500)
+
+      - alert: BiSnapshotPurgeStale
+        expr: erp_bi_snapshot_purged_last == 0 and erp_bi_snapshot_total > 10
+        for: 10m
+        labels:
+          severity: info
+          domain: bi
+        annotations:
+          summary: BI retention purge inactive
+          description: No purge activity while snapshots exist
+
+      - alert: BiSnapshotTtlMissing
+        expr: absent(erp_bi_snapshot_ttl_hours) or erp_bi_snapshot_ttl_hours == 0
+        for: 5m
+        labels:
+          severity: critical
+          domain: bi
+        annotations:
+          summary: BI snapshot TTL metric missing
+          description: erp_bi_snapshot_ttl_hours not exported

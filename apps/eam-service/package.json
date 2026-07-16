@@ -1,0 +1,29 @@
+{
+  "name": "@erp/eam-service",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "nest build",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "start": "nest start",
+    "start:dev": "nest start --watch",
+    "start:prod": "node dist/main"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.1.19",
+    "@nestjs/core": "^11.1.19",
+    "@nestjs/cqrs": "^11.0.3",
+    "@nestjs/microservices": "^11.1.19",
+    "@nestjs/platform-fastify": "^11.0.0",
+    "@prisma/client": "^5.0.0",
+    "reflect-metadata": "^0.2.0",
+    "rxjs": "^7.8.1"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^10.0.0",
+    "@nestjs/schematics": "^10.0.0",
+    "@types/node": "^20.3.1",
+    "prisma": "^5.0.0",
+    "typescript": "^5.1.3"
+  }
+}

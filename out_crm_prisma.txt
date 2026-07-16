@@ -1,0 +1,5 @@
+apps/crm-service/src/prisma.service.ts:3:import { PrismaClient } from '@prisma/client-crm';
+apps/crm-service/src/prisma.service.ts:6:export class PrismaService extends PrismaClient implements OnModuleDestroy {
+apps/crm-service/src/outbox-relay.service.ts:4:import { PrismaClient, OutboxStatus } from '@prisma/client-crm';
+apps/crm-service/src/outbox-relay.service.ts:11:  private prisma: PrismaClient;
+apps/crm-service/src/outbox-relay.service.ts:14:    this.prisma = new PrismaClient();

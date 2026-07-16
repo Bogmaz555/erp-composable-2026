@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: eam-service
+  namespace: erp
+  labels:
+    app: eam-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: eam-service
+  template:
+    metadata:
+      labels:
+        app: eam-service
+    spec:
+      containers:
+        - name: eam-service
+          image: erp/eam-service:latest
+          ports:
+            - containerPort: 4009
+          env:
+            - name: NATS_URL
+              value: nats://nats:4222
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 4009
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 4009
+            initialDelaySeconds: 5
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: eam-service
+  namespace: erp
+spec:
+  selector:
+    app: eam-service
+  ports:
+    - port: 4009
+      targetPort: 4009
+  type: ClusterIP

@@ -1,0 +1,140 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../../node_modules/.prisma/client-crm"
+}
+
+datasource db {
+  provider = "postgresql"
+  url = env("CRM_DATABASE_URL")
+}
+
+model Customer {
+  id          String        @id @default(uuid())
+  name        String
+  nip         String?
+  email       String?
+  createdAt   DateTime      @default(now())
+  Opportunity Opportunity[]
+}
+
+model Opportunity {
+  id                String            @id @default(uuid())
+  title             String
+  value             Float             @default(0)
+  tkw               Float             @default(0)
+  currency          Currency          @default(PLN)
+  status            OpportunityStatus @default(NEW)
+  customerId        String
+  isTemplate        Boolean           @default(false)
+  leadTimeWeeks     Int               @default(24)
+  offerValidityDays Int               @default(14)
+  warrantyTerms     String            @default("12 miesięcy")
+  paymentMilestones Json?
+  marginCoefficient Float             @default(1.0)
+  linkedProjectId   String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime
+  Activity          Activity[]
+  BOMItem           BOMItem[]
+  Document          Document[]
+  Customer          Customer          @relation(fields: [customerId], references: [id])
+  Task              Task[]
+}
+
+model Activity {
+  id            String      @id
+  type          String      @default("NOTE")
+  content       String
+  createdAt     DateTime    @default(now())
+  opportunityId String
+  Opportunity   Opportunity @relation(fields: [opportunityId], references: [id])
+}
+
+model BOMItem {
+  id            String      @id
+  quantity      Int         @default(1)
+  catalogItemId String
+  opportunityId String
+  price         Float
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime
+  CatalogItem   CatalogItem @relation(fields: [catalogItemId], references: [id])
+  Opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+}
+
+model CatalogItem {
+  id        String    @id
+  sku       String    @unique
+  name      String
+  category  String
+  type      ItemType  @default(HARDWARE)
+  basePrice Float
+  currency  String    @default("PLN")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime
+  BOMItem   BOMItem[]
+}
+
+model Document {
+  id            String      @id
+  fileName      String
+  fileType      String
+  fileUrl       String
+  uploadedAt    DateTime    @default(now())
+  opportunityId String
+  Opportunity   Opportunity @relation(fields: [opportunityId], references: [id])
+}
+
+model OutboxEvent {
+  id            String       @id
+  aggregateId   String
+  aggregateType String
+  eventType     String
+  payload       Json
+  status        OutboxStatus @default(PENDING)
+  createdAt     DateTime     @default(now())
+  processedAt   DateTime?
+}
+
+model Task {
+  id            String      @id
+  title         String
+  type          String      @default("CALL")
+  dueDate       DateTime
+  priority      String      @default("MEDIUM")
+  isCompleted   Boolean     @default(false)
+  opportunityId String
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime
+  Opportunity   Opportunity @relation(fields: [opportunityId], references: [id])
+}
+
+enum Currency {
+  PLN
+  EUR
+  USD
+  GBP
+}
+
+enum OpportunityStatus {
+  NEW
+  WAITING_VISIT
+  TECH_DRAFT
+  QUOTING
+  OFFER_SENT
+  CLIENT_SIDE
+  NEGOTIATION
+  ACCEPTED
+}
+
+enum OutboxStatus {
+  PENDING
+  PROCESSED
+  FAILED
+}
+
+enum ItemType {
+  HARDWARE
+  SERVICE
+  SOFTWARE
+}

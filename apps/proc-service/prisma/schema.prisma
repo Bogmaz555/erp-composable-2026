@@ -1,0 +1,67 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../node_modules/@prisma/client-proc"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("PROC_DATABASE_URL")
+}
+
+model Supplier {
+  id           String          @id @default(uuid())
+  code         String          @unique
+  name         String
+  nip          String?
+  email        String?
+  currency     String          @default("PLN")
+  leadTimeDays Int?
+  isActive     Boolean         @default(true)
+  createdAt    DateTime        @default(now())
+  orders       PurchaseOrder[]
+}
+
+model PurchaseOrder {
+  id             String    @id @default(uuid())
+  tenantId       String    @default("default")
+  sku            String
+  itemId         String?
+  amount         Int
+  unitPrice      Float?    // cena jednostkowa zakupu (waluta dostawcy)
+  freightCost    Float     @default(0) // koszt transportu
+  customsDuty    Float     @default(0) // cło / opłaty importowe
+  landedUnitCost Float?    // koszt jednostkowy po przyjęciu (landed cost)
+  projectId      String?
+  bomComponentId String?
+  supplierId     String?
+  supplier       Supplier? @relation(fields: [supplierId], references: [id])
+  source         String    @default("SHORTAGE") // SHORTAGE | MRP | MANUAL
+  status         String    @default("DRAFT")
+  approvedBy     String?
+  taskId         String?
+  receivedQty    Int?
+  receivedAt     DateTime?
+  expectedDeliveryDate DateTime?
+  createdAt      DateTime  @default(now())
+  @@index([tenantId, projectId, status])
+  @@index([supplierId])
+}
+
+enum OutboxStatus {
+  PENDING
+  PROCESSED
+  FAILED
+}
+
+model OutboxEvent {
+  id            String       @id @default(uuid())
+  tenantId      String       @default("default")
+  aggregateId   String
+  aggregateType String
+  eventType     String
+  payload       Json
+  status        OutboxStatus @default(PENDING)
+  attempts      Int          @default(0)
+  lastError     String?
+  createdAt     DateTime     @default(now())
+}

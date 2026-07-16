@@ -1,0 +1,46 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../../node_modules/.prisma/client-finance"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("FINANCE_DATABASE_URL")
+}
+
+model Account {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  name        String
+  type        AccountType
+  balance     Float    @default(0.0)
+  currency    String   @default("PLN")
+  entries     JournalEntry[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model JournalEntry {
+  id          String   @id @default(uuid())
+  accountId   String
+  amount      Float
+  type        EntryType
+  referenceId String?  // ID of the source event (e.g., invoice ID, PO ID)
+  source      String?  // The source module (e.g., 'PROCUREMENT', 'SALES')
+  description String?
+  account     Account  @relation(fields: [accountId], references: [id])
+  createdAt   DateTime @default(now())
+}
+
+enum AccountType {
+  ASSET
+  LIABILITY
+  EQUITY
+  REVENUE
+  EXPENSE
+}
+
+enum EntryType {
+  DEBIT
+  CREDIT
+}

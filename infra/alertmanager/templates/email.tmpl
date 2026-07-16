@@ -1,0 +1,11 @@
+{{ define "email.subject" }}ERP Alert: {{ .CommonLabels.alertname }} ({{ .Status }}){{ end }}
+{{ define "email.html" }}
+<h2>{{ .CommonLabels.alertname }}</h2>
+<p><strong>Status:</strong> {{ .Status }}</p>
+<p><strong>Domain:</strong> {{ .CommonLabels.domain }}</p>
+<ul>
+{{ range .Alerts }}
+<li>{{ .Annotations.summary }} — {{ .Annotations.description }}</li>
+{{ end }}
+</ul>
+{{ end }}

@@ -1,0 +1,17 @@
+global:
+  namespace: erp-prod
+
+apiGateway:
+  replicaCount: 3
+  authEnforce: true
+
+analyticsService:
+  replicaCount: 2
+
+resources:
+  requests:
+    cpu: 200m
+    memory: 512Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi

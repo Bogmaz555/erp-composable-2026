@@ -1,0 +1,30 @@
+{
+  "name": "@erp/quality-service",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "nest build",
+    "start": "nest start",
+    "start:dev": "nest start --watch",
+    "start:prod": "node dist/main"
+  },
+  "dependencies": {
+    "@erp/shared-kernel": "workspace:*",
+    "@nestjs/common": "^11.1.19",
+    "@nestjs/core": "^11.1.19",
+    "@nestjs/cqrs": "^11.0.3",
+    "@nestjs/microservices": "^11.1.19",
+    "@nestjs/schedule": "^6.1.1",
+    "@nestjs/platform-fastify": "^11.1.19",
+    "@prisma/client": "5.22.0",
+    "@prisma/client-quality": "link:../../node_modules/.prisma/client-quality",
+    "nats": "^2.29.3",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^11.0.0",
+    "prisma": "^5.22.0",
+    "typescript": "^5.0.0"
+  }
+}

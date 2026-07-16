@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: eam-service
+  namespace: erp-apps
+  labels:
+    app: eam-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: eam-service
+  template:
+    metadata:
+      labels:
+        app: eam-service
+      annotations:
+        vault.hashicorp.com/agent-inject: "true"
+        vault.hashicorp.com/role: "erp-apps"
+        vault.hashicorp.com/agent-inject-secret-config: "secret/data/erp/eam-service"
+        vault.hashicorp.com/agent-inject-template-config: |
+          {{- with secret "secret/data/erp/eam-service" -}}
+          {{ range $k, $v := .Data.data }}
+          export {{ $k }}="{{ $v }}"
+          {{ end }}
+          {{- end -}}
+    spec:
+      serviceAccountName: erp-apps-sa
+      containers:
+      - name: eam-service
+        image: eam-service:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 3008
+        env:
+        - name: PORT
+          value: "3008"
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          source /vault/secrets/config || true
+          npm run start
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3008
+          initialDelaySeconds: 15
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3008
+          initialDelaySeconds: 5
+          periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: eam-service
+  namespace: erp-apps
+spec:
+  selector:
+    app: eam-service
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 3008

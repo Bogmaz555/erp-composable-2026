@@ -1,0 +1,2 @@
+apps/inv-service/src/inv.controller.ts:2:import { EventPattern, Payload } from '@nestjs/microservices';
+apps/inv-service/src/inv.controller.ts:35:  @EventPattern('task.material_requested')
