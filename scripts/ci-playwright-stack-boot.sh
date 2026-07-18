@@ -11,7 +11,11 @@ if ! command -v docker >/dev/null 2>&1; then
   exit 0
 fi
 
-docker compose up -d pm-db analytics-db crm-db inv-db 2>/dev/null || true
+export CRM_DATABASE_URL="postgresql://erp_user:erp_password@localhost:5433/crm_db?schema=public"
+export PM_DATABASE_URL="postgresql://erp_user:erp_password@localhost:5434/pm_db?schema=public"
+export INVENTORY_DATABASE_URL="postgresql://erp_user:erp_password@localhost:5436/inv_db?schema=public"
+
+docker compose up -d nats pm-db analytics-db crm-db inv-db 2>/dev/null || true
 sleep 8
 bash scripts/ensure-databases.sh pm-service analytics-service crm-service inv-service 2>/dev/null || true
 npm run seed || echo "WARN: Seed failed but continuing"
