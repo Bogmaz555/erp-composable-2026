@@ -24,7 +24,7 @@ nohup bash -c "cd apps/analytics-service && npm run start:dev" >> /tmp/ci-pw-ana
 nohup bash -c "cd apps/frontend && PORT=3001 npm run dev" >> /tmp/ci-pw-fe.log 2>&1 &
 
 for i in $(seq 1 60); do
-  gw=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:4005/ 2>/dev/null || echo 0)
+  gw=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:4005/api/health 2>/dev/null || echo 0)
   fe=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3001/pm 2>/dev/null || echo 0)
   [[ "$gw" =~ ^[23] && "$fe" =~ ^[23] ]] && break
   sleep 3

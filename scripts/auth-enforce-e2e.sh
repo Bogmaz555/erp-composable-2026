@@ -29,7 +29,7 @@ log "phase 2: restart gateway AUTH_ENFORCE=true"
 fuser -k "${GW_PORT}/tcp" 2>/dev/null || true
 sleep 1
 AUTH_ENFORCE=true USE_KEYCLOAK_JWKS=true KEYCLOAK_JWKS_URI=http://localhost:8080/realms/erp/protocol/openid-connect/certs \
-  nohup bash -c "${PNPM} --filter api-gateway run start:dev" >> /tmp/erp-gw-auth-e2e.log 2>&1 &
+  nohup bash -c "cd apps/api-gateway && npm run start:dev" >> /tmp/erp-gw-auth-e2e.log 2>&1 &
 sleep 18
 
 fails=0
@@ -64,9 +64,9 @@ log "phase 3: restore gateway AUTH_ENFORCE=${RESTORE_ENFORCE}"
 fuser -k "${GW_PORT}/tcp" 2>/dev/null || true
 sleep 1
 if [[ "$RESTORE_ENFORCE" == "true" ]]; then
-  AUTH_ENFORCE=true USE_KEYCLOAK_JWKS=true nohup bash -c "${PNPM} --filter api-gateway run start:dev" >> /tmp/erp-gw-restore.log 2>&1 &
+  AUTH_ENFORCE=true USE_KEYCLOAK_JWKS=true nohup bash -c "cd apps/api-gateway && npm run start:dev" >> /tmp/erp-gw-restore.log 2>&1 &
 else
-  nohup bash -c "${PNPM} --filter api-gateway run start:dev" >> /tmp/erp-gw-restore.log 2>&1 &
+  nohup bash -c "cd apps/api-gateway && npm run start:dev" >> /tmp/erp-gw-restore.log 2>&1 &
 fi
 sleep 12
 log "auth-enforce e2e complete (fails=${fails})"

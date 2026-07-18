@@ -334,8 +334,7 @@ jobs:
       - run: CI_AUTH_ENFORCE_PROD=true npx tsx scripts/ci-auth-enforce-prod-probe.ts
       - run: CI_AUTH_ENFORCE_KEYCLOAK=true npx tsx scripts/ci-auth-keycloak-regression-probe.ts
       - run: CI_AUTH_ENFORCE_LIVE=true npx tsx scripts/ci-auth-enforce-live-probe.ts
-      - run: bash scripts/ensure-keycloak-ready.sh
-      - run: npx tsx scripts/auth-enforce-smoke.ts
+      - run: bash scripts/auth-enforce-e2e.sh
 
   docker-smoke:
     name: Docker DB + Warstwa 11
