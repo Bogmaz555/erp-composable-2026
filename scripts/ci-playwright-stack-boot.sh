@@ -23,9 +23,9 @@ npm run seed || echo "WARN: Seed failed but continuing"
 fuser -k 4005/tcp 4002/tcp 4011/tcp 3001/tcp 2>/dev/null || true
 sleep 2
 
-nohup bash -c "cd apps/api-gateway && npm run start:dev" >> /tmp/ci-pw-gw.log 2>&1 &
-nohup bash -c "cd apps/pm-service && npm run start:dev" >> /tmp/ci-pw-pm.log 2>&1 &
-nohup bash -c "cd apps/analytics-service && npm run start:dev" >> /tmp/ci-pw-analytics.log 2>&1 &
+nohup bash -c "cd apps/api-gateway && AUTH_ENFORCE=false npm run start:dev" >> /tmp/ci-pw-gw.log 2>&1 &
+nohup bash -c "cd apps/pm-service && AUTH_ENFORCE=false npm run start:dev" >> /tmp/ci-pw-pm.log 2>&1 &
+nohup bash -c "cd apps/analytics-service && AUTH_ENFORCE=false npm run start:dev" >> /tmp/ci-pw-analytics.log 2>&1 &
 nohup bash -c "cd apps/frontend && PORT=3001 npm run dev" >> /tmp/ci-pw-fe.log 2>&1 &
 
 for i in $(seq 1 60); do

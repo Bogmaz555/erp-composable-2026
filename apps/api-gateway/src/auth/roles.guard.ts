@@ -7,7 +7,7 @@ export class RolesGuard implements CanActivate {
 
   canActivate(context: ExecutionContext): boolean {
     // Dev/test bypass: only enforce roles when Gateway enforcement is enabled.
-    if (process.env.AUTH_ENFORCE !== 'true') return true;
+    if (process.env.AUTH_ENFORCE === 'false') return true;
     const requiredRoles = this.reflector.get<string[]>('roles', context.getHandler());
     if (!requiredRoles) {
       return true;

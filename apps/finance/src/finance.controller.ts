@@ -3,6 +3,7 @@ import { EventPattern, Payload, Ctx, NatsContext } from '@nestjs/microservices';
 import { CommandBus } from '@nestjs/cqrs';
 import type { MesProductionRecordedV1Event } from '@erp/shared-kernel';
 import { RecordTransactionCommand } from './commands/record-transaction.handler';
+import { ReverseWipCostCommand } from './commands/reverse-wip-cost.handler';
 import { PrismaService } from './prisma.service';
 import {
   computeLaborCostPln,
@@ -161,6 +162,18 @@ export class FinanceController {
     } catch (e) {
       this.logger.warn(`[Finance] Labor costing failed: ${(e as Error).message}`);
     }
+  }
+
+  @EventPattern('finance.wip.cost.reversed')
+  async handleWipCostReversed(
+    @Payload() data: { projectId: string; tenantId: string; correlationId: string },
+    @Ctx() context?: NatsContext,
+  ) {
+    if (!data.projectId || !data.correlationId) return;
+    this.logger.log(`[Finance WIP] Received finance.wip.cost.reversed for project ${data.projectId}`);
+    await this.commandBus.execute(
+      new ReverseWipCostCommand(data.projectId, data.tenantId || 'default', data.correlationId),
+    );
   }
 
   @EventPattern('inventory.reservation.released.v1')

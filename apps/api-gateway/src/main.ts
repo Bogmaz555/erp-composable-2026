@@ -61,7 +61,7 @@ async function bootstrap() {
 
   // Gateway auth boundary for fastify proxies (which bypass Nest guards).
   // AUTH_ENFORCE=true → verify bearer token for /api/* and propagate RBAC claims downstream.
-  if (process.env.AUTH_ENFORCE === 'true') {
+  if (process.env.AUTH_ENFORCE !== 'false') {
     fastifyInstance.addHook('onRequest', async (request, reply) => {
       const url = request.url || '';
       if (!url.startsWith('/api/') || isPublicPath(url)) return;
@@ -93,8 +93,8 @@ async function bootstrap() {
 
   // TD-001: JWT Auth wired (Keycloak compatible).
   // Production: set AUTH_ENFORCE=true to enable the global JWT guard across Nest controllers.
-  // Dev/demo (default): guard is opt-in per controller via @UseGuards(JwtAuthGuard) so the demo flows stay open.
-  if (process.env.AUTH_ENFORCE === 'true') {
+  // Secure by default: guard is enabled unless AUTH_ENFORCE=false.
+  if (process.env.AUTH_ENFORCE !== 'false') {
     app.useGlobalGuards(new JwtAuthGuard());
     console.log('[Gateway] AUTH_ENFORCE=true — global JWT guard ENABLED');
   }

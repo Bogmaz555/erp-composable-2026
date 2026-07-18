@@ -7,7 +7,9 @@
     "build": "tsc",
     "clean": "rm -rf dist"
   },
-  "dependencies": {},
+  "dependencies": {
+    "nats": "^2.29.3"
+  },
   "devDependencies": {
     "typescript": "^5.0.0"
   }

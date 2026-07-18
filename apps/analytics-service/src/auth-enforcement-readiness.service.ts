@@ -5,7 +5,7 @@ export class AuthEnforcementReadinessService {
   private readonly gw = process.env.GATEWAY_URL || 'http://127.0.0.1:4005';
 
   async getReadiness() {
-    const authEnforced = process.env.AUTH_ENFORCE === 'true';
+    const authEnforced = process.env.AUTH_ENFORCE !== 'false';
     const keycloakJwks = process.env.USE_KEYCLOAK_JWKS === 'true';
 
     let unauthenticatedBlocked = false;

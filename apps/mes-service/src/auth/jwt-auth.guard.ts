@@ -7,7 +7,7 @@ import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
 export class JwtAuthGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     // Dev/test bypass: when Gateway enforcement is off, allow requests through.
-    if (process.env.AUTH_ENFORCE !== 'true') return true;
+    if (process.env.AUTH_ENFORCE === 'false') return true;
     const request = context.switchToHttp().getRequest();
     // Basic check - in real system this would be more robust
     return !!request.user && request.user.id !== 'invalid-token';

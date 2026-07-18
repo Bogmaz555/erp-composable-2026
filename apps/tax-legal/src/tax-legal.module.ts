@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { OutboxRelayService } from './outbox-relay.service';
+import { ScheduleModule } from '@nestjs/schedule';
 import { TaxLegalController } from './tax-legal.controller';
 import { PrismaService } from './prisma.service';
 import { KsefSandboxService } from './ksef-sandbox.service';
@@ -10,6 +12,7 @@ import { JpkKrValidatorService } from './jpk-kr-validator.service';
 
 @Module({
   controllers: [TaxLegalController],
-  providers: [PrismaService, KsefSandboxService, KsefProductionService, KsefRouterService, JpkV7Service, JpkKrService, JpkKrValidatorService],
+  providers: [
+    OutboxRelayService,PrismaService, KsefSandboxService, KsefProductionService, KsefRouterService, JpkV7Service, JpkKrService, JpkKrValidatorService],
 })
 export class TaxLegalModule {}

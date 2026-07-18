@@ -72,7 +72,7 @@ export class AuthService {
   }
 
   getAuthReadiness() {
-    const authEnforced = process.env.AUTH_ENFORCE === 'true';
+    const authEnforced = process.env.AUTH_ENFORCE !== 'false';
     const keycloakJwks = process.env.USE_KEYCLOAK_JWKS === 'true';
     const roleCount = ERP_ROLES.length;
     const permissionEntries = Object.values(ROLE_PERMISSIONS).reduce(
@@ -120,7 +120,7 @@ export class AuthService {
       roles: roles.length ? roles : [activeRole],
       activeRole,
       permissions: ROLE_PERMISSIONS[activeRole],
-      authEnforced: process.env.AUTH_ENFORCE === 'true',
+      authEnforced: process.env.AUTH_ENFORCE !== 'false',
       keycloakReady: process.env.USE_KEYCLOAK_JWKS === 'true',
     };
   }

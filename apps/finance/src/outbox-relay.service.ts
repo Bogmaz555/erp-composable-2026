@@ -1,26 +1,27 @@
-import { Injectable, Inject, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, OnModuleDestroy, Inject } from '@nestjs/common';
 import { Interval } from '@nestjs/schedule';
+import { PrismaService } from './prisma.service';
 import { ClientProxy } from '@nestjs/microservices';
-import { PrismaClient } from '.prisma/client-crm';
 import { GenericOutboxRelay } from '@erp/shared-kernel';
 
 @Injectable()
 export class OutboxRelayService extends GenericOutboxRelay implements OnModuleInit, OnModuleDestroy {
   protected readonly logger = new Logger(OutboxRelayService.name);
-  protected prisma: PrismaClient;
+  protected prisma: PrismaService;
 
-  constructor(@Inject('NATS_SERVICE') protected readonly natsClient: ClientProxy) {
+  constructor(
+    @Inject('NATS_SERVICE') protected readonly natsClient: ClientProxy,
+    prisma: PrismaService,
+  ) {
     super();
-    this.prisma = new PrismaClient();
+    this.prisma = prisma;
   }
 
   async onModuleInit() {
-    await this.natsClient.connect();
-    await this.prisma.$connect();
+    await this.natsClient.connect().catch(() => {});
   }
 
   async onModuleDestroy() {
-    await this.prisma.$disconnect();
     this.natsClient.close();
   }
 

@@ -1,10 +1,13 @@
 import { Module } from '@nestjs/common';
+import { OutboxRelayService } from './outbox-relay.service';
+import { ScheduleModule } from '@nestjs/schedule';
 import { CqrsModule } from '@nestjs/cqrs';
 import { FinanceController } from './finance.controller';
 import { MilestoneIntegrationController } from './milestone-integration.controller';
 import { ProcIntegrationController } from './proc-integration.controller';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { RecordTransactionHandler } from './commands/record-transaction.handler';
+import { ReverseWipCostHandler } from './commands/reverse-wip-cost.handler';
 import { PrismaService } from './prisma.service';
 import { FixedAssetsController } from './fixed-assets.controller';
 import { FixedAssetsService } from './fixed-assets.service';
@@ -14,6 +17,7 @@ import { ProjectAccountingService } from './project-accounting.service';
 
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
     CqrsModule,
     ClientsModule.register([
       {
@@ -26,6 +30,14 @@ import { ProjectAccountingService } from './project-accounting.service';
     ]),
   ],
   controllers: [FinanceController, FixedAssetsController, MilestoneIntegrationController, ProcIntegrationController, UniversalJournalController],
-  providers: [RecordTransactionHandler, PrismaService, FixedAssetsService, UniversalJournalService, ProjectAccountingService],
+  providers: [
+    OutboxRelayService,
+    RecordTransactionHandler,
+    ReverseWipCostHandler,
+    PrismaService,
+    FixedAssetsService,
+    UniversalJournalService,
+    ProjectAccountingService
+  ],
 })
 export class AppModule {}
