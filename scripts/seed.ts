@@ -1,6 +1,6 @@
-import { PrismaClient as CrmClient } from '@prisma/client-crm';
-import { PrismaClient as PmClient } from '@prisma/client-pm';
-import { PrismaClient as InvClient } from '@prisma/client-inventory';
+import { PrismaClient as CrmClient } from '../node_modules/.prisma/client-crm/index.js';
+import { PrismaClient as PmClient } from '../node_modules/.prisma/client-pm/index.js';
+import { PrismaClient as InvClient } from '../node_modules/.prisma/client-inv/index.js';
 
 // Temporary fix for InvClient if it was generated natively inside inventory module
 // If @prisma/client-inventory doesn't resolve, user can adjust path.
@@ -41,6 +41,7 @@ async function main() {
       tkw: 850000,
       status: 'ACCEPTED', // Won
       customerId: customer1.id,
+      updatedAt: new Date(),
     },
   });
 
@@ -51,6 +52,7 @@ async function main() {
       tkw: 700000,
       status: 'ACCEPTED', // Won
       customerId: customer2.id,
+      updatedAt: new Date(),
     },
   });
 
@@ -58,8 +60,9 @@ async function main() {
     data: {
       title: 'Stanowisko Testowe End-of-Line',
       value: 300000,
-      status: 'QUOTED', // Negotiation
+      status: 'NEGOTIATION', // Negotiation
       customerId: customer1.id,
+      updatedAt: new Date(),
     },
   });
 
@@ -69,6 +72,7 @@ async function main() {
       value: 150000,
       status: 'NEW', // RFQ
       customerId: customer2.id,
+      updatedAt: new Date(),
     },
   });
 
@@ -78,103 +82,66 @@ async function main() {
       value: 500000,
       status: 'NEW', // Feasibility
       customerId: customer1.id,
+      updatedAt: new Date(),
     },
-  });
-
-  // Create Projects in CRM for completed Ops
-  const crmProj1 = await crm.project.create({
-    data: {
-      name: opp1.title,
-      budget: opp1.value,
-      tkw: opp1.tkw,
-      status: 'ACTIVE',
-      customerId: customer1.id,
-    },
-  });
-
-  const crmProj2 = await crm.project.create({
-    data: {
-      name: opp2.title,
-      budget: opp2.value,
-      tkw: opp2.tkw,
-      status: 'ACTIVE',
-      customerId: customer2.id,
-    },
-  });
-
-  // Link opportunity to project
-  await crm.opportunity.update({
-    where: { id: opp1.id },
-    data: { projectId: crmProj1.id },
-  });
-  await crm.opportunity.update({
-    where: { id: opp2.id },
-    data: { projectId: crmProj2.id },
   });
 
   // --- PM ---
   console.log('⏳ Seeding PM...');
   const pmProj1 = await pm.project.create({
     data: {
-      id: crmProj1.id, // share ID
-      code: 'PRJ-2026-001',
-      name: crmProj1.name,
-      description: 'Dostawa pod klucz zrobotyzowanej linii spawalniczej',
-      isActive: true,
+      name: opp1.title,
+      status: 'ACTIVE',
+      budget: 850000,
     },
   });
 
   const pmProj2 = await pm.project.create({
     data: {
-      id: crmProj2.id,
-      code: 'PRJ-2026-002',
-      name: crmProj2.name,
-      description: 'Zaprojektowanie i wykonanie celi montażu baterii EV',
-      isActive: true,
+      name: opp2.title,
+      status: 'ACTIVE',
+      budget: 700000,
     },
   });
 
+  // Link opportunity to project
+  await crm.opportunity.update({
+    where: { id: opp1.id },
+    data: { linkedProjectId: pmProj1.id, updatedAt: new Date() },
+  });
+  await crm.opportunity.update({
+    where: { id: opp2.id },
+    data: { linkedProjectId: pmProj2.id, updatedAt: new Date() },
+  });
+
   // WBS for Proj1
-  const phaseDesign1 = await pm.projectWBS.create({
+  const phaseDesign1 = await pm.wbsElement.create({
     data: {
       projectId: pmProj1.id,
       name: 'Projektowanie Mechaniczne',
       type: 'PHASE',
     },
   });
-  const phasePurchasing1 = await pm.projectWBS.create({
+  const phasePurchasing1 = await pm.wbsElement.create({
     data: {
       projectId: pmProj1.id,
       name: 'Zakupy',
       type: 'PHASE',
     },
   });
-  const phaseAssembly1 = await pm.projectWBS.create({
+  const phaseAssembly1 = await pm.wbsElement.create({
     data: {
       projectId: pmProj1.id,
       name: 'Montaż',
       type: 'PHASE',
     },
   });
-  const phaseFat1 = await pm.projectWBS.create({
+  const phaseFat1 = await pm.wbsElement.create({
     data: {
       projectId: pmProj1.id,
       name: 'FAT',
       type: 'PHASE',
     },
-  });
-
-  await pm.projectBudget.create({
-    data: { wbsId: phaseDesign1.id, type: 'PRELIMINARY', amount: 50000 },
-  });
-  await pm.projectBudget.create({
-    data: { wbsId: phasePurchasing1.id, type: 'PRELIMINARY', amount: 600000 },
-  });
-  await pm.projectBudget.create({
-    data: { wbsId: phaseAssembly1.id, type: 'PRELIMINARY', amount: 150000 },
-  });
-  await pm.projectBudget.create({
-    data: { wbsId: phaseFat1.id, type: 'PRELIMINARY', amount: 50000 },
   });
 
   // --- INVENTORY ---
@@ -204,8 +171,14 @@ async function main() {
   ];
 
   for (const prod of products) {
-    const item = await inv.item.create({
-      data: {
+    const item = await inv.item.upsert({
+      where: { sku: prod.sku },
+      update: {
+        name: prod.name,
+        description: 'Komponent ETO',
+        stockQuantity: prod.qty,
+      },
+      create: {
         sku: prod.sku,
         name: prod.name,
         description: 'Komponent ETO',
@@ -213,12 +186,15 @@ async function main() {
       },
     });
 
-    await inv.batch.create({
-      data: {
-        batchNumber: `BAT-${prod.sku}-001`,
+    const lotNum = `LOT-${prod.sku}-001`;
+    await inv.lot.upsert({
+      where: { serialNumber: lotNum },
+      update: { quantity: prod.qty },
+      create: {
+        lotNumber: lotNum,
+        serialNumber: lotNum,
         itemId: item.id,
         quantity: prod.qty,
-        manufacturerLot: `LOT-${Math.floor(Math.random() * 10000)}`,
       },
     });
   }
