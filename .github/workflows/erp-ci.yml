@@ -13,11 +13,11 @@ jobs:
     env:
       CI_AUTH_ENFORCE: 'true'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v4
         with:
           version: 11
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: 'pnpm'
@@ -74,11 +74,11 @@ jobs:
       CI_AUTH_ENFORCE_REGRESSION: 'true'
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v4
         with:
           version: 11
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: 'pnpm'
@@ -95,20 +95,21 @@ jobs:
       CI_PLAYWRIGHT_REQUIRED: 'true'
       CI_PLAYWRIGHT_STACK: 'true'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v4
         with:
           version: 11
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: 'pnpm'
       - run: pnpm install --no-frozen-lockfile
       - run: CI_PLAYWRIGHT_REQUIRED=true npx tsx scripts/ci-playwright-required-probe.ts
       - run: CI_PLAYWRIGHT_STACK=true npx tsx scripts/ci-playwright-stack-probe.ts
-      - run: bash scripts/ci-playwright-stack-boot.sh
-      - run: npx playwright install chromium --with-deps
-      - run: FRONTEND_URL=http://127.0.0.1:3001 PW_SKIP_SERVER=1 npx playwright test e2e/pm-bi-panel.spec.ts
+      - run: |
+          bash scripts/ci-playwright-stack-boot.sh
+          npx playwright install chromium --with-deps
+          FRONTEND_URL=http://127.0.0.1:3001 PW_SKIP_SERVER=1 npx playwright test e2e/pm-bi-panel.spec.ts
 
   playwright-matrix:
     name: Playwright Module Matrix (11 modules)
@@ -118,20 +119,21 @@ jobs:
       CI_PLAYWRIGHT_MATRIX: 'true'
       CI_PLAYWRIGHT_STACK: 'true'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v4
         with:
           version: 11
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: 'pnpm'
       - run: pnpm install --no-frozen-lockfile
       - run: CI_PLAYWRIGHT_MATRIX=true npx tsx scripts/ci-playwright-matrix-probe.ts
       - run: CI_PLAYWRIGHT_STACK=true npx tsx scripts/ci-playwright-stack-probe.ts
-      - run: bash scripts/ci-playwright-stack-boot.sh
-      - run: npx playwright install chromium --with-deps
-      - run: FRONTEND_URL=http://127.0.0.1:3001 PW_SKIP_SERVER=1 npx playwright test e2e/pm-bi-panel.spec.ts e2e/finance-module.spec.ts e2e/inv-module.spec.ts e2e/proc-module.spec.ts e2e/quality-module.spec.ts e2e/mes-module.spec.ts e2e/eam-module.spec.ts e2e/crm-module.spec.ts e2e/tax-module.spec.ts e2e/hr-module.spec.ts e2e/plm-module.spec.ts
+      - run: |
+          bash scripts/ci-playwright-stack-boot.sh
+          npx playwright install chromium --with-deps
+          FRONTEND_URL=http://127.0.0.1:3001 PW_SKIP_SERVER=1 npx playwright test e2e/pm-bi-panel.spec.ts e2e/finance-module.spec.ts e2e/inv-module.spec.ts e2e/proc-module.spec.ts e2e/quality-module.spec.ts e2e/mes-module.spec.ts e2e/eam-module.spec.ts e2e/crm-module.spec.ts e2e/tax-module.spec.ts e2e/hr-module.spec.ts e2e/plm-module.spec.ts
 
   playwright-cross-chain:
     name: Playwright Cross Module Chain (PM→Finance→Tax)
@@ -141,20 +143,21 @@ jobs:
       CI_PLAYWRIGHT_CROSS_CHAIN: 'true'
       CI_PLAYWRIGHT_STACK: 'true'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v4
         with:
           version: 11
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: 'pnpm'
       - run: pnpm install --no-frozen-lockfile
       - run: CI_PLAYWRIGHT_CROSS_CHAIN=true npx tsx scripts/ci-playwright-cross-chain-probe.ts
       - run: CI_PLAYWRIGHT_STACK=true npx tsx scripts/ci-playwright-stack-probe.ts
-      - run: bash scripts/ci-playwright-stack-boot.sh
-      - run: npx playwright install chromium --with-deps
-      - run: FRONTEND_URL=http://127.0.0.1:3001 PW_SKIP_SERVER=1 npx playwright test e2e/pm-finance-tax-chain.spec.ts
+      - run: |
+          bash scripts/ci-playwright-stack-boot.sh
+          npx playwright install chromium --with-deps
+          FRONTEND_URL=http://127.0.0.1:3001 PW_SKIP_SERVER=1 npx playwright test e2e/pm-finance-tax-chain.spec.ts
 
   playwright-proc-inv-quality-chain:
     name: Playwright Cross Module Chain (PROC→INV→Quality)
@@ -164,20 +167,21 @@ jobs:
       CI_PLAYWRIGHT_PROC_INV_QUALITY: 'true'
       CI_PLAYWRIGHT_STACK: 'true'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v4
         with:
           version: 11
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: 'pnpm'
       - run: pnpm install --no-frozen-lockfile
       - run: CI_PLAYWRIGHT_PROC_INV_QUALITY=true npx tsx scripts/ci-playwright-proc-inv-quality-probe.ts
       - run: CI_PLAYWRIGHT_STACK=true npx tsx scripts/ci-playwright-stack-probe.ts
-      - run: bash scripts/ci-playwright-stack-boot.sh
-      - run: npx playwright install chromium --with-deps
-      - run: FRONTEND_URL=http://127.0.0.1:3001 PW_SKIP_SERVER=1 npx playwright test e2e/proc-inv-quality-chain.spec.ts
+      - run: |
+          bash scripts/ci-playwright-stack-boot.sh
+          npx playwright install chromium --with-deps
+          FRONTEND_URL=http://127.0.0.1:3001 PW_SKIP_SERVER=1 npx playwright test e2e/proc-inv-quality-chain.spec.ts
 
   playwright-mes-eam-crm-chain:
     name: Playwright Cross Module Chain (MES→EAM→CRM)
@@ -187,20 +191,21 @@ jobs:
       CI_PLAYWRIGHT_MES_EAM_CRM: 'true'
       CI_PLAYWRIGHT_STACK: 'true'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v4
         with:
           version: 11
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: 'pnpm'
       - run: pnpm install --no-frozen-lockfile
       - run: CI_PLAYWRIGHT_MES_EAM_CRM=true npx tsx scripts/ci-playwright-mes-eam-crm-probe.ts
       - run: CI_PLAYWRIGHT_STACK=true npx tsx scripts/ci-playwright-stack-probe.ts
-      - run: bash scripts/ci-playwright-stack-boot.sh
-      - run: npx playwright install chromium --with-deps
-      - run: FRONTEND_URL=http://127.0.0.1:3001 PW_SKIP_SERVER=1 npx playwright test e2e/mes-eam-crm-chain.spec.ts
+      - run: |
+          bash scripts/ci-playwright-stack-boot.sh
+          npx playwright install chromium --with-deps
+          FRONTEND_URL=http://127.0.0.1:3001 PW_SKIP_SERVER=1 npx playwright test e2e/mes-eam-crm-chain.spec.ts
 
   playwright-hr-plm-pm-chain:
     name: Playwright Cross Module Chain (HR→PLM→PM)
@@ -210,20 +215,21 @@ jobs:
       CI_PLAYWRIGHT_HR_PLM_PM: 'true'
       CI_PLAYWRIGHT_STACK: 'true'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v4
         with:
           version: 11
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: 'pnpm'
       - run: pnpm install --no-frozen-lockfile
       - run: CI_PLAYWRIGHT_HR_PLM_PM=true npx tsx scripts/ci-playwright-hr-plm-pm-probe.ts
       - run: CI_PLAYWRIGHT_STACK=true npx tsx scripts/ci-playwright-stack-probe.ts
-      - run: bash scripts/ci-playwright-stack-boot.sh
-      - run: npx playwright install chromium --with-deps
-      - run: FRONTEND_URL=http://127.0.0.1:3001 PW_SKIP_SERVER=1 npx playwright test e2e/hr-plm-pm-chain.spec.ts
+      - run: |
+          bash scripts/ci-playwright-stack-boot.sh
+          npx playwright install chromium --with-deps
+          FRONTEND_URL=http://127.0.0.1:3001 PW_SKIP_SERVER=1 npx playwright test e2e/hr-plm-pm-chain.spec.ts
 
   playwright-all-chains-matrix:
     name: Playwright All Cross Chains Matrix
@@ -233,20 +239,21 @@ jobs:
       CI_PLAYWRIGHT_CHAIN_MATRIX: 'true'
       CI_PLAYWRIGHT_STACK: 'true'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v4
         with:
           version: 11
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: 'pnpm'
       - run: pnpm install --no-frozen-lockfile
       - run: CI_PLAYWRIGHT_CHAIN_MATRIX=true npx tsx scripts/ci-playwright-chain-matrix-probe.ts
       - run: CI_PLAYWRIGHT_STACK=true npx tsx scripts/ci-playwright-stack-probe.ts
-      - run: bash scripts/ci-playwright-stack-boot.sh
-      - run: npx playwright install chromium --with-deps
-      - run: FRONTEND_URL=http://127.0.0.1:3001 PW_SKIP_SERVER=1 npx playwright test e2e/all-cross-chains-matrix.spec.ts e2e/pm-finance-tax-chain.spec.ts e2e/proc-inv-quality-chain.spec.ts e2e/mes-eam-crm-chain.spec.ts e2e/hr-plm-pm-chain.spec.ts
+      - run: |
+          bash scripts/ci-playwright-stack-boot.sh
+          npx playwright install chromium --with-deps
+          FRONTEND_URL=http://127.0.0.1:3001 PW_SKIP_SERVER=1 npx playwright test e2e/all-cross-chains-matrix.spec.ts e2e/pm-finance-tax-chain.spec.ts e2e/proc-inv-quality-chain.spec.ts e2e/mes-eam-crm-chain.spec.ts e2e/hr-plm-pm-chain.spec.ts
 
   playwright-visual-baseline:
     name: Playwright Visual Regression Baseline
@@ -256,20 +263,21 @@ jobs:
       CI_PLAYWRIGHT_VISUAL: 'true'
       CI_PLAYWRIGHT_STACK: 'true'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v4
         with:
           version: 11
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: 'pnpm'
       - run: pnpm install --no-frozen-lockfile
       - run: CI_PLAYWRIGHT_VISUAL=true npx tsx scripts/ci-playwright-visual-probe.ts
       - run: CI_PLAYWRIGHT_STACK=true npx tsx scripts/ci-playwright-stack-probe.ts
-      - run: bash scripts/ci-playwright-stack-boot.sh
-      - run: npx playwright install chromium --with-deps
-      - run: FRONTEND_URL=http://127.0.0.1:3001 PW_SKIP_SERVER=1 npx playwright test e2e/visual-baseline.spec.ts --update-snapshots || FRONTEND_URL=http://127.0.0.1:3001 PW_SKIP_SERVER=1 npx playwright test e2e/visual-baseline.spec.ts
+      - run: |
+          bash scripts/ci-playwright-stack-boot.sh
+          npx playwright install chromium --with-deps
+          FRONTEND_URL=http://127.0.0.1:3001 PW_SKIP_SERVER=1 npx playwright test e2e/visual-baseline.spec.ts --update-snapshots || FRONTEND_URL=http://127.0.0.1:3001 PW_SKIP_SERVER=1 npx playwright test e2e/visual-baseline.spec.ts
 
   playwright-visual-diff:
     name: Playwright Visual Diff (strict)
@@ -279,20 +287,21 @@ jobs:
       CI_PLAYWRIGHT_VISUAL_DIFF: 'true'
       CI_PLAYWRIGHT_STACK: 'true'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v4
         with:
           version: 11
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: 'pnpm'
       - run: pnpm install --no-frozen-lockfile
       - run: CI_PLAYWRIGHT_VISUAL_DIFF=true npx tsx scripts/ci-playwright-visual-diff-probe.ts
       - run: CI_PLAYWRIGHT_STACK=true npx tsx scripts/ci-playwright-stack-probe.ts
-      - run: bash scripts/ci-playwright-stack-boot.sh
-      - run: npx playwright install chromium --with-deps
-      - run: FRONTEND_URL=http://127.0.0.1:3001 PW_SKIP_SERVER=1 npx playwright test e2e/visual-baseline.spec.ts
+      - run: |
+          bash scripts/ci-playwright-stack-boot.sh
+          npx playwright install chromium --with-deps
+          FRONTEND_URL=http://127.0.0.1:3001 PW_SKIP_SERVER=1 npx playwright test e2e/visual-baseline.spec.ts
 
   playwright:
     name: Playwright PM BI E2E
@@ -300,11 +309,11 @@ jobs:
     needs: contracts
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v4
         with:
           version: 11
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: 'pnpm'
@@ -322,11 +331,11 @@ jobs:
       CI_AUTH_ENFORCE_PROD: 'true'
       AUTH_ENFORCE: 'true'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v4
         with:
           version: 11
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: 'pnpm'
@@ -334,7 +343,9 @@ jobs:
       - run: CI_AUTH_ENFORCE_PROD=true npx tsx scripts/ci-auth-enforce-prod-probe.ts
       - run: CI_AUTH_ENFORCE_KEYCLOAK=true npx tsx scripts/ci-auth-keycloak-regression-probe.ts
       - run: CI_AUTH_ENFORCE_LIVE=true npx tsx scripts/ci-auth-enforce-live-probe.ts
-      - run: bash scripts/auth-enforce-e2e.sh
+      - run: |
+          bash scripts/ci-playwright-stack-boot.sh
+          bash scripts/auth-enforce-e2e.sh
 
   docker-smoke:
     name: Docker DB + Warstwa 11
@@ -342,11 +353,11 @@ jobs:
     needs: contracts
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v4
         with:
           version: 11
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: 'pnpm'
