@@ -9,7 +9,7 @@ async function bootstrap() {
     new FastifyAdapter()
   );
 
-  app.enableCors();
+  app.enableCors({ origin: process.env.FRONTEND_URL || 'http://localhost:3000' });
 
   app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.NATS,
@@ -19,7 +19,7 @@ async function bootstrap() {
   });
 
   await app.startAllMicroservices();
-  await app.listen(4011, '0.0.0.0');
+  await app.listen(4011, '127.0.0.1');
   console.log(`[Analytics Service] Running on http://127.0.0.1:4011 (Fastify)`);
 }
 bootstrap();

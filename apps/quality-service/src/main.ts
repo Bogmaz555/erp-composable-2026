@@ -10,9 +10,8 @@ async function bootstrap() {
   );
 
   app.enableCors({
-    origin: 'http://localhost:3000',
-    credentials: true,
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE'
   });
 
   app.connectMicroservice<MicroserviceOptions>({
@@ -23,6 +22,6 @@ async function bootstrap() {
   });
 
   await app.startAllMicroservices();
-  await app.listen(4008, '0.0.0.0');
+  await app.listen(4008, '127.0.0.1');
 }
 bootstrap();

@@ -11,9 +11,9 @@ async function bootstrap() {
     options: { servers: [process.env.NATS_URL || 'nats://localhost:4222'] },
   });
 
-  app.enableCors({ origin: '*' });
+  app.enableCors({ origin: process.env.FRONTEND_URL || 'http://localhost:3000' });
   await app.startAllMicroservices();
-  await app.listen(4012, '0.0.0.0');
+  await app.listen(4012, '127.0.0.1');
   console.log('HR Service http://localhost:4012');
 }
 bootstrap();

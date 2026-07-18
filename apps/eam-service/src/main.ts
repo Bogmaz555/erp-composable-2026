@@ -20,7 +20,7 @@ async function bootstrap() {
   });
 
   await app.startAllMicroservices();
-  await app.listen(4009, '0.0.0.0');
+  await app.listen(4009, '127.0.0.1');
   console.log(`EAM Service is running on http://127.0.0.1:4009`);
 }
 bootstrap();

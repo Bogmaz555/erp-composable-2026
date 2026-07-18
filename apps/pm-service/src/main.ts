@@ -18,11 +18,11 @@ async function bootstrap() {
   });
 
   app.enableCors({
-    origin: '*',
-    credentials: true,
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE'
   });
 
   await app.startAllMicroservices();
-  await app.listen(4002, '0.0.0.0');
+  await app.listen(4002, '127.0.0.1');
 }
 bootstrap();

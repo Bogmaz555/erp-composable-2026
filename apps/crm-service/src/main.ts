@@ -15,9 +15,9 @@ async function bootstrap() {
     options: { servers: [process.env.NATS_URL || 'nats://localhost:4222'] },
   } as MicroserviceOptions);
 
-  app.enableCors({ origin: '*', credentials: true });
+  app.enableCors({ origin: process.env.FRONTEND_URL || 'http://localhost:3000', credentials: true });
 
   await app.startAllMicroservices();
-  await app.listen(4001, '0.0.0.0');
+  await app.listen(4001, '127.0.0.1');
 }
 bootstrap();

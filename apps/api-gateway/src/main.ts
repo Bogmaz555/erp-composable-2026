@@ -182,7 +182,7 @@ async function bootstrap() {
   });
 
   // Binding to 0.0.0.0 is mandatory for Docker networking/K6 integration
-  await app.listen(4005, '0.0.0.0');
+  await app.listen(4005, '127.0.0.1');
   console.log('API Gateway Fastify running natively on http://0.0.0.0:4005 with CORS Enabled and Multi-Tenant proxying');
 
   const { startMtlsHealthSidecar, startMtlsProxySidecar } = await import('./mtls-listen');

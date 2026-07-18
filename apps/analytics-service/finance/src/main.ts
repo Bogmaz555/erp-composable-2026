@@ -11,7 +11,7 @@ async function bootstrap() {
   );
 
   app.enableCors({
-    origin: '*',
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
@@ -26,7 +26,7 @@ async function bootstrap() {
   await app.startAllMicroservices();
 
   const port = 4010;
-  await app.listen(port, '0.0.0.0');
+  await app.listen(port, '127.0.0.1');
   Logger.log(`Finance Service running on http://localhost:${port}`, 'Bootstrap');
 }
 bootstrap();

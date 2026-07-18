@@ -9,12 +9,12 @@ async function bootstrap() {
   );
   
   app.enableCors({
-    origin: 'http://localhost:3000',
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
     credentials: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE'
   });
 
-  await app.listen(4007, '0.0.0.0');
+  await app.listen(4007, '127.0.0.1');
   console.log(`PLM Service is running on: ${await app.getUrl()}`);
 }
 bootstrap();
