@@ -30,7 +30,7 @@ for i in $(seq 1 60); do
   pm=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:4002/ 2>/dev/null || true)
   analytics=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:4011/ 2>/dev/null || true)
   
-  if [[ "$gw" =~ ^200 ]] && [[ "$fe" =~ ^200 ]] && [[ "$pm" =~ ^404 ]] && [[ "$analytics" =~ ^404 ]]; then
+  if [[ "$gw" =~ ^200 ]] && [[ "$fe" =~ ^200 ]] && [[ "$pm" =~ ^(200|404) ]] && [[ "$analytics" =~ ^(200|404) ]]; then
     break
   fi
   sleep 3
