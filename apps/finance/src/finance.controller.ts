@@ -332,7 +332,7 @@ export class FinanceController {
       const budget = p.budget ?? p.totalBudget ?? 0;
       const fromCosts = costGroups.find((c) => c.projectId === p.id)?._sum.amount ?? 0;
       const fromWip = wipRows.find((w) => w.projectId === p.id);
-      const actual = fromCosts + (fromWip?.laborCost ?? 0) + (fromWip?.materialReserved ?? 0);
+      const actual = Number(fromCosts) + Number(fromWip?.laborCost ?? 0) + Number(fromWip?.materialReserved ?? 0);
       const variance = budget - actual;
       const percentUsed = budget > 0 ? Math.round((actual / budget) * 100) : 0;
       return {
@@ -352,8 +352,8 @@ export class FinanceController {
           projectId: w.projectId,
           projectName: w.projectId,
           budget: 0,
-          actualCost: Math.round(w.wipBalance),
-          variance: -Math.round(w.wipBalance),
+          actualCost: Math.round(Number(w.wipBalance)),
+          variance: -Math.round(Number(w.wipBalance)),
           percentUsed: 0,
           status: 'OK' as const,
         });

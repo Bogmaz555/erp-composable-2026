@@ -20,7 +20,7 @@ export class ProjectAccountingService {
     for (const c of costs) {
       const key = c.costType in byType ? c.costType : 'OTHER';
       if (!byType[key]) byType[key] = { amount: 0, count: 0 };
-      byType[key].amount += c.amount;
+      byType[key].amount += Number(c.amount);
       byType[key].count += 1;
     }
 
@@ -31,9 +31,9 @@ export class ProjectAccountingService {
     });
 
     const costTotal = Object.values(byType).reduce((s, v) => s + v.amount, 0);
-    const wipBalance = wip?.wipBalance ?? 0;
-    const materialReserved = wip?.materialReserved ?? 0;
-    const laborFromWip = wip?.laborCost ?? 0;
+    const wipBalance = Number(wip?.wipBalance ?? 0);
+    const materialReserved = Number(wip?.materialReserved ?? 0);
+    const laborFromWip = Number(wip?.laborCost ?? 0);
 
     return {
       found: costs.length > 0 || !!wip || milestones.length > 0,
@@ -41,9 +41,9 @@ export class ProjectAccountingService {
       breakdown: byType,
       wip: wip
         ? {
-            wipBalance: Math.round(wip.wipBalance * 100) / 100,
-            materialReserved: Math.round(wip.materialReserved * 100) / 100,
-            laborCost: Math.round(wip.laborCost * 100) / 100,
+            wipBalance: Math.round(Number(wip.wipBalance) * 100) / 100,
+            materialReserved: Math.round(Number(wip.materialReserved) * 100) / 100,
+            laborCost: Math.round(Number(wip.laborCost) * 100) / 100,
           }
         : null,
       milestones: milestones.map((m) => ({
