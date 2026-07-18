@@ -107,12 +107,11 @@ export class AuthService {
   }
 
   getContext(headers: Record<string, string | string[] | undefined>): AuthContext {
-    const devRole = (headers['x-dev-role'] as string) || 'ADMIN';
-    const activeRole = ERP_ROLES.includes(devRole as ErpRole) ? (devRole as ErpRole) : 'ADMIN';
     const rolesHeader = headers['x-roles'] as string | undefined;
     const roles: ErpRole[] = rolesHeader
       ? rolesHeader.split(',').filter((r): r is ErpRole => ERP_ROLES.includes(r as ErpRole))
-      : [activeRole];
+      : ['VIEWER'];
+    const activeRole = roles[0] || 'VIEWER';
 
     return {
       userId: (headers['x-user-id'] as string) || 'dev-user',

@@ -6,8 +6,11 @@ import { AuthGuard } from '@nestjs/passport';
 @Injectable()
 export class JwtAuthGuard extends AuthGuard('jwt') {
   canActivate(context: ExecutionContext) {
-    // Dev/test bypass: only enforce JWT when explicitly enabled.
-    if (process.env.AUTH_ENFORCE !== 'true') return true;
+    // JWT is enabled by default. Only bypass if explicitly disabled via AUTH_DISABLE.
+    if (process.env.AUTH_DISABLE === 'true') {
+      console.warn('SECURITY WARNING: JWT Auth is globally disabled (AUTH_DISABLE=true)');
+      return true;
+    }
     return super.canActivate(context);
   }
 }

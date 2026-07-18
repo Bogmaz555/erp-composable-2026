@@ -42,7 +42,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const role = (typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null) as ErpRole | null;
     const token = typeof window !== 'undefined' ? localStorage.getItem(TOKEN_KEY) : null;
     const headers: Record<string, string> = {};
-    if (role) headers['X-Dev-Role'] = role;
     if (token) headers['Authorization'] = `Bearer ${token}`;
     const res = await fetch('/api/analytics/auth/context', { headers });
     if (!res.ok) return;

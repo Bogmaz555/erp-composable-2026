@@ -31,7 +31,7 @@ async function run() {
   }
 
   const ctxRes = await fetch(`${GW}/api/analytics/auth/context`, {
-    headers: { 'X-Dev-Role': 'ENGINEER' },
+    headers: { 'Content-Type': 'application/json' },
     signal: AbortSignal.timeout(5000),
   });
   if (ctxRes.ok) {

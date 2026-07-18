@@ -58,7 +58,7 @@ export function verifyToken(token: string): Promise<GatewayClaims> {
       try {
         const decoded = jwt.verify(
           token,
-          process.env.JWT_SECRET || 'dev-secret-do-not-use-in-prod',
+          process.env.JWT_SECRET,
         );
         resolve(toClaims(decoded));
       } catch (e) {

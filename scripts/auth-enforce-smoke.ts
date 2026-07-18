@@ -32,7 +32,7 @@ async function run() {
   console.log(`${authRes.status < 500 ? '✓' : '✗'} GW /api/pm with bearer → ${authRes.status}`);
 
   const ctxRes = await fetch(`${GW}/api/analytics/auth/context`, {
-    headers: { Authorization: `Bearer ${token}`, 'X-Dev-Role': 'ENGINEER' },
+    headers: { Authorization: `Bearer ${token}` },
     signal: AbortSignal.timeout(5000),
   });
   if (ctxRes.ok) {
