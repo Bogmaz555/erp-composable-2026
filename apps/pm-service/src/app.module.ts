@@ -24,9 +24,13 @@ import { MspXmlService } from './msp-xml.service';
 import { MesIntegrationController } from './controllers/mes-integration.controller';
 import { ApplyNcrDelayHandler } from './commands/apply-ncr-delay.handler';
 
+import { ScheduleModule } from '@nestjs/schedule';
+import { OutboxRelayService } from './outbox-relay.service';
+
 @Module({
   imports: [
     CqrsModule,
+    ScheduleModule.forRoot(),
     ClientsModule.register([
       {
         name: 'NATS_SERVICE',
@@ -49,6 +53,7 @@ import { ApplyNcrDelayHandler } from './commands/apply-ncr-delay.handler';
   ],
   providers: [
     PrismaService,
+    OutboxRelayService,
     GetProjectsWithWbsHandler,
     AddWbsElementHandler,
     UpdateWbsElementHandler,
