@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ClientsModule, Transport } from '@nestjs/microservices';
 import { OutboxRelayService } from './outbox-relay.service';
 import { ScheduleModule } from '@nestjs/schedule';
 import { CqrsModule } from '@nestjs/cqrs';
@@ -8,7 +9,18 @@ import { RecordTimeEntryHandler } from './commands/record-time-entry.handler';
 
 @Module({
   imports: [
-    ScheduleModule.forRoot(),CqrsModule],
+    ScheduleModule.forRoot(),
+    CqrsModule,
+    ClientsModule.register([
+      {
+        name: 'NATS_SERVICE',
+        transport: Transport.NATS,
+        options: {
+          servers: [process.env.NATS_URL || 'nats://localhost:4222'],
+        },
+      },
+    ]),
+  ],
   controllers: [HrController],
   providers: [
     OutboxRelayService,PrismaService, RecordTimeEntryHandler],

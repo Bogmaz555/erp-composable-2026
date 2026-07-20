@@ -11,19 +11,23 @@ export class UpdatePipelineStageHandler implements ICommandHandler<UpdatePipelin
     const { id, status } = command;
     
     if (status === 'ACCEPTED') {
-      const opportunity = await this.prisma.isolatedClient.opportunity.findUnique({ where: { id } });
+      const opportunity = await this.prisma.isolatedClient.opportunity.findUnique({ 
+        where: { id },
+        include: { BOMItem: true }
+      });
       if (!opportunity) throw new Error('Opportunity not found');
 
       return this.prisma.isolatedClient.$transaction(async (tx) => {
         const updated = await tx.opportunity.update({
           where: { id },
           data: { status },
+          include: { BOMItem: true }
         });
 
         await tx.outboxEvent.create({ data: { id: require('crypto').randomUUID(), 
             aggregateId: updated.id,
             aggregateType: 'Opportunity',
-            eventType: 'OpportunityWon',
+            eventType: 'crm.opportunity.won.v1',
             payload: { ...updated },
             status: OutboxStatus.PENDING,
           },

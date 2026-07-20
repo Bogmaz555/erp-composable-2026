@@ -48,7 +48,7 @@ export default function TenantIsolationPanel() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Database className="w-4 h-4 text-cyan-400" />
-          <h3 className="text-sm font-semibold text-white">Tenant Isolation — {tenantId}</h3>
+          <h3 className="text-sm font-semibold text-white">Izolacja Tenantów — {tenantId}</h3>
           <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">
             {data.isolationMode}
           </span>
@@ -64,7 +64,7 @@ export default function TenantIsolationPanel() {
             className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs border border-violet-500/30 text-violet-300 hover:bg-violet-500/10"
           >
             <Sparkles className="w-3 h-3" />
-            Provision demo
+            Udostępnij demo
           </button>
         </div>
       </div>

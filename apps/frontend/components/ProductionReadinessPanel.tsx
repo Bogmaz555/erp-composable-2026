@@ -46,7 +46,7 @@ export default function ProductionReadinessPanel() {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <ShieldCheck className={`w-5 h-5 ${data.ready ? 'text-emerald-400' : 'text-amber-400'}`} />
-          <h3 className="text-lg font-semibold text-white">Production Readiness</h3>
+          <h3 className="text-lg font-semibold text-white">Gotowość Produkcyjna</h3>
         </div>
         <span className={`text-sm font-bold px-3 py-1 rounded-full ${
           data.score >= 80 ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300'

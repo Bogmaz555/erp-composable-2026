@@ -48,13 +48,13 @@ export default function TraceabilitySpinePanel() {
         <div className="flex items-center gap-2">
           <GitBranch className="w-5 h-5 text-violet-400" />
           <div>
-            <h3 className="text-sm font-semibold text-white">ETO Traceability Spine</h3>
+            <h3 className="text-sm font-semibold text-white">Łańcuch Śledzenia ETO</h3>
             <p className="text-[10px] text-gray-500">INV genealogy → MES WO → Finance WIP/GL</p>
           </div>
         </div>
         {data?.spineComplete && (
           <span className="text-[10px] px-2 py-1 rounded-full bg-green-500/10 text-green-300 border border-green-500/20">
-            Spine complete
+            Łańcuch kompletny
           </span>
         )}
       </div>
@@ -77,7 +77,7 @@ export default function TraceabilitySpinePanel() {
           className="flex items-center gap-1 px-3 py-2 text-xs border border-violet-500/30 text-violet-300 rounded-lg hover:bg-violet-500/10"
         >
           <Sparkles className="w-3 h-3" />
-          Seed demo spine
+          Zasil demo
         </button>
       </div>
 

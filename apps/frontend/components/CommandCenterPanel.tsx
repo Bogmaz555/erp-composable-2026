@@ -28,7 +28,7 @@ export default function CommandCenterPanel() {
   if (error || !data) {
     return (
       <div className="glass-panel p-6 border border-red-500/30">
-        <p className="text-red-400 text-sm">Command Center niedostępny — uruchom analytics + gateway</p>
+        <p className="text-red-400 text-sm">Centrum Dowodzenia niedostępne — uruchom analytics + gateway</p>
       </div>
     );
   }
@@ -45,30 +45,30 @@ export default function CommandCenterPanel() {
             <Server className="w-5 h-5 text-indigo-300" />
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-white">Command Center</h3>
-            <p className="text-xs text-gray-400">Health matrix · regression · orchestrator</p>
+            <h3 className="text-lg font-semibold text-white">Centrum Dowodzenia</h3>
+            <p className="text-xs text-gray-400">Macierz zdrowia · testy regresyjne · orkiestrator</p>
           </div>
         </div>
         <div className="flex items-center gap-4">
           <div className="text-center">
             <p className="text-2xl font-bold text-green-400">{summary.healthScore}%</p>
-            <p className="text-[10px] uppercase tracking-wider text-gray-500">Health</p>
+            <p className="text-[10px] uppercase tracking-wider text-gray-500">Zdrowie</p>
           </div>
           {regression?.score != null && (
             <div className="text-center">
               <p className="text-2xl font-bold text-cyan-400">{regression.score}%</p>
-              <p className="text-[10px] uppercase tracking-wider text-gray-500">Regression</p>
+              <p className="text-[10px] uppercase tracking-wider text-gray-500">Regresja</p>
             </div>
           )}
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
             <Activity className="w-3.5 h-3.5 text-green-400" />
-            <span className="text-xs text-gray-300">{summary.up}/{summary.total} UP</span>
+            <span className="text-xs text-gray-300">{summary.up}/{summary.total} Działa</span>
           </div>
         </div>
       </div>
 
       <div>
-        <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Serwisy (direct)</p>
+        <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Serwisy (bezpośrednie)</p>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2">
           {direct.map((s) => (
             <div
@@ -93,7 +93,7 @@ export default function CommandCenterPanel() {
 
       {gateway.length > 0 && (
         <div>
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Gateway E2E</p>
+          <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Bramka E2E</p>
           <div className="flex flex-wrap gap-2">
             {gateway.map((s) => (
               <span
@@ -112,7 +112,7 @@ export default function CommandCenterPanel() {
 
       {regression && (
         <p className="text-xs text-gray-500">
-          Ostatni regression: {regression.passed}/{regression.total} passed
+          Ostatnia regresja: {regression.passed}/{regression.total} zaliczonych
           {regression.generatedAt && ` · ${new Date(regression.generatedAt).toLocaleString('pl-PL')}`}
         </p>
       )}

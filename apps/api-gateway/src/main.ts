@@ -30,6 +30,8 @@ const PUBLIC_PATH_PREFIXES = [
   '/api/analytics/outbox',
   '/api/analytics/platform',
   '/api/hr',
+  '/api/mes/kiosk',
+  '/api/ai',
   '/health',
 ];
 
@@ -170,6 +172,66 @@ async function bootstrap() {
   await app.register(fastifyHttpProxy as any, {
     upstream: 'http://127.0.0.1:4011',
     prefix: '/api/analytics',
+    rewritePrefix: '',
+    replyOptions: {
+      rewriteRequestHeaders: (originalReq, headers) => {
+        return {
+          ...headers,
+          'x-tenant-id': originalReq.headers['x-tenant-id'] || 'public'
+        };
+      }
+    }
+  });
+
+  // CRITICAL: Proxy MES queries to MES Microservice (Port: 4006)
+  await app.register(fastifyHttpProxy as any, {
+    upstream: 'http://127.0.0.1:4006',
+    prefix: '/api/mes',
+    rewritePrefix: '',
+    replyOptions: {
+      rewriteRequestHeaders: (originalReq, headers) => {
+        return {
+          ...headers,
+          'x-tenant-id': originalReq.headers['x-tenant-id'] || 'public'
+        };
+      }
+    }
+  });
+
+  // CRITICAL: Proxy Search queries to Meilisearch (Port: 7700)
+  await app.register(fastifyHttpProxy as any, {
+    upstream: 'http://127.0.0.1:7700',
+    prefix: '/api/search',
+    rewritePrefix: '',
+    replyOptions: {
+      rewriteRequestHeaders: (originalReq, headers) => {
+        return {
+          ...headers,
+          'Authorization': 'Bearer erp-meili-master-key-2026' // Autoryzacja wbudowana do wewnątrz
+        };
+      }
+    }
+  });
+
+  // CRITICAL: Proxy AI Vector queries to Search Microservice (Port: 4008)
+  await app.register(fastifyHttpProxy as any, {
+    upstream: 'http://127.0.0.1:4008',
+    prefix: '/api/ai',
+    rewritePrefix: '/ai',
+    replyOptions: {
+      rewriteRequestHeaders: (originalReq, headers) => {
+        return {
+          ...headers,
+          'x-tenant-id': originalReq.headers['x-tenant-id'] || 'public'
+        };
+      }
+    }
+  });
+
+  // CRITICAL: Proxy Approvals queries to Approvals Microservice (Port: 4009)
+  await app.register(fastifyHttpProxy as any, {
+    upstream: 'http://127.0.0.1:4009',
+    prefix: '/api/approvals',
     rewritePrefix: '',
     replyOptions: {
       rewriteRequestHeaders: (originalReq, headers) => {

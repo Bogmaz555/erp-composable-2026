@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
-import { MesController } from './mes.controller';
 import { PlmController } from './plm.controller';
 import { QualityController } from './quality.controller';
 import { EamController } from './eam.controller';
@@ -22,7 +21,6 @@ import { PassportModule } from '@nestjs/passport';
   ],
   controllers: [
     AppController,
-    MesController,
     PlmController,
     QualityController,
     EamController,

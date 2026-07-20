@@ -12,24 +12,102 @@
       "mes.workorder.planned",
       "finance.wip.cost.recorded"
     ],
-    "lastEventAt": "2026-07-17T05:49:58.904Z",
+    "lastEventAt": "2026-07-19T19:44:14.522Z",
     "percentComplete": 100
   },
   {
-    "correlationId": "95db4e33-884a-4345-85c3-44a87f61d8c4",
-    "projectId": "95db4e33-884a-4345-85c3-44a87f61d8c4",
+    "correlationId": "6c5e06ea-4489-4df3-9e0d-6a8b5d709864",
+    "projectId": "6c5e06ea-4489-4df3-9e0d-6a8b5d709864",
     "status": "ACTIVE",
-    "completedSteps": [],
-    "lastEventAt": "2026-07-16T12:56:33.882Z",
-    "percentComplete": 0
+    "completedSteps": [
+      "mes.production.recorded.v1"
+    ],
+    "lastEventAt": "2026-07-19T19:43:14.402Z",
+    "percentComplete": 14
+  },
+  {
+    "correlationId": "e65bc847-9f7c-45cb-9e0b-980fada53d5d",
+    "projectId": "e65bc847-9f7c-45cb-9e0b-980fada53d5d",
+    "status": "ACTIVE",
+    "completedSteps": [
+      "mes.production.recorded.v1"
+    ],
+    "lastEventAt": "2026-07-19T19:43:08.396Z",
+    "percentComplete": 14
   },
   {
     "correlationId": "35032024-8d02-40bf-a362-c87125245835",
     "projectId": "35032024-8d02-40bf-a362-c87125245835",
     "status": "ACTIVE",
     "completedSteps": [],
-    "lastEventAt": "2026-07-16T12:56:30.884Z",
+    "lastEventAt": "2026-07-19T19:22:41.589Z",
     "percentComplete": 0
+  },
+  {
+    "correlationId": "0f6b25f4-00e9-4595-a27b-bab670dae9bb",
+    "projectId": "0f6b25f4-00e9-4595-a27b-bab670dae9bb",
+    "status": "ACTIVE",
+    "completedSteps": [],
+    "lastEventAt": "2026-07-19T19:22:41.583Z",
+    "percentComplete": 0
+  },
+  {
+    "correlationId": "77aeccf5-9c5e-4d07-9e80-b24e1493b7d9",
+    "projectId": "77aeccf5-9c5e-4d07-9e80-b24e1493b7d9",
+    "status": "ACTIVE",
+    "completedSteps": [],
+    "lastEventAt": "2026-07-19T19:22:41.580Z",
+    "percentComplete": 0
+  },
+  {
+    "correlationId": "47f4e21a-94ab-4e86-8da9-5a85881139aa",
+    "projectId": "47f4e21a-94ab-4e86-8da9-5a85881139aa",
+    "status": "ACTIVE",
+    "completedSteps": [],
+    "lastEventAt": "2026-07-19T19:22:41.576Z",
+    "percentComplete": 0
+  },
+  {
+    "correlationId": "fcdcd864-e70b-4a96-97be-d83022344221",
+    "projectId": "fcdcd864-e70b-4a96-97be-d83022344221",
+    "status": "ACTIVE",
+    "completedSteps": [],
+    "lastEventAt": "2026-07-19T19:22:38.601Z",
+    "percentComplete": 0
+  },
+  {
+    "correlationId": "seed-eto-gamma",
+    "projectId": "seed-eto-gamma",
+    "status": "ACTIVE",
+    "completedSteps": [],
+    "lastEventAt": "2026-07-19T19:22:38.597Z",
+    "percentComplete": 0
+  },
+  {
+    "correlationId": "seed-eto-beta",
+    "projectId": "seed-eto-beta",
+    "status": "ACTIVE",
+    "completedSteps": [],
+    "lastEventAt": "2026-07-19T19:22:38.594Z",
+    "percentComplete": 0
+  },
+  {
+    "correlationId": "seed-eto-alpha",
+    "projectId": "seed-eto-alpha",
+    "status": "ACTIVE",
+    "completedSteps": [],
+    "lastEventAt": "2026-07-19T19:22:38.591Z",
+    "percentComplete": 0
+  },
+  {
+    "correlationId": "95db4e33-884a-4345-85c3-44a87f61d8c4",
+    "projectId": "95db4e33-884a-4345-85c3-44a87f61d8c4",
+    "status": "ACTIVE",
+    "completedSteps": [
+      "mes.production.recorded.v1"
+    ],
+    "lastEventAt": "2026-07-19T18:15:10.060Z",
+    "percentComplete": 14
   },
   {
     "correlationId": "proj-eto-demo",
@@ -38,8 +116,24 @@
     "completedSteps": [
       "inventory.reservation.created.v1"
     ],
-    "lastEventAt": "2026-06-06T20:00:53.078Z",
+    "lastEventAt": "2026-07-19T18:15:10.015Z",
     "percentComplete": 14
+  },
+  {
+    "correlationId": "eto-1784484908805",
+    "projectId": "proj-eto-demo",
+    "status": "ACTIVE",
+    "completedSteps": [
+      "plm.bom.released.v2",
+      "pm.material.requested.v1",
+      "inventory.reservation.created.v1",
+      "mes.workorder.planned",
+      "mes.production.recorded.v1",
+      "inventory.reservation.released.v1",
+      "finance.wip.cost.recorded"
+    ],
+    "lastEventAt": "2026-07-19T18:15:08.896Z",
+    "percentComplete": 100
   },
   {
     "correlationId": "eto-1780776052344",

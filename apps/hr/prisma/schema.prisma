@@ -19,6 +19,17 @@ model Employee {
   isActive     Boolean     @default(true)
   createdAt    DateTime    @default(now())
   timeEntries  TimeEntry[]
+  certifications Certification[]
+}
+
+model Certification {
+  id         String   @id @default(uuid())
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id])
+  name       String
+  validUntil DateTime
+  issuedAt   DateTime @default(now())
+  @@index([employeeId])
 }
 
 model TimeEntry {

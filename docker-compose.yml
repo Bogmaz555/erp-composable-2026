@@ -272,12 +272,11 @@ services:
     profiles: ["temporal"]
     restart: unless-stopped
     environment:
-      DB: postgresql
+      DB: postgres12
       DB_PORT: 5432
       POSTGRES_USER: erp_user
       POSTGRES_PWD: erp_password
       POSTGRES_SEEDS: temporal-db
-      DYNAMIC_CONFIG_FILE_PATH: config/dynamicconfig/development-sql.yaml
     ports:
       - "7233:7233"
     depends_on:
@@ -519,6 +518,25 @@ services:
     networks:
       - erp-network
 
+  meilisearch:
+    image: getmeili/meilisearch:v1.9
+    container_name: erp-meilisearch
+    restart: unless-stopped
+    environment:
+      MEILI_MASTER_KEY: "erp-meili-master-key-2026"
+      MEILI_ENV: "development"
+    ports:
+      - "7700:7700"
+    volumes:
+      - meili_data:/meili_data
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--spider",  "http://localhost:7700/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - erp-network
+
 # ═════════════════════════════════════════════════════════════════════════════
 # NAMED VOLUMES — Persistent storage per service
 # ═════════════════════════════════════════════════════════════════════════════
@@ -559,6 +577,8 @@ volumes:
   vault_data:
   vault_ha_data:
   vault_raft_data:
+    driver: local
+  meili_data:
     driver: local
 
 # ═════════════════════════════════════════════════════════════════════════════

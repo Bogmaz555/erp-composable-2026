@@ -17,8 +17,8 @@ export default function ModuleKpiGrid() {
     { label: 'OEE Produkcja', val: `${m.mes.oee}%`, sub: `${m.mes.inProgress} WO w toku`, icon: Factory, color: 'text-cyan-400' },
     { label: 'Magazyn SKU', val: String(m.inv.skuCount), sub: `${m.inv.lowStock} niski stan`, icon: Package, color: 'text-emerald-400' },
     { label: 'Należności', val: fmt(m.fin.receivablesTotal), sub: `Zob. ${fmt(m.fin.payablesTotal)}`, icon: Wallet, color: 'text-violet-400' },
-    { label: 'Otwarte NCR', val: String(m.quality.openNcrs), sub: 'Quality', icon: Activity, color: 'text-rose-400' },
-    { label: 'NATS Events', val: m.platform.totalEvents.toLocaleString(), sub: `${m.platform.mps} msg/s`, icon: Zap, color: 'text-amber-400' },
+    { label: 'Otwarte NCR', val: String(m.quality.openNcrs), sub: 'Jakość', icon: Activity, color: 'text-rose-400' },
+    { label: 'Zdarzenia NATS', val: m.platform.totalEvents.toLocaleString(), sub: `${m.platform.mps} msg/s`, icon: Zap, color: 'text-amber-400' },
   ];
 
   return (
