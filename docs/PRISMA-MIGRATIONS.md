@@ -53,12 +53,12 @@ explicit service list.
 | proc-service | `20260801000000_baseline` | outbox + `20260801200000_decimal_money` (PR 11) |
 | pm-service | `20260801000000_baseline` | outbox + `20260801200000_decimal_money` (PR 11) |
 | finance | `20260801000000_baseline` | `20260801120000_outbox_processing` (amounts already Decimal) |
-| plm-service | `20260801000000_baseline` | `20260801120000_outbox_processing` |
+| plm-service | `20260801000000_baseline` | outbox + `20260801210000_decimal_standard_cost` (PR 12) |
 | mes-service | `20260801000000_baseline` | `20260801120000_outbox_processing` |
 
-### Money Decimal (PR 11 / KD-5 blocklist)
+### Money Decimal (PR 11 pilot + PR 12 secondary)
 
-Pilot-critical monetary fields are **Prisma `Decimal`** (Postgres `DECIMAL(65,30)`):
+Monetary fields are **Prisma `Decimal`** (Postgres `DECIMAL(65,30)`):
 
 | Service | Fields | Migration path |
 |---------|--------|----------------|
@@ -67,10 +67,12 @@ Pilot-critical monetary fields are **Prisma `Decimal`** (Postgres `DECIMAL(65,30
 | pm-service | `budget`, `targetRevenue`, `baselineCost`, `actualLaborCost` | `20260801200000_decimal_money` |
 | hr | `hourlyRate` | Schema + `db push` (thin migrations only) |
 | tax-legal | `TaxInvoice.amount` | Schema + `db push` (thin migrations only) |
+| crm-service | `Opportunity.value`, `BOMItem.price`, `CatalogItem.basePrice` | Schema + `db push` (thin; PR 12) |
+| plm-service | `Item.standardCost` | `20260801210000_decimal_standard_cost` (PR 12) |
 
 **Not converted (by design):** engineering qty (`ItemGenealogy.quantityUsed`, BOM qty),
-`weightKg`/`scrapFactor`, timesheet `hours`, FTE `units`, `ccpmBufferPct`, CRM prices
-(secondary → optional PR 12).
+`weightKg`/`scrapFactor`, timesheet `hours`, FTE `units`, `ccpmBufferPct`, CRM
+`tkw` / `marginCoefficient` (non-list residual).
 
 Gate (no DB): `pnpm run check:no-float-money` → `scripts/check-no-float-money.sh`.
 

@@ -11,9 +11,18 @@ export class CrmResourcesController {
     return this.prisma.isolatedClient;
   }
 
+  /** Decimal money → number for HTTP/JSON (FE formatPrice / arithmetic). */
+  private serializeCatalogItem<T extends { basePrice?: unknown }>(item: T) {
+    return {
+      ...item,
+      basePrice: item.basePrice == null ? item.basePrice : Number(item.basePrice),
+    };
+  }
+
   @Get('catalog')
   async listCatalog() {
-    return this.db().catalogItem.findMany({ orderBy: { updatedAt: 'desc' } });
+    const rows = await this.db().catalogItem.findMany({ orderBy: { updatedAt: 'desc' } });
+    return rows.map((r) => this.serializeCatalogItem(r));
   }
 
   @Post('catalog')
@@ -31,7 +40,7 @@ export class CrmResourcesController {
     const existing = await this.db().catalogItem.findUnique({ where: { sku: body.sku } });
     if (existing) throw new BadRequestException(`SKU ${body.sku} już istnieje`);
 
-    return this.db().catalogItem.create({
+    const created = await this.db().catalogItem.create({
       data: {
         id: randomUUID(),
         sku: body.sku.trim(),
@@ -43,6 +52,7 @@ export class CrmResourcesController {
         updatedAt: new Date(),
       },
     });
+    return this.serializeCatalogItem(created);
   }
 
   @Get('tasks')
@@ -134,7 +144,9 @@ export class CrmResourcesController {
         const catItem = catalogMap.get(item.catalogItemId);
         if (!catItem) continue;
 
-        const baseCost = catItem.basePrice * (item.quantity || 1);
+        // Decimal at rest → number for CPQ math (PR 12)
+        const unitBase = Number(catItem.basePrice);
+        const baseCost = unitBase * (item.quantity || 1);
         tkw += baseCost;
 
         // Twarde narzuty marżowe zdefiniowane po stronie backendu
@@ -150,7 +162,7 @@ export class CrmResourcesController {
           opportunityId: body.opportunityId,
           catalogItemId: item.catalogItemId,
           quantity: item.quantity || 1,
-          price: catItem.basePrice * margin, // cena dla klienta z wliczoną marżą
+          price: unitBase * margin, // cena dla klienta z wliczoną marżą
           updatedAt: new Date(),
         });
       }
