@@ -42,11 +42,12 @@ export class EtoNatsPublisherService implements OnModuleInit {
     correlationId: string,
     projectId: string,
     step: string,
+    tenantId = 'default',
   ) {
     return this.publish(action, {
       correlationId,
       projectId,
-      tenantId: 'default',
+      tenantId,
       compensate: true,
       compensatedStep: step,
       source: 'eto-saga-orchestrator',

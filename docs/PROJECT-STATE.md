@@ -286,7 +286,7 @@ Frontend (Next.js) → API Gateway (:4005) → mikroserwisy (NestJS + Prisma)
 |----|---------|--------|
 | TD-001 | Auth produkcyjny | 🟡 W37 — auth/readiness API, RBAC 7 ról |
 | TD-002 | Gateway proxy | 🟡 W42 — gateway/readiness API, proxy probes |
-| TD-003 | Saga orchestracja | 🟡 W29 — readiness API |
+| TD-003 | Saga orchestracja | 🟡 G-lite (PR16) — real correlationId + reverse WIP; Temporal = non-DoD |
 | TD-004 | Głębokie modele domenowe | 🟡 W39–W49 — genealogy E2E + UI + MES spine |
 | TD-012 | Pact broker | 🟡 W48 — Event Registry readiness (broker odłożony) |
 | TD-006 | fix-*.js na root | ✅ Usunięte |

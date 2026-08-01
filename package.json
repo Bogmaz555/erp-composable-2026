@@ -247,7 +247,7 @@
     "smoke:workflow-timeouts": "npx tsx scripts/workflow-timeouts-smoke.ts",
     "smoke:eto-live": "npx tsx scripts/eto-live-nats-smoke.ts",
     "smoke:auth-enforce": "npx tsx scripts/auth-enforce-smoke.ts",
-    "smoke:saga-compensation": "npx tsx scripts/saga-compensation-smoke.ts",
+    "smoke:saga-compensation": "npx tsx scripts/smoke-saga-compensation.ts",
     "smoke:compensation-nats": "npx tsx scripts/compensation-nats-smoke.ts",
     "smoke:compensation-rollback": "npx tsx scripts/compensation-rollback-smoke.ts",
     "smoke:stock-rollback": "npx tsx scripts/stock-rollback-smoke.ts",

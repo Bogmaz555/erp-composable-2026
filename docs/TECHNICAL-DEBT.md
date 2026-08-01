@@ -11,7 +11,7 @@
 |----|---------|-------|---------|----------------------|---------|
 | TD-001 | Brak jakiejkolwiek autoryzacji / Auth | Krytyczny (nie nadaje się do użytku) | Wysoki | — | 🟡 W37: platform/auth/readiness, RBAC 7 ról |
 | TD-002 | Niespójny mechanizm proxy w API Gateway | Wysoki (niestabilność, trudna rozbudowa) | Średni | — | 🟡 W42: `GET /platform/gateway/readiness`, proxy probes (FA/PM/INV/HR), smoke + contract |
-| TD-003 | Brak realnej Saga Orchestracji dla długich procesów | Bardzo wysoki przy integracjach ETO | Wysoki | 3 | 🟡 W29: readiness API (orchestrator + temporal + workflow), yellow-minimum |
+| TD-003 | Brak realnej Saga Orchestracji dla długich procesów | Bardzo wysoki przy integracjach ETO | Wysoki | 3 | 🟡 G-lite (PR16): real correlationId + reverse WIP; Temporal TCP/bridge = **non-DoD** (KD-4); full Temporal residual |
 | TD-004 | Płytkie modele domenowe w kluczowych modułach (PLM, MES, INV, Finance) | Bardzo wysoki (rdzeń wartości systemu) | Bardzo wysoki | 4 | To jest głównie praca domenowa, nie "dług" |
 
 ---

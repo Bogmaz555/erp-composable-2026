@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
 import { EtoNatsPublisherService } from './eto-nats-publisher.service';
 import { EtoWorkflowService } from './eto-workflow.service';
@@ -7,6 +7,7 @@ const MAX_ATTEMPTS = 5;
 
 @Injectable()
 export class EtoOrchestratorService implements OnModuleInit {
+  private readonly logger = new Logger(EtoOrchestratorService.name);
   private timer: ReturnType<typeof setInterval> | null = null;
 
   constructor(
@@ -25,6 +26,12 @@ export class EtoOrchestratorService implements OnModuleInit {
     tenantId = 'default',
     steps?: readonly string[],
   ) {
+    if (!correlationId?.trim()) {
+      throw new Error('correlationId is required');
+    }
+    if (!projectId?.trim()) {
+      throw new Error('projectId is required');
+    }
     const stepList = steps?.length ? [...steps] : this.workflow.getStepIds();
     let jobs = 0;
     const timeouts: { step: string; timeoutMs: number; scheduledAt: string }[] = [];
@@ -34,6 +41,7 @@ export class EtoOrchestratorService implements OnModuleInit {
       await this.prisma.etoOrchestrationJob.create({
         data: {
           correlationId,
+          projectId,
           tenantId,
           step: stepId,
           status: i === 0 ? 'PENDING' : 'BLOCKED',
@@ -75,6 +83,41 @@ export class EtoOrchestratorService implements OnModuleInit {
     };
   }
 
+  /**
+   * Publish in-scope pilot compensation (finance.wip.cost.reversed).
+   * Failures are logged — never swallowed with empty catch (G-lite).
+   */
+  private async publishWipCompensation(
+    job: { correlationId: string; projectId: string; tenantId: string; step: string },
+    reason: string,
+  ): Promise<boolean> {
+    try {
+      const ok = await this.nats.publishCompensation(
+        'finance.wip.cost.reversed',
+        job.correlationId,
+        job.projectId,
+        job.step,
+        job.tenantId || 'default',
+      );
+      if (!ok) {
+        this.logger.error(
+          `Compensation publish failed (${reason}) correlationId=${job.correlationId} projectId=${job.projectId} step=${job.step}`,
+        );
+        return false;
+      }
+      this.logger.warn(
+        `Compensation published (${reason}) correlationId=${job.correlationId} projectId=${job.projectId} step=${job.step}`,
+      );
+      return true;
+    } catch (e) {
+      this.logger.error(
+        `Compensation publish threw (${reason}) correlationId=${job.correlationId}: ${(e as Error).message}`,
+        e instanceof Error ? e.stack : undefined,
+      );
+      return false;
+    }
+  }
+
   private async recoverStaleJobs() {
     const pending = await this.prisma.etoOrchestrationJob.findMany({
       where: { status: 'IN_PROGRESS' },
@@ -89,8 +132,15 @@ export class EtoOrchestratorService implements OnModuleInit {
           where: { id: job.id },
           data: { status: 'FAILED', lastError: 'step timeout exceeded (YAML)' },
         });
-        // TRIGGER COMPENSATION!
-        await this.nats.publishCompensation('finance.wip.cost.reversed', job.correlationId, 'proj-eto-demo', job.step).catch(() => {});
+        await this.publishWipCompensation(
+          {
+            correlationId: job.correlationId,
+            projectId: job.projectId,
+            tenantId: job.tenantId,
+            step: job.step,
+          },
+          'step-timeout',
+        );
       }
     }
   }
@@ -108,21 +158,21 @@ export class EtoOrchestratorService implements OnModuleInit {
         take: 10,
         orderBy: { nextRunAt: 'asc' },
       });
-      
+
       for (const job of jobs) {
         // Mark as IN_PROGRESS
         await this.prisma.etoOrchestrationJob.update({
           where: { id: job.id },
           data: { status: 'IN_PROGRESS', attempts: { increment: 1 } },
         });
-        
+
         const ok = await this.nats.publish(job.step, {
           correlationId: job.correlationId,
-          projectId: 'proj-eto-demo',
+          projectId: job.projectId,
           tenantId: job.tenantId || 'default',
           orchestrationJobId: job.id,
         });
-        
+
         if (!ok) {
           const attempts = job.attempts + 1;
           const backoff = Math.min(
@@ -140,10 +190,20 @@ export class EtoOrchestratorService implements OnModuleInit {
             },
           });
           if (newStatus === 'FAILED') {
-            await this.nats.publishCompensation('finance.wip.cost.reversed', job.correlationId, 'proj-eto-demo', job.step).catch(() => {});
+            await this.publishWipCompensation(
+              {
+                correlationId: job.correlationId,
+                projectId: job.projectId,
+                tenantId: job.tenantId,
+                step: job.step,
+              },
+              'max-attempts-failed',
+            );
           }
         }
       }
-    } catch { /* db unavailable */ }
+    } catch (e) {
+      this.logger.warn(`Orchestrator tick error: ${(e as Error).message}`);
+    }
   }
 }

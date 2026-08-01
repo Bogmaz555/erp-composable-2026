@@ -57,11 +57,13 @@ export class EtoChainController {
     @Body() body: { correlationId?: string; projectId?: string; tenantId?: string },
     @Headers('x-tenant-id') tenantHeader?: string,
   ) {
-    const correlationId = body.correlationId || `orch-${Date.now()}`;
+    // Real ids for G-lite — never hardcode proj-eto-demo on the publish path
+    const correlationId = body.correlationId || `orch-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const projectId = body.projectId || `proj-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const tenantId = body.tenantId || (tenantHeader && tenantHeader !== 'public' ? tenantHeader : 'default');
     return this.orchestrator.enqueueChain(
       correlationId,
-      body.projectId || 'proj-eto-demo',
+      projectId,
       tenantId,
       this.workflow.getStepIds(),
     );

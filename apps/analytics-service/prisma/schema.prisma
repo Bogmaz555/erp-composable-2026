@@ -36,6 +36,7 @@ model EtoSagaCompensation {
 model EtoOrchestrationJob {
   id            String   @id @default(uuid())
   correlationId String
+  projectId     String   @default("unknown")
   tenantId      String   @default("default")
   step          String
   status        String   @default("PENDING")
@@ -47,6 +48,7 @@ model EtoOrchestrationJob {
 
   @@index([status, nextRunAt])
   @@index([correlationId])
+  @@index([projectId])
 }
 
 model ImportStagingBatch {

@@ -1,8 +1,7 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { PrismaService } from '../prisma.service';
 import { Logger } from '@nestjs/common';
-import { RecordTransactionCommand } from './record-transaction.handler';
-import { CommandBus } from '@nestjs/cqrs';
+import { PrismaService } from '../prisma.service';
+import { ensureAccount } from '../finance-accounts';
 
 export class ReverseWipCostCommand {
   constructor(
@@ -12,36 +11,91 @@ export class ReverseWipCostCommand {
   ) {}
 }
 
+/**
+ * Saga G-lite compensation: reverse project WIP for a correlationId.
+ *
+ * Hardening (PR16):
+ * - Idempotent by ProjectCost REVERSAL.reference = correlationId
+ * - Real GL account 130-WIP via ensureAccount (not a mock account id)
+ * - Single outer $transaction — journal + WIP + ProjectCost use same tx
+ *   (GL written inline; no nested bus execute / nested PrismaClient transaction)
+ */
 @CommandHandler(ReverseWipCostCommand)
 export class ReverseWipCostHandler implements ICommandHandler<ReverseWipCostCommand> {
   private readonly logger = new Logger(ReverseWipCostHandler.name);
 
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly commandBus: CommandBus,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async execute(command: ReverseWipCostCommand) {
     const { projectId, tenantId, correlationId } = command;
-    this.logger.log(`[Finance WIP] Reversing WIP costs for project ${projectId} (correlation: ${correlationId})`);
+    this.logger.log(
+      `[Finance WIP] Reversing WIP costs for project ${projectId} (correlation: ${correlationId})`,
+    );
+
+    if (!projectId || !correlationId) {
+      this.logger.warn('ReverseWipCost: missing projectId or correlationId — skip');
+      return { ok: false, reason: 'missing_ids' };
+    }
+
+    // Resolve real GL account outside the mutation tx (upsert is idempotent)
+    const wipGl = await ensureAccount(
+      this.prisma,
+      '130-WIP',
+      'Produkcja w toku',
+      'ASSET',
+    );
 
     return await this.prisma.$transaction(async (tx) => {
+      // --- Idempotency: one REVERSAL per correlationId ---
+      const existing = await tx.projectCost.findFirst({
+        where: {
+          tenantId,
+          projectId,
+          costType: 'REVERSAL',
+          reference: correlationId,
+        },
+      });
+      if (existing) {
+        this.logger.log(
+          `[Finance WIP] Already reversed for correlationId=${correlationId} (projectCost=${existing.id}) — no-op`,
+        );
+        return { ok: true, idempotent: true, projectCostId: existing.id };
+      }
+
+      // Also treat journal already posted for this correlation as done
+      const existingJe = await tx.journalEntry.findFirst({
+        where: {
+          tenantId,
+          referenceId: correlationId,
+          source: 'SAGA_COMPENSATION',
+        },
+      });
+      if (existingJe) {
+        this.logger.log(
+          `[Finance WIP] Journal already exists for correlationId=${correlationId} — no-op`,
+        );
+        return { ok: true, idempotent: true, journalEntryId: existingJe.id };
+      }
+
       const wip = await tx.wipAccount.findUnique({
         where: { projectId },
       });
 
       if (!wip) {
         this.logger.warn(`No WIP account found for project ${projectId}. Nothing to reverse.`);
-        return;
+        return { ok: true, reason: 'no_wip' };
       }
 
-      const totalBalance = wip.wipBalance.toNumber();
+      const totalBalance = Number(wip.wipBalance);
       if (totalBalance <= 0) {
-        return;
+        this.logger.log(
+          `[Finance WIP] WIP balance already 0 for project ${projectId} — no-op reverse`,
+        );
+        return { ok: true, reason: 'zero_balance' };
       }
 
       // Reverse ProjectCost
-      await tx.projectCost.create({
+      const cost = await tx.projectCost.create({
         data: {
           tenantId,
           projectId,
@@ -62,19 +116,39 @@ export class ReverseWipCostHandler implements ICommandHandler<ReverseWipCostComm
         },
       });
 
-      // GL Journal entry for credit (reversal)
-      await this.commandBus.execute(
-        new RecordTransactionCommand(
-          'mock-wip-account-id',
-          totalBalance,
-          'CREDIT',
-          correlationId,
-          'SAGA_COMPENSATION',
-          `Reversal of WIP for project ${projectId}`,
-        ),
+      // GL Journal entry (CREDIT asset) + balance update — same tx, real account
+      const entry = await tx.journalEntry.create({
+        data: {
+          tenantId,
+          accountId: wipGl.id,
+          amount: totalBalance,
+          type: 'CREDIT',
+          referenceId: correlationId,
+          source: 'SAGA_COMPENSATION',
+          description: `Reversal of WIP for project ${projectId}`,
+        },
+      });
+
+      // CREDIT reduces ASSET balance (mirrors RecordTransactionHandler)
+      await tx.account.update({
+        where: { id: wipGl.id },
+        data: {
+          balance: { decrement: totalBalance },
+        },
+      });
+
+      this.logger.log(
+        `[Finance WIP] Reversed ${totalBalance} PLN project=${projectId} correlationId=${correlationId} je=${entry.id}`,
       );
 
-      return true;
+      return {
+        ok: true,
+        idempotent: false,
+        amount: totalBalance,
+        projectCostId: cost.id,
+        journalEntryId: entry.id,
+        accountCode: '130-WIP',
+      };
     });
   }
 }
