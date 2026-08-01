@@ -22,11 +22,11 @@ export abstract class GenericOutboxRelay {
 
       this.logger.debug(`Found ${pendingEvents.length} pending events to relay...`);
 
-      // 2. Mark them as IN_PROGRESS to avoid double-processing (basic pseudo-lock)
+      // 2. Mark them as PROCESSING to avoid double-processing (basic pseudo-lock)
       const eventIds = pendingEvents.map((e: any) => e.id);
       await this.prisma.outboxEvent.updateMany({
         where: { id: { in: eventIds } },
-        data: { status: 'IN_PROGRESS' },
+        data: { status: 'PROCESSING' },
       });
 
       // 3. Process events

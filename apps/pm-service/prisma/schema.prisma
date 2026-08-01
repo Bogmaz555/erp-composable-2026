@@ -101,6 +101,7 @@ model Task {
 
 enum OutboxStatus {
   PENDING
+  PROCESSING
   PROCESSED
   FAILED
 }
@@ -113,6 +114,8 @@ model OutboxEvent {
   eventType     String
   payload       Json
   status        OutboxStatus @default(PENDING)
+  attempts      Int          @default(0)
+  lastError     String?
   createdAt     DateTime     @default(now())
   processedAt   DateTime?
   @@index([tenantId, status, createdAt])

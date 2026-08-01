@@ -49,6 +49,7 @@ model PurchaseOrder {
 
 enum OutboxStatus {
   PENDING
+  PROCESSING
   PROCESSED
   FAILED
 }
