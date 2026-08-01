@@ -35,8 +35,9 @@ export class ProductController {
     };
   }
 
-  private async emit(eventType: string, item: any) {
-    await this.prisma.outboxEvent.create({
+  /** Emit product.* via outbox using the same tx as the domain write. */
+  private async emit(tx: { outboxEvent: { create: (args: any) => Promise<any> } }, eventType: string, item: any) {
+    await tx.outboxEvent.create({
       data: {
         aggregateId: item.id,
         aggregateType: 'Item',
@@ -121,30 +122,33 @@ export class ProductController {
     const exists = await this.prisma.item.findUnique({ where: { partNumber: body.partNumber } });
     if (exists) throw new BadRequestException(`Indeks ${body.partNumber} już istnieje`);
 
-    const item = await this.prisma.item.create({
-      data: {
-        partNumber: body.partNumber,
-        name: body.name,
-        description: body.description ?? null,
-        type: body.type ?? 'PART',
-        unitOfMeasure: body.unitOfMeasure ?? 'szt',
-        category: body.category ?? null,
-        material: body.material ?? null,
-        weightKg: body.weightKg != null ? Number(body.weightKg) : null,
-        lifecycleStatus: body.lifecycleStatus ?? 'ACTIVE',
-        makeBuy: body.makeBuy ?? 'BUY',
-        revision: body.revision ?? null,
-        barcode: body.barcode ?? null,
-        leadTimeDays: body.leadTimeDays != null ? parseInt(String(body.leadTimeDays), 10) : null,
-        standardCost: body.standardCost != null ? Number(body.standardCost) : null,
-        currency: body.currency ?? 'PLN',
-        attributes: body.attributes ?? {},
-        createdBy: body.createdBy ?? null,
-      },
-    });
+    // Domain write + outbox in one TX
+    return this.prisma.$transaction(async (tx) => {
+      const item = await tx.item.create({
+        data: {
+          partNumber: body.partNumber,
+          name: body.name,
+          description: body.description ?? null,
+          type: body.type ?? 'PART',
+          unitOfMeasure: body.unitOfMeasure ?? 'szt',
+          category: body.category ?? null,
+          material: body.material ?? null,
+          weightKg: body.weightKg != null ? Number(body.weightKg) : null,
+          lifecycleStatus: body.lifecycleStatus ?? 'ACTIVE',
+          makeBuy: body.makeBuy ?? 'BUY',
+          revision: body.revision ?? null,
+          barcode: body.barcode ?? null,
+          leadTimeDays: body.leadTimeDays != null ? parseInt(String(body.leadTimeDays), 10) : null,
+          standardCost: body.standardCost != null ? Number(body.standardCost) : null,
+          currency: body.currency ?? 'PLN',
+          attributes: body.attributes ?? {},
+          createdBy: body.createdBy ?? null,
+        },
+      });
 
-    await this.emit('product.created.v1', item);
-    return item;
+      await this.emit(tx, 'product.created.v1', item);
+      return item;
+    });
   }
 
   @Patch(':id')
@@ -162,32 +166,43 @@ export class ProductController {
     if (body.standardCost !== undefined) data.standardCost = body.standardCost != null ? Number(body.standardCost) : null;
     if (body.isActive !== undefined) data.isActive = !!body.isActive;
 
-    const item = await this.prisma.item.update({ where: { id }, data });
-    await this.emit('product.updated.v1', item);
-    return item;
+    // Domain write + outbox in one TX
+    return this.prisma.$transaction(async (tx) => {
+      const item = await tx.item.update({ where: { id }, data });
+      await this.emit(tx, 'product.updated.v1', item);
+      return item;
+    });
   }
 
   @Patch(':id/deactivate')
   async deactivate(@Param('id') id: string) {
     const existing = await this.prisma.item.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Pozycja nie istnieje');
-    const item = await this.prisma.item.update({
-      where: { id },
-      data: { isActive: false, lifecycleStatus: 'OBSOLETE' },
+
+    // Domain write + outbox in one TX
+    return this.prisma.$transaction(async (tx) => {
+      const item = await tx.item.update({
+        where: { id },
+        data: { isActive: false, lifecycleStatus: 'OBSOLETE' },
+      });
+      await this.emit(tx, 'product.deactivated.v1', item);
+      return item;
     });
-    await this.emit('product.deactivated.v1', item);
-    return item;
   }
 
   @Patch(':id/activate')
   async activate(@Param('id') id: string) {
     const existing = await this.prisma.item.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Pozycja nie istnieje');
-    const item = await this.prisma.item.update({
-      where: { id },
-      data: { isActive: true, lifecycleStatus: 'ACTIVE' },
+
+    // Domain write + outbox in one TX
+    return this.prisma.$transaction(async (tx) => {
+      const item = await tx.item.update({
+        where: { id },
+        data: { isActive: true, lifecycleStatus: 'ACTIVE' },
+      });
+      await this.emit(tx, 'product.updated.v1', item);
+      return item;
     });
-    await this.emit('product.updated.v1', item);
-    return item;
   }
 }

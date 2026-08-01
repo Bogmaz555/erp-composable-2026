@@ -9,12 +9,16 @@
     "start:prod": "node dist/main"
   },
   "dependencies": {
+    "@erp/shared-kernel": "workspace:*",
     "@nestjs/common": "^11.1.19",
     "@nestjs/core": "^11.1.19",
     "@nestjs/cqrs": "^11.0.3",
+    "@nestjs/microservices": "^11.1.19",
     "@nestjs/platform-fastify": "^11.1.19",
+    "@nestjs/schedule": "^6.1.1",
     "@prisma/client": "5.22.0",
     "@prisma/client-plm": "link:../../node_modules/.prisma/client-plm",
+    "nats": "^2.29.3",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2"
   },

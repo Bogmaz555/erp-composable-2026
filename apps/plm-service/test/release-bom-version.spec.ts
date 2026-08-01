@@ -1,15 +1,25 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { CqrsModule } from '@nestjs/cqrs';
+import { CqrsModule, EventBus } from '@nestjs/cqrs';
 import { ReleaseBomVersionHandler } from '../src/commands/release-bom-version.handler';
 import { ReleaseBomVersionCommand } from '../src/commands/release-bom-version.command';
 import { PrismaService } from '../src/prisma.service';
+import { DoubleBomService } from '../src/double-bom.service';
 
 // Test skeleton for BOM release (critical ETO trigger)
 describe('PLM: ReleaseBomVersionHandler', () => {
   let handler: ReleaseBomVersionHandler;
   let prisma: PrismaService;
+  let outboxCreate: jest.Mock;
 
   beforeEach(async () => {
+    outboxCreate = jest.fn().mockResolvedValue({});
+    const store = {
+      bomVersion: {
+        update: jest.fn().mockResolvedValue({ id: 'bom-v1', status: 'RELEASED', revision: 'A' }),
+      },
+      outboxEvent: { create: outboxCreate },
+    };
+
     const moduleRef: TestingModule = await Test.createTestingModule({
       imports: [CqrsModule],
       providers: [
@@ -25,10 +35,21 @@ describe('PLM: ReleaseBomVersionHandler', () => {
                 components: [],
                 item: { partNumber: 'M-001' },
               }),
-              update: jest.fn().mockResolvedValue({ id: 'bom-v1', status: 'RELEASED' }),
+              update: store.bomVersion.update,
             },
-            outboxEvent: { create: jest.fn() },
+            outboxEvent: { create: outboxCreate },
+            $transaction: jest.fn().mockImplementation(async (cb: (t: typeof store) => Promise<unknown>) => cb(store)),
           },
+        },
+        {
+          provide: DoubleBomService,
+          useValue: {
+            explodeBomVersion: jest.fn().mockResolvedValue([]),
+          },
+        },
+        {
+          provide: EventBus,
+          useValue: { publish: jest.fn() },
         },
       ],
     }).compile();
@@ -43,8 +64,11 @@ describe('PLM: ReleaseBomVersionHandler', () => {
     const result = await handler.execute(command);
 
     expect(result.status).toBe('RELEASED');
-    expect((prisma as any).outboxEvent.create).toHaveBeenCalledWith(
-      expect.objectContaining({ eventType: 'plm.bom.released.v2' })
+    expect((prisma as any).$transaction).toHaveBeenCalled();
+    expect(outboxCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ eventType: 'plm.bom.released.v2' }),
+      }),
     );
   });
 });

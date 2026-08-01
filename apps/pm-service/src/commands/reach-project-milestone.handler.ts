@@ -15,25 +15,28 @@ export class ReachProjectMilestoneHandler implements ICommandHandler<ReachProjec
 
     const tenantId = command.tenantId || 'default';
 
-    await this.prisma.isolatedClient.outboxEvent.create({
-      data: {
-        id: require('crypto').randomUUID(),
-        tenantId,
-        aggregateId: project.id,
-        aggregateType: 'Project',
-        eventType: 'finance.payment.milestone.reached.v1',
-        payload: {
-          projectId: project.id,
+    // Outbox write in TX (atomic with any future domain side-effects)
+    await this.prisma.isolatedClient.$transaction(async (tx) => {
+      await tx.outboxEvent.create({
+        data: {
+          id: require('crypto').randomUUID(),
           tenantId,
-          milestone: command.milestone,
-          amount: command.amount,
-          percent: command.percent,
-          currency: 'PLN',
-          reachedAt: new Date().toISOString(),
-          reachedBy: command.reachedBy || 'pm-system',
+          aggregateId: project.id,
+          aggregateType: 'Project',
+          eventType: 'finance.payment.milestone.reached.v1',
+          payload: {
+            projectId: project.id,
+            tenantId,
+            milestone: command.milestone,
+            amount: command.amount,
+            percent: command.percent,
+            currency: 'PLN',
+            reachedAt: new Date().toISOString(),
+            reachedBy: command.reachedBy || 'pm-system',
+          },
+          status: OutboxStatus.PENDING,
         },
-        status: OutboxStatus.PENDING,
-      },
+      });
     });
 
     return {

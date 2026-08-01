@@ -29,16 +29,7 @@ export class ReleaseBomVersionHandler implements ICommandHandler<ReleaseBomVersi
       throw new Error('BOM Version not found');
     }
 
-    // Update status to RELEASED
-    const updated = await this.prisma.bomVersion.update({
-      where: { id: command.bomVersionId },
-      data: { 
-        status: 'RELEASED',
-        updatedAt: new Date(),
-      },
-    });
-
-    // Double BOM explosion — flattened leaves for MRP/INV (W24-M01)
+    // Double BOM explosion — flattened leaves for MRP/INV (W24-M01) — read-only, outside TX
     const exploded = await this.doubleBom.explodeBomVersion(command.bomVersionId);
     const componentsSnapshot = (exploded.length ? exploded : bomVersion.components.map((c) => ({
       bomComponentId: c.id,
@@ -64,6 +55,37 @@ export class ReleaseBomVersionHandler implements ICommandHandler<ReleaseBomVersi
       subBomVersionId: line.subBomVersionId,
     }));
 
+    // Domain write + outbox in one TX (never orphan RELEASED without outbox row)
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const row = await tx.bomVersion.update({
+        where: { id: command.bomVersionId },
+        data: {
+          status: 'RELEASED',
+          updatedAt: new Date(),
+        },
+      });
+
+      await tx.outboxEvent.create({
+        data: {
+          aggregateId: row.id,
+          aggregateType: 'BomVersion',
+          eventType: 'plm.bom.released.v2',
+          payload: {
+            bomVersionId: row.id,
+            itemId: bomVersion.itemId,
+            revision: row.revision,
+            components: componentsSnapshot,
+            releasedAt: new Date(),
+            releasedBy: command.releasedBy,
+            // projectId and tenantId should be provided by caller (PM/CRM flow) for full auto-reserve
+          },
+          status: 'PENDING',
+        },
+      });
+
+      return row;
+    });
+
     const event = new BomReleasedEvent(
       updated.id,
       bomVersion.itemId,
@@ -72,25 +94,6 @@ export class ReleaseBomVersionHandler implements ICommandHandler<ReleaseBomVersi
       new Date(),
       command.releasedBy
     );
-
-    // Publish via Outbox for reliability (per architecture)
-    await this.prisma.outboxEvent.create({
-      data: {
-        aggregateId: updated.id,
-        aggregateType: 'BomVersion',
-        eventType: 'plm.bom.released.v2',
-        payload: {
-          bomVersionId: updated.id,
-          itemId: bomVersion.itemId,
-          revision: updated.revision,
-          components: componentsSnapshot,
-          releasedAt: new Date(),
-          releasedBy: command.releasedBy,
-          // projectId and tenantId should be provided by caller (PM/CRM flow) for full auto-reserve
-        },
-        status: 'PENDING',
-      },
-    });
 
     // Also publish locally for immediate handling if needed
     this.eventBus.publish(event);

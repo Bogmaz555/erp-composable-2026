@@ -882,6 +882,9 @@ importers:
 
   apps/plm-service:
     dependencies:
+      '@erp/shared-kernel':
+        specifier: workspace:*
+        version: link:../shared-kernel
       '@nestjs/common':
         specifier: 11.1.19
         version: 11.1.19(reflect-metadata@0.2.2)(rxjs@7.8.2)
@@ -891,15 +894,24 @@ importers:
       '@nestjs/cqrs':
         specifier: 11.0.3
         version: 11.0.3(@nestjs/common@11.1.19(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.19)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/microservices':
+        specifier: 11.1.19
+        version: 11.1.19(@grpc/grpc-js@1.14.3)(@nestjs/common@11.1.19(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.19)(nats@2.29.3)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       '@nestjs/platform-fastify':
         specifier: 11.1.19
         version: 11.1.19(@nestjs/common@11.1.19(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.19)
+      '@nestjs/schedule':
+        specifier: 6.1.1
+        version: 6.1.1(@nestjs/common@11.1.19(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.19)
       '@prisma/client':
         specifier: 5.22.0
         version: 5.22.0(prisma@5.22.0)
       '@prisma/client-plm':
         specifier: link:../../node_modules/.prisma/client-plm
         version: link:../../node_modules/.prisma/client-plm
+      nats:
+        specifier: ^2.29.3
+        version: 2.29.3
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2

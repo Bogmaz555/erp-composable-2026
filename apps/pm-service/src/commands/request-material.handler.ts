@@ -35,23 +35,26 @@ export class RequestMaterialHandler implements ICommandHandler<RequestMaterialCo
 
     // Emit correct event name that INV already listens for (pm.material.requested.v1)
     // Payload enriched with bomComponentId so INV Reservation can link exactly
-    await this.prisma.isolatedClient.outboxEvent.create({
-      data: {
-        id: require('crypto').randomUUID(),
-        tenantId,
-        aggregateId: command.taskId,
-        aggregateType: 'MaterialRequest',
-        eventType: 'pm.material.requested.v1',
-        payload: {
-          projectId: projectId,
-          wbsElementId: command.taskId,
-          itemId: command.sku,
-          requestedQuantity: command.quantity,
-          bomComponentId,
+    // Outbox write in TX (atomic with any future domain side-effects)
+    await this.prisma.isolatedClient.$transaction(async (tx) => {
+      await tx.outboxEvent.create({
+        data: {
+          id: require('crypto').randomUUID(),
           tenantId,
+          aggregateId: command.taskId,
+          aggregateType: 'MaterialRequest',
+          eventType: 'pm.material.requested.v1',
+          payload: {
+            projectId: projectId,
+            wbsElementId: command.taskId,
+            itemId: command.sku,
+            requestedQuantity: command.quantity,
+            bomComponentId,
+            tenantId,
+          },
+          status: OutboxStatus.PENDING,
         },
-        status: OutboxStatus.PENDING,
-      },
+      });
     });
 
     return { success: true, message: 'Material request (pm.material.requested.v1) saved to Outbox with bomComponentId' };
