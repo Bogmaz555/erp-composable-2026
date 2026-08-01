@@ -50,11 +50,29 @@ explicit service list.
 | Service | Baseline folder | Follow-up |
 |---------|-----------------|-----------|
 | inv-service | `20260801000000_baseline` | `20260801120000_outbox_processing` |
-| proc-service | `20260801000000_baseline` | `20260801120000_outbox_processing` |
-| pm-service | `20260801000000_baseline` | `20260801120000_outbox_processing` |
-| finance | `20260801000000_baseline` | `20260801120000_outbox_processing` |
+| proc-service | `20260801000000_baseline` | outbox + `20260801200000_decimal_money` (PR 11) |
+| pm-service | `20260801000000_baseline` | outbox + `20260801200000_decimal_money` (PR 11) |
+| finance | `20260801000000_baseline` | `20260801120000_outbox_processing` (amounts already Decimal) |
 | plm-service | `20260801000000_baseline` | `20260801120000_outbox_processing` |
 | mes-service | `20260801000000_baseline` | `20260801120000_outbox_processing` |
+
+### Money Decimal (PR 11 / KD-5 blocklist)
+
+Pilot-critical monetary fields are **Prisma `Decimal`** (Postgres `DECIMAL(65,30)`):
+
+| Service | Fields | Migration path |
+|---------|--------|----------------|
+| finance | `amount`, `balance`, `wip*`, … | Already Decimal in baseline |
+| proc-service | `unitPrice`, `freightCost`, `customsDuty`, `landedUnitCost` | `20260801200000_decimal_money` |
+| pm-service | `budget`, `targetRevenue`, `baselineCost`, `actualLaborCost` | `20260801200000_decimal_money` |
+| hr | `hourlyRate` | Schema + `db push` (thin migrations only) |
+| tax-legal | `TaxInvoice.amount` | Schema + `db push` (thin migrations only) |
+
+**Not converted (by design):** engineering qty (`ItemGenealogy.quantityUsed`, BOM qty),
+`weightKg`/`scrapFactor`, timesheet `hours`, FTE `units`, `ccpmBufferPct`, CRM prices
+(secondary → optional PR 12).
+
+Gate (no DB): `pnpm run check:no-float-money` → `scripts/check-no-float-money.sh`.
 
 Baselines were generated with:
 

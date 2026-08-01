@@ -80,7 +80,10 @@ export class ProcurementController {
       take: 50,
       include: { supplier: true },
     });
-    const totalLanded = orders.reduce((s, o) => s + (o.landedUnitCost ?? 0) * (o.receivedQty ?? o.amount), 0);
+    const totalLanded = orders.reduce(
+      (s, o) => s + Number(o.landedUnitCost ?? 0) * (o.receivedQty ?? o.amount),
+      0,
+    );
     return { count: orders.length, totalLandedValue: Math.round(totalLanded * 100) / 100, orders };
   }
 

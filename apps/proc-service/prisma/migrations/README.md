@@ -6,6 +6,7 @@
 |--------|------|
 | `20260801000000_baseline` | Full schema from `schema.prisma` (`migrate diff --from-empty`) |
 | `20260801120000_outbox_processing` | Additive outbox `PROCESSING` + attempts/lastError (idempotent) |
+| `20260801200000_decimal_money` | PR 11: `unitPrice`/`freightCost`/`customsDuty`/`landedUnitCost` → DECIMAL |
 
 `migration_lock.toml` — `provider = "postgresql"`.
 
@@ -32,6 +33,9 @@ and parity check, mark history applied:
 npx prisma@5.22.0 migrate resolve --applied 20260801000000_baseline \
   --schema apps/proc-service/prisma/schema.prisma
 npx prisma@5.22.0 migrate resolve --applied 20260801120000_outbox_processing \
+  --schema apps/proc-service/prisma/schema.prisma
+# After deploy of decimal money (or resolve if already manually altered):
+npx prisma@5.22.0 migrate resolve --applied 20260801200000_decimal_money \
   --schema apps/proc-service/prisma/schema.prisma
 ```
 

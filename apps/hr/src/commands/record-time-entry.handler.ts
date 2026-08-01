@@ -35,7 +35,7 @@ export class RecordTimeEntryHandler implements ICommandHandler<RecordTimeEntryCo
           projectId: command.projectId,
           workOrderId: command.workOrderId,
           hours: command.hours,
-          hourlyRatePln: employee.hourlyRate,
+          hourlyRatePln: Number(employee.hourlyRate),
           tenantId,
           recordedAt: new Date().toISOString(),
         },

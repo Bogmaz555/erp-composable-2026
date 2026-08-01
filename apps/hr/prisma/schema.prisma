@@ -14,7 +14,7 @@ model Employee {
   badgeId      String      @unique
   firstName    String
   lastName     String
-  hourlyRate   Float       @default(50.0)
+  hourlyRate   Decimal     @default(50.0)
   role         Role        @default(OPERATOR)
   isActive     Boolean     @default(true)
   createdAt    DateTime    @default(now())

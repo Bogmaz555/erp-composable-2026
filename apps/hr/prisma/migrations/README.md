@@ -3,6 +3,13 @@
 This directory currently contains **thin/outbox-only** migrations — not a full
 service schema baseline.
 
+## Money (PR 11 / KD-5)
+
+`Employee.hourlyRate` is **Decimal** in `schema.prisma` (feeds WIP labor). Until a
+full baseline lands, non-pilot deploy applies it via **`db push`** then this thin
+outbox migration. No separate ALTER migration is shipped for hr while the tree is
+thin-only — regenerate/add a baseline before `PILOT=1` deploy of hr.
+
 ## Deploy behavior
 
 `scripts/prisma-migrate-deploy.sh` detects thin-only migration trees and:

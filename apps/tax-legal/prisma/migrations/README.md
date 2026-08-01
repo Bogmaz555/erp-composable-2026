@@ -3,6 +3,12 @@
 This directory currently contains **thin/outbox-only** migrations — not a full
 service schema baseline.
 
+## Money (PR 11 / KD-5)
+
+`TaxInvoice.amount` is **Decimal** in `schema.prisma`. Until a full baseline lands,
+non-pilot deploy applies it via **`db push`** then this thin outbox migration. No
+separate ALTER migration is shipped for tax-legal while the tree is thin-only.
+
 ## Deploy behavior
 
 `scripts/prisma-migrate-deploy.sh` detects thin-only migration trees and:
