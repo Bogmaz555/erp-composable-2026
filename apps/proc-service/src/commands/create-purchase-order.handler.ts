@@ -29,44 +29,49 @@ export class CreatePurchaseOrderHandler implements ICommandHandler<CreatePurchas
 
   async execute(command: CreatePurchaseOrderCommand) {
     const meta = command.meta || {};
-    const po = await this.prisma.purchaseOrder.create({
-      data: {
-        id: require('crypto').randomUUID(),
-        tenantId: meta.tenantId || 'default',
-        sku: command.sku,
-        itemId: meta.itemId,
-        amount: command.quantity,
-        projectId: meta.projectId,
-        bomComponentId: meta.bomComponentId,
-        supplierId: meta.supplierId,
-        source: meta.source || 'MANUAL',
-        status: 'PENDING_APPROVAL',
-        taskId: meta.taskId,
-        unitPrice: meta.unitPrice,
-        freightCost: meta.freightCost ?? 0,
-        customsDuty: meta.customsDuty ?? 0,
-      },
-    });
+    const tenantId = meta.tenantId || 'default';
 
-    await this.prisma.outboxEvent.create({
-      data: {
-        tenantId: meta.tenantId || 'default',
-        aggregateId: po.id,
-        aggregateType: 'PurchaseOrder',
-        eventType: 'proc.purchaseorder.created.v1',
-        payload: {
-          orderId: po.id,
-          sku: po.sku,
-          quantity: po.amount,
-          projectId: po.projectId,
-          bomComponentId: po.bomComponentId,
-          source: po.source,
-          status: po.status,
+    // Domain write + outbox in one TX
+    return this.prisma.$transaction(async (tx) => {
+      const po = await tx.purchaseOrder.create({
+        data: {
+          id: require('crypto').randomUUID(),
+          tenantId,
+          sku: command.sku,
+          itemId: meta.itemId,
+          amount: command.quantity,
+          projectId: meta.projectId,
+          bomComponentId: meta.bomComponentId,
+          supplierId: meta.supplierId,
+          source: meta.source || 'MANUAL',
+          status: 'PENDING_APPROVAL',
+          taskId: meta.taskId,
+          unitPrice: meta.unitPrice,
+          freightCost: meta.freightCost ?? 0,
+          customsDuty: meta.customsDuty ?? 0,
         },
-        status: OutboxStatus.PENDING,
-      },
-    }).catch(() => {});
+      });
 
-    return po;
+      await tx.outboxEvent.create({
+        data: {
+          tenantId,
+          aggregateId: po.id,
+          aggregateType: 'PurchaseOrder',
+          eventType: 'proc.purchaseorder.created.v1',
+          payload: {
+            orderId: po.id,
+            sku: po.sku,
+            quantity: po.amount,
+            projectId: po.projectId,
+            bomComponentId: po.bomComponentId,
+            source: po.source,
+            status: po.status,
+          },
+          status: OutboxStatus.PENDING,
+        },
+      });
+
+      return po;
+    });
   }
 }

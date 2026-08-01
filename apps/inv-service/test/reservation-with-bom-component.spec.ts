@@ -1,8 +1,15 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { CqrsModule, CommandBus } from '@nestjs/cqrs';
+import { CqrsModule } from '@nestjs/cqrs';
 import { CreateReservationHandler } from '../src/commands/create-reservation.handler';
 import { CreateReservationCommand } from '../src/commands/create-reservation.command';
 import { PrismaService } from '../src/prisma.service';
+
+function mockPrismaTx(store: Record<string, unknown>) {
+  return {
+    ...store,
+    $transaction: jest.fn(async (cb: (tx: typeof store) => Promise<unknown>) => cb(store)),
+  };
+}
 
 // Test focused on core ETO traceability: Reservation must carry bomComponentId
 describe('INV: CreateReservation with bomComponentId (ETO traceability)', () => {
@@ -10,23 +17,24 @@ describe('INV: CreateReservation with bomComponentId (ETO traceability)', () => 
   let prisma: PrismaService;
 
   beforeEach(async () => {
+    const store = {
+      reservation: {
+        create: jest.fn().mockImplementation((args) => Promise.resolve({ id: 'res-123', createdAt: new Date(), ...args.data })),
+      },
+      stockTransaction: { create: jest.fn() },
+      stockLevel: {
+        findFirst: jest.fn().mockResolvedValue({ id: 'sl-1', quantity: 100 }),
+        update: jest.fn(),
+      },
+      outboxEvent: { create: jest.fn() },
+    };
     const moduleRef: TestingModule = await Test.createTestingModule({
       imports: [CqrsModule],
       providers: [
         CreateReservationHandler,
         {
           provide: PrismaService,
-          useValue: {
-            reservation: {
-              create: jest.fn().mockImplementation((data) => Promise.resolve({ id: 'res-123', ...data.data })),
-            },
-            stockTransaction: { create: jest.fn() },
-            stockLevel: {
-              findFirst: jest.fn().mockResolvedValue({ id: 'sl-1', quantity: 100 }),
-              update: jest.fn(),
-            },
-            outboxEvent: { create: jest.fn() },
-          },
+          useValue: mockPrismaTx(store),
         },
       ],
     }).compile();
@@ -50,6 +58,7 @@ describe('INV: CreateReservation with bomComponentId (ETO traceability)', () => 
     const result = await handler.execute(command);
 
     expect(result).toBeDefined();
+    expect((prisma as any).$transaction).toHaveBeenCalled();
     expect((prisma as any).reservation.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
@@ -69,7 +78,9 @@ describe('INV: CreateReservation with bomComponentId (ETO traceability)', () => 
     // In real PLM→INV flow the createdBy comes from NATS x-user-id extracted in pm-integration.controller
     expect((prisma as any).outboxEvent.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        eventType: 'inventory.reservation.created.v1',
+        data: expect.objectContaining({
+          eventType: 'inventory.reservation.created.v1',
+        }),
       })
     );
   });

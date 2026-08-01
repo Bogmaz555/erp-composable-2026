@@ -3,12 +3,30 @@ import { CqrsModule, CommandBus } from '@nestjs/cqrs';
 import { PmIntegrationController } from '../src/pm-integration.controller';
 import { PrismaService } from '../src/prisma.service';
 
+function mockPrismaTx(store: Record<string, unknown>) {
+  return {
+    ...store,
+    $transaction: jest.fn(async (cb: (tx: typeof store) => Promise<unknown>) => cb(store)),
+  };
+}
+
 // Skeleton for detailed INV release on production (Faza 1)
 describe('INV: PmIntegration release on mes.production.recorded.v1', () => {
   let controller: PmIntegrationController;
   let prisma: PrismaService;
 
   beforeEach(async () => {
+    const store = {
+      reservation: {
+        findMany: jest.fn().mockResolvedValue([
+          { id: 'r1', workOrderId: 'wo-1', bomComponentId: 'bc-1', itemId: 'i1', quantity: 5, status: 'ACTIVE' }
+        ]),
+        update: jest.fn(),
+      },
+      stockTransaction: { create: jest.fn() },
+      itemGenealogy: { create: jest.fn() },
+      outboxEvent: { create: jest.fn() },
+    };
     const moduleRef: TestingModule = await Test.createTestingModule({
       imports: [CqrsModule],
       controllers: [PmIntegrationController],
@@ -16,16 +34,7 @@ describe('INV: PmIntegration release on mes.production.recorded.v1', () => {
         CommandBus,
         {
           provide: PrismaService,
-          useValue: {
-            reservation: {
-              findMany: jest.fn().mockResolvedValue([
-                { id: 'r1', workOrderId: 'wo-1', bomComponentId: 'bc-1', itemId: 'i1', quantity: 5, status: 'ACTIVE' }
-              ]),
-              update: jest.fn(),
-            },
-            stockTransaction: { create: jest.fn() },
-            outboxEvent: { create: jest.fn() },
-          },
+          useValue: mockPrismaTx(store),
         },
       ],
     }).compile();
@@ -39,9 +48,12 @@ describe('INV: PmIntegration release on mes.production.recorded.v1', () => {
 
     await (controller as any).handleProductionRecorded(payload, { getHeaders: () => ({}) });
 
+    expect((prisma as any).$transaction).toHaveBeenCalled();
     expect((prisma as any).reservation.update).toHaveBeenCalled();
     expect((prisma as any).outboxEvent.create).toHaveBeenCalledWith(
-      expect.objectContaining({ eventType: 'inventory.reservation.released.v1' })
+      expect.objectContaining({
+        data: expect.objectContaining({ eventType: 'inventory.reservation.released.v1' }),
+      })
     );
   });
 });

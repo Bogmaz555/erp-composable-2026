@@ -3,29 +3,37 @@ import { CqrsModule, CommandBus } from '@nestjs/cqrs';
 import { PmIntegrationController } from '../src/pm-integration.controller';
 import { PrismaService } from '../src/prisma.service';
 
+function mockPrismaTx(store: Record<string, unknown>) {
+  return {
+    ...store,
+    $transaction: jest.fn(async (cb: (tx: typeof store) => Promise<unknown>) => cb(store)),
+  };
+}
+
 // Skeleton for INV reservation release on production complete (Faza 1 ETO)
 describe('INV Traceability: Reservation Release on mes.production.recorded.v1', () => {
   let controller: PmIntegrationController;
   let prisma: PrismaService;
-  let commandBus: CommandBus;
 
   beforeEach(async () => {
+    const store = {
+      reservation: {
+        findMany: jest.fn().mockResolvedValue([
+          { id: 'res-1', workOrderId: 'wo-123', bomComponentId: 'bom-xyz', itemId: 'item-1', quantity: 3, status: 'ACTIVE' },
+        ]),
+        update: jest.fn(),
+      },
+      stockTransaction: { create: jest.fn() },
+      itemGenealogy: { create: jest.fn() },
+      outboxEvent: { create: jest.fn() },
+    };
     const moduleRef: TestingModule = await Test.createTestingModule({
       imports: [CqrsModule],
       controllers: [PmIntegrationController],
       providers: [
         {
           provide: PrismaService,
-          useValue: {
-            reservation: {
-              findMany: jest.fn().mockResolvedValue([
-                { id: 'res-1', workOrderId: 'wo-123', bomComponentId: 'bom-xyz', itemId: 'item-1', quantity: 3, status: 'ACTIVE' },
-              ]),
-              update: jest.fn(),
-            },
-            stockTransaction: { create: jest.fn() },
-            outboxEvent: { create: jest.fn() },
-          },
+          useValue: mockPrismaTx(store),
         },
         CommandBus,
       ],
@@ -33,7 +41,6 @@ describe('INV Traceability: Reservation Release on mes.production.recorded.v1', 
 
     controller = moduleRef.get(PmIntegrationController);
     prisma = moduleRef.get(PrismaService);
-    commandBus = moduleRef.get(CommandBus);
   });
 
   it('should release active reservations and emit inventory.reservation.released.v1 when production recorded', async () => {
@@ -42,11 +49,16 @@ describe('INV Traceability: Reservation Release on mes.production.recorded.v1', 
     // Simulate the @EventPattern handler (manual call for test)
     await (controller as any).handleProductionRecorded(payload, { getHeaders: () => ({}) });
 
+    expect((prisma as any).$transaction).toHaveBeenCalled();
     expect((prisma as any).reservation.update).toHaveBeenCalledWith(
-      expect.objectContaining({ data: { status: 'RELEASED' } })
+      expect.objectContaining({
+        data: expect.objectContaining({ status: 'RELEASED' }),
+      })
     );
     expect((prisma as any).outboxEvent.create).toHaveBeenCalledWith(
-      expect.objectContaining({ eventType: 'inventory.reservation.released.v1' })
+      expect.objectContaining({
+        data: expect.objectContaining({ eventType: 'inventory.reservation.released.v1' }),
+      })
     );
   });
 
@@ -74,11 +86,13 @@ describe('INV Traceability: Reservation Release on mes.production.recorded.v1', 
 
     expect((prisma as any).outboxEvent.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        eventType: 'inventory.reservation.released.v1',
-        payload: expect.objectContaining({
-          workOrderId: 'wo-contract-1',
-          releasedReservations: expect.any(Array),
-          tenantId: expect.any(String),
+        data: expect.objectContaining({
+          eventType: 'inventory.reservation.released.v1',
+          payload: expect.objectContaining({
+            workOrderId: 'wo-contract-1',
+            releasedReservations: expect.any(Array),
+            tenantId: expect.any(String),
+          }),
         }),
       })
     );

@@ -19,23 +19,24 @@ export class UpdatePurchaseOrderEtaHandler implements ICommandHandler<UpdatePurc
     if (!existing) throw new Error('Zamówienie nie istnieje');
 
     const previousEta = existing.expectedDeliveryDate;
-    
-    const order = await this.prisma.purchaseOrder.update({
-      where: { id: command.orderId },
-      data: {
-        expectedDeliveryDate: command.expectedDeliveryDate,
-      },
-    });
-
-    if (
-      existing.status !== 'CLOSED' && 
+    const canEmitDelay =
+      existing.status !== 'CLOSED' &&
       existing.status !== 'REJECTED' &&
-      existing.status !== 'DELIVERED'
-    ) {
-      const isDelayed = !previousEta || command.expectedDeliveryDate.getTime() > previousEta.getTime();
-      
-      if (isDelayed) {
-        await this.prisma.outboxEvent.create({
+      existing.status !== 'DELIVERED';
+    const isDelayed =
+      !previousEta || command.expectedDeliveryDate.getTime() > previousEta.getTime();
+
+    // Domain ETA update + optional delay outbox in one TX
+    return this.prisma.$transaction(async (tx) => {
+      const order = await tx.purchaseOrder.update({
+        where: { id: command.orderId },
+        data: {
+          expectedDeliveryDate: command.expectedDeliveryDate,
+        },
+      });
+
+      if (canEmitDelay && isDelayed) {
+        await tx.outboxEvent.create({
           data: {
             tenantId: order.tenantId,
             aggregateId: order.id,
@@ -53,10 +54,10 @@ export class UpdatePurchaseOrderEtaHandler implements ICommandHandler<UpdatePurc
             },
             status: OutboxStatus.PENDING,
           },
-        }).catch(() => {});
+        });
       }
-    }
 
-    return order;
+      return order;
+    });
   }
 }

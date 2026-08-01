@@ -28,6 +28,7 @@ export class ReserveMaterialHandler implements ICommandHandler<ReserveMaterialCo
     });
 
     if (!item) {
+      // Single outbox write (no domain row) — still atomic via helper
       await emitStockShortage(this.prisma, {
         itemId: command.sku,
         sku: command.sku,
@@ -60,92 +61,94 @@ export class ReserveMaterialHandler implements ICommandHandler<ReserveMaterialCo
     const isAvailable = freeQuantity >= command.quantity;
     const status = isAvailable ? 'ALLOCATED' : 'SHORTAGE';
 
-    // Legacy requirement (kept for compatibility)
-    await this.prisma.requirement.create({ 
-      data: { 
-        tenantId,
-        status: 'PENDING', 
-        materialType: 'RAW', 
-        quantity: command.quantity,
-        createdBy: 'pm-material-request'
-      } 
-    });
-
-    // Core ETO action: create modern Reservation with bomComponentId + immutable StockTransaction
-    // This unifies the direct bom.released path and the pm.material.requested.v1 path
-    const reservation = await this.prisma.reservation.create({
-      data: {
-        tenantId,
-        projectId: command.projectId,
-        workOrderId: null,
-        bomComponentId,
-        itemId: item.id,  // use internal id, not sku
-        quantity: command.quantity,
-        status: 'ACTIVE',
-        createdBy: 'pm-material-request',
-      },
-    });
-
-    await this.prisma.stockTransaction.create({
-      data: {
-        tenantId,
-        itemId: item.id,
-        type: 'RESERVATION',
-        quantity: command.quantity,
-        referenceType: 'WBS_ELEMENT',
-        referenceId: command.wbsElementId,
-        notes: bomComponentId ? `From PM material request, bomComponent ${bomComponentId}` : 'From PM material request',
-        createdBy: 'pm-material-request',
-      },
-    });
-
-    // Reduce available stock (same pattern as CreateReservationHandler)
-    if (stock) {
-      await this.prisma.stockLevel.update({
-        where: { id: stock.id },
-        data: { quantity: Math.max(0, stock.quantity - command.quantity) },
+    // Domain writes + outbox (reservation.created and optional stock.out) in one TX
+    return this.prisma.$transaction(async (tx) => {
+      // Legacy requirement (kept for compatibility)
+      await tx.requirement.create({
+        data: {
+          tenantId,
+          status: 'PENDING',
+          materialType: 'RAW',
+          quantity: command.quantity,
+          createdBy: 'pm-material-request',
+        },
       });
-    }
 
-    if (status === 'SHORTAGE') {
-      const brakujacaIlosc = freeQuantity > 0 ? command.quantity - freeQuantity : command.quantity;
-      await emitStockShortage(this.prisma, {
-        itemId: command.sku,
-        sku: command.sku,
-        missingQuantity: brakujacaIlosc,
-        projectId: command.projectId,
-        wbsElementId: command.wbsElementId,
-        bomComponentId: bomComponentId || undefined,
-        tenantId,
-      });
-      console.log(`[INV] Shortage ${command.sku} → inv.stock.out.v1 (qty ${brakujacaIlosc})`);
-    }
-
-    console.log(`[INV] Reservation created via material request (bomComponentId=${bomComponentId})`);
-
-    // Publish the canonical reservation event via Outbox (unified path)
-    await this.prisma.outboxEvent.create({
-      data: {
-        tenantId,
-        aggregateId: reservation.id,
-        aggregateType: 'Reservation',
-        eventType: 'inventory.reservation.created.v1',
-        payload: {
-          reservationId: reservation.id,
+      // Core ETO action: Reservation with bomComponentId + immutable StockTransaction
+      const reservation = await tx.reservation.create({
+        data: {
           tenantId,
           projectId: command.projectId,
-          wbsElementId: command.wbsElementId,
+          workOrderId: null,
           bomComponentId,
           itemId: item.id,
           quantity: command.quantity,
           status: 'ACTIVE',
-          createdAt: new Date(),
           createdBy: 'pm-material-request',
         },
-        status: OutboxStatus.PENDING,
-      },
-    }).catch(() => { /* non-fatal in env */ });
+      });
 
-    return { status, reservationId: reservation.id };
+      await tx.stockTransaction.create({
+        data: {
+          tenantId,
+          itemId: item.id,
+          type: 'RESERVATION',
+          quantity: command.quantity,
+          referenceType: 'WBS_ELEMENT',
+          referenceId: command.wbsElementId,
+          notes: bomComponentId
+            ? `From PM material request, bomComponent ${bomComponentId}`
+            : 'From PM material request',
+          createdBy: 'pm-material-request',
+        },
+      });
+
+      // Reduce available stock (same pattern as CreateReservationHandler)
+      await tx.stockLevel.update({
+        where: { id: stock.id },
+        data: { quantity: Math.max(0, stock.quantity - command.quantity) },
+      });
+
+      if (status === 'SHORTAGE') {
+        const brakujacaIlosc = freeQuantity > 0 ? command.quantity - freeQuantity : command.quantity;
+        await emitStockShortage(tx, {
+          itemId: command.sku,
+          sku: command.sku,
+          missingQuantity: brakujacaIlosc,
+          projectId: command.projectId,
+          wbsElementId: command.wbsElementId,
+          bomComponentId: bomComponentId || undefined,
+          tenantId,
+        });
+        console.log(`[INV] Shortage ${command.sku} → inv.stock.out.v1 (qty ${brakujacaIlosc})`);
+      }
+
+      console.log(`[INV] Reservation created via material request (bomComponentId=${bomComponentId})`);
+
+      // Canonical reservation event via Outbox (same TX as domain)
+      await tx.outboxEvent.create({
+        data: {
+          tenantId,
+          aggregateId: reservation.id,
+          aggregateType: 'Reservation',
+          eventType: 'inventory.reservation.created.v1',
+          payload: {
+            reservationId: reservation.id,
+            tenantId,
+            projectId: command.projectId,
+            wbsElementId: command.wbsElementId,
+            bomComponentId,
+            itemId: item.id,
+            quantity: command.quantity,
+            status: 'ACTIVE',
+            createdAt: new Date(),
+            createdBy: 'pm-material-request',
+          },
+          status: OutboxStatus.PENDING,
+        },
+      });
+
+      return { status, reservationId: reservation.id };
+    });
   }
 }
