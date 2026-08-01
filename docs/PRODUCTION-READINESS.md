@@ -91,3 +91,34 @@ pnpm run ci:contracts
 Pilotaż ETO jest **funkcjonalnie kompletny** (wszystkie tory domknięte end-to-end).
 Do wdrożenia produkcyjnego wymagane są pozycje ⛔ z sekcji 3, 4 i 6
 (hardening bezpieczeństwa, observability prod, reliability outbox, migracje, infra k8s).
+
+## 9. Disaster Recovery (Pilot v1 / OQ-4)
+
+| Contract | Value | Notes |
+|----------|-------|-------|
+| **RPO** | **24h** | Nightly (or on-demand) `pg_dump -Fc` per service DB via `scripts/backup-dbs.sh` |
+| **RTO** | **2h** | Restore drill target measured by `scripts/dr-drill.sh` wall-clock |
+
+### Runbook (compose pilot)
+
+```bash
+# 1) On-demand / nightly backup (writes ./backups/<timestamp>/ + MANIFEST.txt)
+./scripts/backup-dbs.sh ./backups
+
+# 2) Restore into running erp-*-db containers (name parity with docker-compose.yml)
+./scripts/restore-dbs.sh ./backups/<timestamp>
+
+# 3) DR drill — backup → destroy named DB volumes → recreate → restore → smoke
+#    Default is SAFE dry-run (no volume destroy):
+./scripts/dr-drill.sh
+#    Live destructive drill (local/pilot only):
+DR_DRILL_DRY_RUN=0 ./scripts/dr-drill.sh
+#    Restore from a known backup without re-dumping:
+DR_DRILL_DRY_RUN=0 RESTORE_FROM=./backups/<timestamp> ./scripts/dr-drill.sh
+```
+
+**Name parity:** scripts use fixed `container_name` values from compose (`erp-crm-db`, `erp-pm-db`, …). Volume destroy uses `${COMPOSE_PROJECT_NAME:-$(docker compose config name)}_${volume}` (e.g. `crm_pgdata`).
+
+**Exit codes:** `backup-dbs.sh` / `restore-dbs.sh` fail closed (non-zero) on dump/restore hard errors, empty dumps, or zero successful DBs. `pg_restore` exit 1 (warnings with `--clean`) is accepted; exit ≥2 is fatal.
+
+**Artifacts:** keep `backups/` out of git (gitignored). Off-host copy of nightly dumps is required to meet RPO outside the compose host.

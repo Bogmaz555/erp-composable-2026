@@ -31,10 +31,10 @@ spec:
         image: plm-service:latest
         imagePullPolicy: Never
         ports:
-        - containerPort: 3009
+        - containerPort: 4007
         env:
         - name: PORT
-          value: "3009"
+          value: "4007"
         command: ["/bin/sh", "-c"]
         args:
         - |
@@ -43,13 +43,13 @@ spec:
         livenessProbe:
           httpGet:
             path: /health
-            port: 3009
+            port: 4007
           initialDelaySeconds: 15
           periodSeconds: 10
         readinessProbe:
           httpGet:
             path: /health
-            port: 3009
+            port: 4007
           initialDelaySeconds: 5
           periodSeconds: 5
 ---
@@ -64,4 +64,4 @@ spec:
   ports:
   - protocol: TCP
     port: 80
-    targetPort: 3009
+    targetPort: 4007

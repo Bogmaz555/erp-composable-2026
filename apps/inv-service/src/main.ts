@@ -3,25 +3,23 @@ import { AppModule } from './app.module';
 import { Transport, MicroserviceOptions } from '@nestjs/microservices';
 
 async function bootstrap() {
-    const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule);
 
-    // Włączenie CORS (dla pewności komunikacji wewnątrz klastra)
-    app.enableCors({ origin: process.env.FRONTEND_URL || 'http://localhost:3000' });
+  app.enableCors({ origin: process.env.FRONTEND_URL || 'http://localhost:3000' });
 
-    // Szyna zdarzeń NATS
-    app.connectMicroservice({
-      transport: Transport.NATS,
-      options: {
-        servers: [process.env.NATS_URL || 'nats://localhost:4222'],
-      },
-    });
+  app.connectMicroservice({
+    transport: Transport.NATS,
+    options: {
+      servers: [process.env.NATS_URL || 'nats://localhost:4222'],
+    },
+  });
 
-    // Uruchomienie listenerów mikroserwisów (NATS) pobocznie z HTTP
-    await app.startAllMicroservices();
+  await app.startAllMicroservices();
 
-    // ⚡ TWARDE WPIĘCIE: Serce magazynu bije zawsze na porcie 4003
-    await app.listen(4003, '127.0.0.1');
+  const port = Number(process.env.PORT) || 4003;
+  const host = process.env.HOST || '0.0.0.0';
+  await app.listen(port, host);
 
-    console.log('📦 Zasilanie Magazynu (INV-Service) włączone na porcie 4003 z nasłuchem NATS');
+  console.log(`INV-Service listening on http://${host}:${port} with NATS`);
 }
 bootstrap();

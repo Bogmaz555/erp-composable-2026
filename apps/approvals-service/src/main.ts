@@ -18,7 +18,10 @@ async function bootstrap() {
   });
 
   await app.startAllMicroservices();
-  await app.listen(4009, '127.0.0.1');
-  console.log('Approvals Service listening on port 4009');
+  // Reassigned from 4009 → 4019 (4009 reserved for eam-service)
+  const port = Number(process.env.PORT) || 4019;
+  const host = process.env.HOST || '0.0.0.0';
+  await app.listen(port, host);
+  console.log(`Approvals Service listening on http://${host}:${port}`);
 }
 bootstrap();

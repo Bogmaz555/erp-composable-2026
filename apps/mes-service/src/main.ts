@@ -5,16 +5,18 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create<any>(
     AppModule,
-    new FastifyAdapter() as any
+    new FastifyAdapter() as any,
   );
 
   app.enableCors({
     origin: process.env.FRONTEND_URL || 'http://localhost:3000',
     credentials: true,
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE'
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
   });
 
-  await app.listen(4006, '127.0.0.1');
-  console.log('MES Service listening on port 4006');
+  const port = Number(process.env.PORT) || 4006;
+  const host = process.env.HOST || '0.0.0.0';
+  await app.listen(port, host);
+  console.log(`MES Service listening on http://${host}:${port}`);
 }
 bootstrap();
