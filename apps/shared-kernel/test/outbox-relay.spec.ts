@@ -246,4 +246,70 @@ describe('GenericOutboxRelay v2', () => {
       true,
     );
   });
+
+  it('PROCESSED DB failure after successful publish does not call markPublishFailure / DLQ', async () => {
+    process.env.OUTBOX_RECLAIM_MINUTES = '0';
+    process.env.OUTBOX_MAX_ATTEMPTS = '2';
+    const prisma = createPrismaMock([makeEvent({ attempts: 0 })]);
+    // After claim (PROCESSING), publish succeeds but PROCESSED update fails
+    prisma.outboxEvent.update = jest.fn(async (_args?: any) => {
+      throw new Error('db blip on PROCESSED');
+    }) as any;
+    const natsClient = { emit: jest.fn(() => of(undefined)) };
+    const relay = new TestRelay(prisma, natsClient);
+
+    await relay.relayEvents();
+
+    expect(natsClient.emit).toHaveBeenCalled();
+    // Still PROCESSING (claim stuck); attempts not incremented (no false DLQ path)
+    const final = prisma._store.get('evt-1')!;
+    expect(final.status).toBe('PROCESSING');
+    expect(final.attempts).toBe(0);
+    const errorCalls = ((relay as any).logger.error as jest.Mock).mock.calls;
+    expect(
+      errorCalls.some((c: any[]) => String(c[0]).includes('failed to mark PROCESSED')),
+    ).toBe(true);
+    // Must not have gone through dead-letter / retry failure messaging for publish
+    expect(
+      errorCalls.some((c: any[]) => String(c[0]).includes('DEAD-LETTER') || String(c[0]).includes('Failed to relay')),
+    ).toBe(false);
+  });
+
+  it('skips overlapping relayEvents while a batch is running (reentrancy guard)', async () => {
+    process.env.OUTBOX_RECLAIM_MINUTES = '0';
+    const prisma = createPrismaMock([makeEvent()]);
+    let resolveEmit: (() => void) | undefined;
+    const emitGate = new Promise<void>((r) => {
+      resolveEmit = r;
+    });
+    const natsClient = {
+      emit: jest.fn(() => {
+        // Hold first publish open so second tick overlaps
+        return {
+          subscribe(observer: { next?: (v: unknown) => void; complete?: () => void }) {
+            void emitGate.then(() => {
+              observer.next?.(undefined);
+              observer.complete?.();
+            });
+            return { unsubscribe() {} };
+          },
+        };
+      }),
+    };
+    const relay = new TestRelay(prisma, natsClient);
+
+    const first = relay.relayEvents();
+    // Allow first tick to claim and enter publish
+    await new Promise((r) => setImmediate(r));
+    const second = relay.relayEvents();
+    await second;
+    resolveEmit!();
+    await first;
+
+    // Second tick skipped — only one emit
+    expect(natsClient.emit).toHaveBeenCalledTimes(1);
+    expect(((relay as any).logger.debug as jest.Mock).mock.calls.some((c: any[]) =>
+      String(c[0]).includes('already running'),
+    )).toBe(true);
+  });
 });

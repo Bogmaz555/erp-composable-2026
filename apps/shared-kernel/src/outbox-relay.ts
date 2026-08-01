@@ -16,12 +16,26 @@ export type OutboxRelayStatus = 'PENDING' | 'PROCESSING' | 'PROCESSED' | 'FAILED
  * 3. await publish (not fire-and-forget)
  * 4. Success → PROCESSED; failure → attempts++, lastError, PENDING or FAILED after max
  * 5. No empty catch blocks
+ * 6. In-process reentrancy guard (overlapping @Interval ticks skip)
+ *
+ * ## Residual (wontfix this PR): reclaim age uses `createdAt`
+ *
+ * OutboxEvent has no `updatedAt` / `lockedAt` / `processingStartedAt`. Reclaim therefore
+ * filters `PROCESSING` + `createdAt < now - OUTBOX_RECLAIM_MINUTES`. Under multi-instance
+ * relay, an aged backlog row claimed by worker A can be reclaimed to PENDING by worker B
+ * while A is still publishing → double delivery (at-least-once; consumers must be
+ * idempotent). Accept for pilot. Follow-up: set lock timestamp on claim and filter reclaim
+ * on that field. Mitigate now: set `OUTBOX_RECLAIM_MINUTES=0` on multi-replica deploys with
+ * low crash risk, or rely on consumer idempotency.
  */
 export abstract class GenericOutboxRelay {
   protected abstract readonly logger: Logger;
   /** PrismaClient-like with outboxEvent model */
   protected abstract readonly prisma: any;
   protected abstract readonly natsClient: ClientProxy;
+
+  /** Prevents overlapping relayEvents ticks (e.g. @Interval while a batch is still running). */
+  private running = false;
 
   /** Max publish attempts before marking FAILED (env OUTBOX_MAX_ATTEMPTS, default 5). */
   protected get maxAttempts(): number {
@@ -32,7 +46,9 @@ export abstract class GenericOutboxRelay {
   /**
    * Reclaim PROCESSING rows whose createdAt is older than this many minutes.
    * 0 disables reclaim. Env: OUTBOX_RECLAIM_MINUTES (default 15).
-   * Note: OutboxEvent has no updatedAt/lockedAt; createdAt is a conservative proxy.
+   *
+   * Residual: no lockedAt/updatedAt on OutboxEvent — see class doc. Multi-instance
+   * double delivery on aged backlog is accepted (at-least-once) until a later PR.
    */
   protected get reclaimMinutes(): number {
     const raw = process.env.OUTBOX_RECLAIM_MINUTES;
@@ -47,6 +63,11 @@ export abstract class GenericOutboxRelay {
   }
 
   async relayEvents(): Promise<void> {
+    if (this.running) {
+      this.logger.debug('Outbox relay already running — skipping overlapping tick');
+      return;
+    }
+    this.running = true;
     try {
       await this.reclaimStuckProcessing();
 
@@ -65,11 +86,16 @@ export abstract class GenericOutboxRelay {
       }
     } catch (e) {
       this.logger.error(`Error fetching outbox events`, e as Error);
+    } finally {
+      this.running = false;
     }
   }
 
   /**
    * Reclaim stuck PROCESSING rows so they can be retried after a crash mid-batch.
+   *
+   * Uses createdAt as age proxy only (no lockedAt). See class residual note for
+   * multi-instance double-delivery risk on aged backlog — wontfix until schema lock field.
    */
   protected async reclaimStuckProcessing(): Promise<number> {
     const minutes = this.reclaimMinutes;
@@ -87,7 +113,8 @@ export abstract class GenericOutboxRelay {
       const count = result?.count ?? 0;
       if (count > 0) {
         this.logger.warn(
-          `Reclaimed ${count} stuck PROCESSING outbox event(s) older than ${minutes}m`,
+          `Reclaimed ${count} stuck PROCESSING outbox event(s) older than ${minutes}m ` +
+            `(createdAt proxy; multi-instance double-delivery residual on aged backlog)`,
         );
       }
       return count;
@@ -99,6 +126,8 @@ export abstract class GenericOutboxRelay {
 
   /**
    * Claim one PENDING row → PROCESSING, publish, then mark PROCESSED or handle failure.
+   * Publish transport errors go through markPublishFailure; PROCESSED DB failures do not
+   * (row stays PROCESSING for reclaim / next tick status write — no false DLQ).
    */
   protected async processEvent(event: {
     id: string;
@@ -124,6 +153,7 @@ export abstract class GenericOutboxRelay {
       return;
     }
 
+    // Publish only — transport errors count as attempts / may DLQ.
     try {
       const hdrs = natsHeaders();
       const carrier: Record<string, string> = {};
@@ -138,7 +168,14 @@ export abstract class GenericOutboxRelay {
       const obs = this.natsClient.emit(subject, record);
       // Await publish; do not fire-and-forget (INV local relay bug).
       await lastValueFrom(obs, { defaultValue: undefined });
+    } catch (error) {
+      await this.markPublishFailure(event, error);
+      return;
+    }
 
+    // Publish succeeded. Mark PROCESSED separately so a DB blip does not increment
+    // attempts / dead-letter an already-published message.
+    try {
       await this.prisma.outboxEvent.update({
         where: { id: event.id },
         data: {
@@ -147,15 +184,20 @@ export abstract class GenericOutboxRelay {
           lastError: null,
         },
       });
-
       this.logger.debug(`Successfully relayed event ${event.id}`);
-    } catch (error) {
-      await this.markPublishFailure(event, error);
+    } catch (persistError) {
+      // Leave status PROCESSING: reclaim or a later tick can re-attempt the status write
+      // (may re-publish once under at-least-once — acceptable; better than false FAILED).
+      this.logger.error(
+        `Published outbox event ${event.id} but failed to mark PROCESSED — leaving PROCESSING for reclaim`,
+        persistError as Error,
+      );
     }
   }
 
   /**
    * On publish failure: attempts++, lastError; FAILED after maxAttempts, else PENDING for retry.
+   * Must not be used for post-publish PROCESSED persistence failures.
    */
   protected async markPublishFailure(
     event: { id: string; attempts?: number | null },
