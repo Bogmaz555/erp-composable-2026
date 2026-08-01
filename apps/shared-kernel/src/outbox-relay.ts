@@ -22,7 +22,9 @@ export abstract class GenericOutboxRelay {
 
       this.logger.debug(`Found ${pendingEvents.length} pending events to relay...`);
 
-      // 2. Mark them as PROCESSING to avoid double-processing (basic pseudo-lock)
+      // 2. Mark them as PROCESSING to avoid double-processing (basic pseudo-lock).
+      // PR5: reclaim stale PROCESSING (crash window), atomic PENDING→PROCESSING claim,
+      // and wire attempts/lastError on failure. Until then a crash mid-batch can strand rows.
       const eventIds = pendingEvents.map((e: any) => e.id);
       await this.prisma.outboxEvent.updateMany({
         where: { id: { in: eventIds } },

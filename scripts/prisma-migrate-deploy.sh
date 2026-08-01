@@ -3,6 +3,12 @@
 # (database-per-service). Falls back to `db push` when a service has no migrations
 # directory yet (dev/pilot schemas). Idempotent and safe to run in CI/CD before rollout.
 #
+# Thin/outbox-only migration trees (no baseline/init migration) are not a full schema
+# history. For those services we:
+#   1) `db push` — materialize full schema from schema.prisma (empty DB safe)
+#   2) `migrate deploy` — apply additive outbox SQL + record migration history
+# Once a true baseline/*init* migration exists, deploy uses migrate deploy only.
+#
 # Usage:
 #   bash scripts/prisma-migrate-deploy.sh            # all services
 #   bash scripts/prisma-migrate-deploy.sh inv-service proc-service
@@ -23,6 +29,26 @@ fi
 
 FAILED=()
 
+# True when migrations/ has only thin history (no baseline/init migration dir).
+# Thin trees must not skip db push on empty DBs — ALTER-only SQL would fail.
+is_thin_only_migrations() {
+  local mig_root="$1"
+  local d name
+  local any=false
+  for d in "$mig_root"/*/; do
+    [ -d "$d" ] || continue
+    any=true
+    name="$(basename "$d")"
+    case "$name" in
+      *baseline*|*_init*|*init_*|0_init*|00000000000000*)
+        return 1
+        ;;
+    esac
+  done
+  # empty migrations dir → treat as no real history
+  [ "$any" = true ]
+}
+
 for svc in "${TARGETS[@]}"; do
   SCHEMA="apps/${svc}/prisma/schema.prisma"
   if [ ! -f "$SCHEMA" ]; then
@@ -31,9 +57,17 @@ for svc in "${TARGETS[@]}"; do
   fi
 
   echo "=== ${svc} ==="
-  if [ -d "apps/${svc}/prisma/migrations" ]; then
-    echo "[${svc}] prisma migrate deploy"
-    npx --yes prisma migrate deploy --schema "$SCHEMA" || FAILED+=("$svc")
+  MIG_DIR="apps/${svc}/prisma/migrations"
+  if [ -d "$MIG_DIR" ]; then
+    if is_thin_only_migrations "$MIG_DIR"; then
+      echo "[${svc}] thin/outbox-only migrations — prisma db push (full schema) then migrate deploy"
+      npx --yes prisma@5.22.0 db push --schema "$SCHEMA" || FAILED+=("$svc")
+      npx --yes prisma@5.22.0 generate --schema "$SCHEMA" || true
+      npx --yes prisma migrate deploy --schema "$SCHEMA" || FAILED+=("$svc")
+    else
+      echo "[${svc}] prisma migrate deploy (baseline present)"
+      npx --yes prisma migrate deploy --schema "$SCHEMA" || FAILED+=("$svc")
+    fi
   else
     echo "[${svc}] no migrations dir — prisma db push (pilot schema)"
     npx --yes prisma@5.22.0 db push --schema "$SCHEMA" || FAILED+=("$svc")
