@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { fetchWithAuth } from '../context/AuthContext';
 
 export interface ServiceProbe {
   name: string;
@@ -33,7 +34,7 @@ export function useCommandCenter() {
   return useQuery<CommandCenterData>({
     queryKey: ['command-center'],
     queryFn: async () => {
-      const res = await fetch('/api/analytics/command-center');
+      const res = await fetchWithAuth('/api/analytics/command-center');
       if (!res.ok) throw new Error('Command Center unavailable');
       return res.json();
     },

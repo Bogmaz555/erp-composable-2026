@@ -4,6 +4,9 @@
 #  2) gateway accepts ACCOUNTANT on /api/fin, denies PROCUREMENT user (403/401)
 # Requires: keycloak :8080 + gateway :4005 with USE_KEYCLOAK_JWKS=true.
 # Exits 0 with SKIP if infra is unavailable.
+#
+# Full ETO mutation matrix (VIEWER deny + writers + aliases):
+#   npx tsx scripts/smoke-rbac-eto.ts   # or: pnpm run smoke:rbac-eto
 set -uo pipefail
 
 KC_URL="${KEYCLOAK_URL:-http://localhost:8080}"

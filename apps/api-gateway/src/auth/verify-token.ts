@@ -1,5 +1,7 @@
 import * as jwt from 'jsonwebtoken';
 import * as jwksRsa from 'jwks-rsa';
+import { TENANT_JWT_CLAIM } from '@erp/shared-kernel';
+import { useKeycloakJwks } from './auth-env';
 
 const DEFAULT_KEYCLOAK_JWKS =
   'http://localhost:8080/realms/erp/protocol/openid-connect/certs';
@@ -7,6 +9,7 @@ const DEFAULT_KEYCLOAK_JWKS =
 export interface GatewayClaims {
   userId: string;
   roles: string[];
+  /** OQ-1: claim name is always `tenantId` (see TENANT_JWT_CLAIM). */
   tenantId: string;
   email?: string;
 }
@@ -33,20 +36,26 @@ function getKey(header: jwt.JwtHeader, callback: jwt.SigningKeyCallback) {
 }
 
 function toClaims(payload: any): GatewayClaims {
+  // Canonical claim = tenantId (OQ-1). Legacy `tenant` accepted only as fallback.
+  const claim =
+    (typeof payload?.[TENANT_JWT_CLAIM] === 'string' && payload[TENANT_JWT_CLAIM]) ||
+    (typeof payload?.tenant === 'string' && payload.tenant) ||
+    'public';
   return {
     userId: payload.sub || payload.userId || 'unknown',
     roles: payload.realm_access?.roles || payload.roles || ['VIEWER'],
-    tenantId: payload.tenantId || payload.tenant || 'public',
+    tenantId: claim,
     email: payload.email,
   };
 }
 
 /**
  * Verifies a bearer token at the gateway boundary.
- * Keycloak (USE_KEYCLOAK_JWKS=true) → JWKS RS256; otherwise dev HS256 secret.
+ * Keycloak (USE_KEYCLOAK_JWKS=true or PILOT) → JWKS RS256; otherwise dev HS256 secret.
+ * Explicit algorithms reject alg=none.
  */
 export function verifyToken(token: string): Promise<GatewayClaims> {
-  const useKeycloak = process.env.USE_KEYCLOAK_JWKS === 'true';
+  const useKeycloak = useKeycloakJwks();
 
   return new Promise((resolve, reject) => {
     if (useKeycloak) {
@@ -56,10 +65,11 @@ export function verifyToken(token: string): Promise<GatewayClaims> {
       });
     } else {
       try {
-        const decoded = jwt.verify(
-          token,
-          process.env.JWT_SECRET,
-        );
+        const secret = process.env.JWT_SECRET;
+        if (!secret) {
+          return reject(new Error('JWT_SECRET is required when USE_KEYCLOAK_JWKS is not set'));
+        }
+        const decoded = jwt.verify(token, secret, { algorithms: ['HS256'] });
         resolve(toClaims(decoded));
       } catch (e) {
         reject(e);

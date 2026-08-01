@@ -9,9 +9,25 @@ export class SearchServiceService implements OnModuleInit {
 
   async onModuleInit() {
     const { Meilisearch } = await import('meilisearch');
+    const meiliMasterKey = (process.env.MEILI_MASTER_KEY || '').trim();
+    const meiliRequired =
+      process.env.MEILI_REQUIRED === 'true' ||
+      process.env.NODE_ENV === 'production' ||
+      process.env.AUTH_ENFORCE === 'true' ||
+      process.env.PILOT === '1';
+    if (!meiliMasterKey) {
+      if (meiliRequired) {
+        throw new Error(
+          'MEILI_MASTER_KEY is required when NODE_ENV=production, AUTH_ENFORCE=true, PILOT=1, or MEILI_REQUIRED=true',
+        );
+      }
+      console.warn(
+        '[search-service] MEILI_MASTER_KEY is unset — connecting without apiKey (set env for pilot/prod)',
+      );
+    }
     this.client = new Meilisearch({
       host: process.env.MEILI_HOST || 'http://localhost:7700',
-      apiKey: process.env.MEILI_MASTER_KEY || 'erp-meili-master-key-2026',
+      ...(meiliMasterKey ? { apiKey: meiliMasterKey } : {}),
     });
     console.log('SearchServiceService initialized. Connecting to Meilisearch...');
     try {

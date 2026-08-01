@@ -14,5 +14,7 @@ coverage/
 .agents/swarm/final_diff.diff
 .agents/orchestrator/CHECKPOINTS/FAZA*-AUTONOMOUS-*.md
 .agents/orchestrator/CHECKPOINTS/MISSION-WORKER-LATEST.md
+# Secrets / local material (never commit): private keys, cluster unseal dumps, DB dumps
 cluster-keys.json
 *.key
+backups/

@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { authHeaders } from '../context/AuthContext';
 
 export interface ApprovalRequest {
   id: string;
@@ -13,9 +14,14 @@ export interface ApprovalRequest {
   createdAt: string;
 }
 
-function tenantHeaders() {
-  const tenantId = typeof window !== 'undefined' ? localStorage.getItem('erp-tenant-id') ?? 'default' : 'default';
-  return { 'X-Tenant-Id': tenantId };
+function tenantAuthHeaders(extra?: HeadersInit): Headers {
+  const tenantId =
+    typeof window !== 'undefined'
+      ? localStorage.getItem('erp-tenant-id') ?? 'default'
+      : 'default';
+  const headers = authHeaders(extra);
+  headers.set('X-Tenant-Id', tenantId);
+  return headers;
 }
 
 export function useApprovals(status?: string) {
@@ -23,7 +29,9 @@ export function useApprovals(status?: string) {
   return useQuery<{ pending: number; items: ApprovalRequest[] }>({
     queryKey: ['approvals', status],
     queryFn: async () => {
-      const res = await fetch(`/api/analytics/approvals${q}`, { headers: tenantHeaders() });
+      const res = await fetch(`/api/analytics/approvals${q}`, {
+        headers: tenantAuthHeaders(),
+      });
       if (!res.ok) throw new Error('Błąd zatwierdzeń');
       return res.json();
     },
@@ -37,7 +45,7 @@ export function useApproveRequest() {
     mutationFn: async (id: string) => {
       const res = await fetch(`/api/analytics/approvals/${id}/approve`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: tenantAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ resolvedBy: 'ui-approver' }),
       });
       if (!res.ok) throw new Error('Błąd zatwierdzenia');
@@ -53,7 +61,7 @@ export function useRejectRequest() {
     mutationFn: async (id: string) => {
       const res = await fetch(`/api/analytics/approvals/${id}/reject`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: tenantAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ resolvedBy: 'ui-approver' }),
       });
       if (!res.ok) throw new Error('Błąd odrzucenia');

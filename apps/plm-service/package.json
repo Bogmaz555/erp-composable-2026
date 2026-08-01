@@ -16,7 +16,8 @@
     "@prisma/client": "5.22.0",
     "@prisma/client-plm": "link:../../node_modules/.prisma/client-plm",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.2"
+    "rxjs": "^7.8.2",
+    "@erp/shared-kernel": "workspace:*"
   },
   "devDependencies": {
     "@nestjs/cli": "^11.0.0",

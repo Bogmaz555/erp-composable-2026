@@ -1,48 +1,29 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { CqrsModule } from '@nestjs/cqrs';
 import { PlmBomVersionsController } from '../src/plm.controller';
 import { JwtAuthGuard } from '../src/auth/jwt-auth.guard';
+import { RolesGuard } from '../src/auth/roles.guard';
+import { canPerformEtoMutation, ETO_MUTATION_ROLES } from '@erp/shared-kernel';
 
-// Test for TD-001 on the most critical ETO operation (BOM release with role check)
+// Test for TD-001 on the most critical ETO operation (BOM release with role matrix)
 describe('PLM: BomVersions Release Auth + Roles (TD-001)', () => {
-  let controller: PlmBomVersionsController;
-
-  beforeEach(async () => {
-    const moduleRef: TestingModule = await Test.createTestingModule({
-      imports: [CqrsModule],
-      controllers: [PlmBomVersionsController],
-      providers: [
-        { provide: 'CommandBus', useValue: { execute: jest.fn() } },
-        { provide: 'QueryBus', useValue: { execute: jest.fn() } },
-      ],
-    }).compile();
-
-    controller = moduleRef.get(PlmBomVersionsController);
-  });
-
-  it('should have JwtAuthGuard applied', () => {
+  it('should have JwtAuthGuard + RolesGuard applied', () => {
     const guards = Reflect.getMetadata('__guards__', PlmBomVersionsController);
     expect(guards).toBeDefined();
+    expect(guards).toEqual(expect.arrayContaining([JwtAuthGuard, RolesGuard]));
   });
 
-  it('should allow release when user has PRODUCTION_MANAGER role', async () => {
-    const mockReq = {
-      user: { id: 'eng-123', roles: ['PRODUCTION_MANAGER'] }
-    };
-
-    // Should not throw
-    await expect(
-      (controller as any).releaseBomVersion('bom-1', {}, mockReq)
-    ).resolves.not.toThrow();
+  it('should decorate release with PLM_BOM_RELEASE roles', () => {
+    const roles = Reflect.getMetadata(
+      'roles',
+      PlmBomVersionsController.prototype.releaseBomVersion,
+    );
+    expect(roles).toEqual(expect.arrayContaining([...ETO_MUTATION_ROLES.PLM_BOM_RELEASE]));
   });
 
-  it('should reject release when user lacks required roles', async () => {
-    const mockReq = {
-      user: { id: 'viewer-1', roles: ['VIEWER'] }
-    };
-
-    await expect(
-      (controller as any).releaseBomVersion('bom-1', {}, mockReq)
-    ).rejects.toThrow('Insufficient permissions to release BOM version');
+  it('matrix: ENGINEER / PRODUCTION_MANAGER / ADMIN may release; VIEWER denied', () => {
+    expect(canPerformEtoMutation(['ENGINEER'], 'PLM_BOM_RELEASE')).toBe(true);
+    expect(canPerformEtoMutation(['PRODUCTION_MANAGER'], 'PLM_BOM_RELEASE')).toBe(true);
+    expect(canPerformEtoMutation(['ADMIN'], 'PLM_BOM_RELEASE')).toBe(true);
+    expect(canPerformEtoMutation(['VIEWER'], 'PLM_BOM_RELEASE')).toBe(false);
+    expect(canPerformEtoMutation(['PROCUREMENT'], 'PLM_BOM_RELEASE')).toBe(false);
   });
 });

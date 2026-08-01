@@ -8,6 +8,8 @@ apiGateway:
   image: erp/api-gateway:latest
   port: 4005
   authEnforce: true
+  useKeycloakJwks: true
+  pilot: "1"
 
 analyticsService:
   enabled: true

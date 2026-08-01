@@ -3,7 +3,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Shield, Lock } from 'lucide-react';
-import { useAuth } from '../../../context/AuthContext';
+import { useAuth, fetchWithAuth } from '../../../context/AuthContext';
 import RoleBadge from '../../../components/RoleBadge';
 
 interface RoleDef {
@@ -18,7 +18,7 @@ export default function RolesSettingsPage() {
   const { data } = useQuery<{ roles: RoleDef[] }>({
     queryKey: ['auth-roles'],
     queryFn: async () => {
-      const res = await fetch('/api/analytics/auth/roles');
+      const res = await fetchWithAuth('/api/analytics/auth/roles');
       if (!res.ok) throw new Error('Błąd pobierania ról');
       return res.json();
     },

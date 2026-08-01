@@ -26,6 +26,10 @@ spec:
           env:
             - name: AUTH_ENFORCE
               value: {{ .Values.apiGateway.authEnforce | quote }}
+            - name: USE_KEYCLOAK_JWKS
+              value: {{ .Values.apiGateway.useKeycloakJwks | default true | quote }}
+            - name: PILOT
+              value: {{ .Values.apiGateway.pilot | default "1" | quote }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           livenessProbe:

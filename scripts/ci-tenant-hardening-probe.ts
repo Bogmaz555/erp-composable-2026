@@ -14,7 +14,9 @@ async function run() {
   for (const name of [
     'scripts/ci-tenant-hardening-probe.ts',
     'scripts/ensure-tenant-hardening-ready.sh',
+    'scripts/smoke-tenant-isolation.ts',
     'infra/tenant/TENANT-HARDENING-POLICY.md',
+    'apps/shared-kernel/src/tenant-extension.ts',
     'apps/proc-service/src/tenant.middleware.ts',
     'apps/analytics-service/src/tenant-isolation.service.ts',
   ]) {

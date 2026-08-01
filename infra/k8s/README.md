@@ -69,7 +69,13 @@ spec:
 initContainer / Job uruchamiający:
 
 ```bash
-npm run db:migrate:deploy        # wszystkie serwisy
+npm run db:migrate:deploy        # wszystkie serwisy (thin → push+deploy where needed)
+# Core pilot (baseline only, no push fallback):
+PILOT=1 bash scripts/prisma-migrate-deploy.sh \
+  inv-service proc-service pm-service finance plm-service mes-service
 # lub pojedynczo:
 bash scripts/prisma-migrate-deploy.sh proc-service
 ```
+
+Existing DBs created via `db push`: baselining with `migrate resolve --applied` —
+see [docs/PRISMA-MIGRATIONS.md](../../docs/PRISMA-MIGRATIONS.md).

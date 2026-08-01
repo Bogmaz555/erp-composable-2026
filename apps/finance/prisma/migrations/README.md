@@ -1,23 +1,51 @@
-# Prisma migrations (outbox thin history)
+# Prisma migrations (finance)
 
-This directory currently contains **thin/outbox-only** migrations — not a full
-service schema baseline.
+## History
+
+| Folder | Role |
+|--------|------|
+| `20260801000000_baseline` | Full schema from `schema.prisma` (`migrate diff --from-empty`) |
+| `20260801120000_outbox_processing` | Additive outbox `PROCESSING` + attempts/lastError (idempotent) |
+
+`migration_lock.toml` — `provider = "postgresql"`.
 
 ## Deploy behavior
 
-`scripts/prisma-migrate-deploy.sh` detects thin-only migration trees and:
+`scripts/prisma-migrate-deploy.sh` detects the **baseline** and runs:
 
-1. Runs **`prisma db push`** so the full service schema materializes on empty DBs
-2. Then runs **`prisma migrate deploy`** to apply/record these additive outbox SQL files
+```text
+prisma migrate deploy
+```
 
-Once a true baseline/`init` migration is added, the script uses **migrate deploy only**.
+only (no `db push`). Under `PILOT=1`, deploy is followed by a schema drift check.
 
-## Outbox migration intent
+```bash
+PILOT=1 bash scripts/prisma-migrate-deploy.sh finance
+```
 
-- Add `OutboxStatus.PROCESSING` (ordered after `PENDING` when newly added)
-- Ensure `attempts` / `lastError` columns exist
-- Optionally bootstrap `OutboxStatus` + `OutboxEvent` if missing
+## Existing DBs (prior `db push`)
 
-SQL uses `IF NOT EXISTS` / exception guards so it is **additive on DBs that already
-have OutboxEvent/OutboxStatus** (e.g. prior `db push`). It is **not** a full
-schema bootstrap for the whole service — that remains `db push` / future baseline.
+Do **not** re-run baseline SQL on databases that already have tables. After backup
+and parity check, mark history applied:
+
+```bash
+npx prisma@5.22.0 migrate resolve --applied 20260801000000_baseline \
+  --schema apps/finance/prisma/schema.prisma
+npx prisma@5.22.0 migrate resolve --applied 20260801120000_outbox_processing \
+  --schema apps/finance/prisma/schema.prisma
+```
+
+Full procedure: **[docs/PRISMA-MIGRATIONS.md](../../../../docs/PRISMA-MIGRATIONS.md)**.
+
+## Regenerating the baseline
+
+Only safe **before** the baseline is applied in any shared environment:
+
+```bash
+npx prisma@5.22.0 migrate diff \
+  --from-empty \
+  --to-schema-datamodel apps/finance/prisma/schema.prisma \
+  --script > apps/finance/prisma/migrations/20260801000000_baseline/migration.sql
+```
+
+After baseline is live, ship schema changes as **new** timestamped migrations.

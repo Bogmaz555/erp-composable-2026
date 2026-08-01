@@ -4,6 +4,7 @@ import type {
   FinancePaymentMilestoneReachedV1Event,
   TaxInvoiceKsefSentV1Event,
 } from '@erp/shared-kernel';
+import { runWithTenantAsync } from '@erp/shared-kernel';
 import { PrismaService } from './prisma.service';
 
 type MilestoneRow = {
@@ -25,29 +26,44 @@ export class FinanceIntegrationController {
 
   @EventPattern('finance.payment.milestone.reached.v1')
   async onMilestoneReached(@Payload() data: FinancePaymentMilestoneReachedV1Event) {
-    await this.syncOpportunityMilestones(data.projectId, data.milestone, 'READY', {
-      amount: data.amount,
+    const tenantId =
+      (data as { tenantId?: string }).tenantId ||
+      process.env.DEFAULT_TENANT_ID ||
+      'default';
+    await runWithTenantAsync(tenantId, async () => {
+      await this.syncOpportunityMilestones(data.projectId, data.milestone, 'READY', {
+        amount: data.amount,
+      });
+      this.logger.log(`[CRM] Milestone ${data.milestone} READY for project ${data.projectId}`);
     });
-    this.logger.log(`[CRM] Milestone ${data.milestone} READY for project ${data.projectId}`);
   }
 
   @EventPattern('tax.invoice.ksef.sent.v1')
   async onKsefSent(@Payload() data: TaxInvoiceKsefSentV1Event) {
-    await this.syncOpportunityMilestones(data.projectId, data.milestone, 'INVOICED', {
-      ksefRef: data.ksefReferenceNumber,
-      amount: data.amount,
+    const tenantId =
+      (data as { tenantId?: string }).tenantId ||
+      process.env.DEFAULT_TENANT_ID ||
+      'default';
+    await runWithTenantAsync(tenantId, async () => {
+      await this.syncOpportunityMilestones(data.projectId, data.milestone, 'INVOICED', {
+        ksefRef: data.ksefReferenceNumber,
+        amount: data.amount,
+      });
+      this.logger.log(`[CRM] Milestone ${data.milestone} INVOICED (KSeF ${data.ksefReferenceNumber})`);
     });
-    this.logger.log(`[CRM] Milestone ${data.milestone} INVOICED (KSeF ${data.ksefReferenceNumber})`);
   }
 
   @EventPattern('finance.revenue.recognized.v1')
   async onRevenueRecognized(
-    @Payload() data: { projectId: string; milestone: string; amount: number },
+    @Payload() data: { projectId: string; milestone: string; amount: number; tenantId?: string },
   ) {
-    await this.syncOpportunityMilestones(data.projectId, data.milestone, 'RECOGNIZED', {
-      amount: data.amount,
+    const tenantId = data.tenantId || process.env.DEFAULT_TENANT_ID || 'default';
+    await runWithTenantAsync(tenantId, async () => {
+      await this.syncOpportunityMilestones(data.projectId, data.milestone, 'RECOGNIZED', {
+        amount: data.amount,
+      });
+      this.logger.log(`[CRM] Milestone ${data.milestone} REVENUE RECOGNIZED`);
     });
-    this.logger.log(`[CRM] Milestone ${data.milestone} REVENUE RECOGNIZED`);
   }
 
   private async syncOpportunityMilestones(

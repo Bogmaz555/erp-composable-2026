@@ -7,9 +7,26 @@ on:
     branches: [main, master, develop]
 
 jobs:
+  no-secrets:
+    name: Secret scan (no keys / Meili hardcode)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      # No install required — pure repo scan
+      - name: ci-no-secrets
+        run: bash scripts/ci-no-secrets.sh
+        env:
+          CI: 'true'
+      - name: ci-pilot-auth-env
+        run: bash scripts/ci-pilot-auth-env.sh
+        env:
+          CI_PILOT: 'true'
+          USE_KEYCLOAK_JWKS: 'true'
+
   contracts:
     name: Contract & Smoke Gate
     runs-on: ubuntu-latest
+    needs: [no-secrets]
     env:
       CI_AUTH_ENFORCE: 'true'
     steps:
@@ -22,6 +39,9 @@ jobs:
           node-version: '22'
           cache: 'pnpm'
       - run: pnpm install --no-frozen-lockfile
+      # No-DB gate: core pilot services must keep baseline migration folders (PR 10)
+      - name: Check Prisma baselines (core services)
+        run: pnpm run db:check:baselines
       - run: pnpm run ci:contracts
       - run: CI_AUTH_ENFORCE=true npx tsx scripts/ci-auth-enforce-probe.ts
       - run: CI_AUTH_ENFORCE_LIVE=true npx tsx scripts/ci-auth-enforce-live-probe.ts

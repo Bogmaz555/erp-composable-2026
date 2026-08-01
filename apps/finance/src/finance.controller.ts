@@ -1,8 +1,13 @@
-import { Controller, Get, Post, Body, Logger, Param } from '@nestjs/common';
+import { Controller, Get, Post, Body, Logger, Param, UseGuards } from '@nestjs/common';
 import { EventPattern, Payload, Ctx, NatsContext } from '@nestjs/microservices';
 import { CommandBus } from '@nestjs/cqrs';
 import type { MesProductionRecordedV1Event } from '@erp/shared-kernel';
 import { preferJetStreamConsumerPath } from '@erp/shared-kernel';
+import {
+  ETO_MUTATION_ROLES,
+  runWithTenantAsync,
+  type MesProductionRecordedV1Event,
+} from '@erp/shared-kernel';
 import { RecordTransactionCommand } from './commands/record-transaction.handler';
 import { ReverseWipCostCommand } from './commands/reverse-wip-cost.handler';
 import { PrismaService } from './prisma.service';
@@ -14,7 +19,11 @@ import { resolveLaborRatePln, resolveOverheadPct } from './cost-rate.resolver';
 import { ensureAccount } from './finance-accounts';
 import { EntryType } from '@prisma/client-finance';
 import { ProjectAccountingService } from './project-accounting.service';
+import { JwtAuthGuard } from './auth/jwt-auth.guard';
+import { RolesGuard } from './auth/roles.guard';
+import { Roles } from './auth/roles.decorator';
 
+// Guards only on HTTP mutations — do NOT apply at class level (NATS EventPattern + health).
 @Controller('fin')
 export class FinanceController {
   private readonly logger = new Logger(FinanceController.name);
@@ -190,9 +199,12 @@ export class FinanceController {
     }
     if (!data.projectId || !data.correlationId) return;
     this.logger.log(`[Finance WIP] Received finance.wip.cost.reversed for project ${data.projectId}`);
-    await this.commandBus.execute(
-      new ReverseWipCostCommand(data.projectId, data.tenantId || 'default', data.correlationId),
-    );
+    const tenantId = data.tenantId || process.env.DEFAULT_TENANT_ID || 'default';
+    await runWithTenantAsync(tenantId, async () => {
+      await this.commandBus.execute(
+        new ReverseWipCostCommand(data.projectId, tenantId, data.correlationId),
+      );
+    });
   }
 
   @EventPattern('inventory.reservation.released.v1')
@@ -328,7 +340,10 @@ export class FinanceController {
     });
   }
 
+  /** HTTP WIP / GL write — only mutation guarded (ETO matrix FIN_WIP_WRITE). */
   @Post('journal')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(...ETO_MUTATION_ROLES.FIN_WIP_WRITE)
   async postJournal(@Body() body: { accountCode: string; amount: number; type: 'DEBIT' | 'CREDIT'; description?: string; referenceId?: string }) {
     await this.seedDefaultAccounts();
     const account = await this.prisma.account.findUnique({ where: { code: body.accountCode } });

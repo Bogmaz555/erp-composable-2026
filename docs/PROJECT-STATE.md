@@ -32,7 +32,7 @@ Composable ERP dla produkcji jednostkowej (ETO) — architektura mikroserwisowa,
 ### Naprawy operacyjne (2026-06-06)
 - **HR DB** — `apps/hr/.env` port 5443 (było 5432/5440), `/api/hr/employees` OK
 - **Finance build** — `ignoreDeprecations: 6.0` → `nest-build-all` PASS
-- **Prisma CLI** — `ensure-databases.sh` + `prisma-migrate-deploy.sh` → `prisma@5.22.0`
+- **Prisma CLI** — `ensure-databases.sh` + `prisma-migrate-deploy.sh` → `prisma@5.22.0`; core services have full baselines (`docs/PRISMA-MIGRATIONS.md`, `PILOT=1` forbids push-only)
 - **Regression** — 49 checks (+ HR employees, Tax health)
 
 ### FINAL — Faza 5 Production Hardening (W47–W50) ✅

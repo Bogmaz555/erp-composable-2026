@@ -4,43 +4,36 @@ import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify
 import { AppModule } from './app.module';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { verifyToken } from './auth/verify-token';
+import {
+  assertPilotAuthConfig,
+  isAuthEnforced,
+  isPilotProfile,
+  useKeycloakJwks,
+} from './auth/auth-env';
 import fastifyHttpProxy from '@fastify/http-proxy';
 
-// Paths that bypass auth even when AUTH_ENFORCE=true (health/telemetry).
+// Minimal public surface (P0 shrink). Everything else under /api/* requires bearer.
+// Protected (no longer public): /api/analytics/{platform,import,export,outbox,tenants,auth},
+// /api/hr, /api/mes/kiosk, /api/ai, and other analytics data-plane routes.
+// Nest vs proxy dual-path documented until pure-proxy unification (PR 17).
+// Nest AppController health is @Controller('api') + @Get('health') → /api/health.
+// Analytics health via proxy: /api/analytics/health.
 const PUBLIC_PATH_PREFIXES = [
-  '/api/analytics/stream',
-  '/api/analytics/counters',
+  '/api/health',
   '/api/analytics/health',
-  '/api/analytics/search',
-  '/api/analytics/kpi',
-  '/api/analytics/audit',
-  '/api/analytics/notifications',
-  '/api/analytics/export',
-  '/api/analytics/import',
-  '/api/analytics/auth',
-  '/api/analytics/approvals',
-  '/api/analytics/tenants',
-  '/api/analytics/tenants/',
-  '/api/analytics/mail',
-  '/api/analytics/command-center',
-  '/api/analytics/operations',
-  '/api/analytics/traceability',
-  '/api/analytics/eto-chain',
-  '/api/analytics/otel',
-  '/api/analytics/outbox',
-  '/api/analytics/platform',
-  '/api/hr',
-  '/api/mes/kiosk',
-  '/api/ai',
-  '/health',
 ];
 
 function isPublicPath(url: string): boolean {
   const path = url.split('?')[0];
-  return PUBLIC_PATH_PREFIXES.some((p) => path === p || path.startsWith(p));
+  return PUBLIC_PATH_PREFIXES.some(
+    (p) => path === p || path.startsWith(p + '/'),
+  );
 }
 
 async function bootstrap() {
+  // Pilot fail-fast: forbid AUTH_ENFORCE=false / AUTH_DISABLE=true; require JWKS.
+  assertPilotAuthConfig();
+
   const app = await NestFactory.create<any>(
     AppModule,
     (new FastifyAdapter() as any)
@@ -62,8 +55,8 @@ async function bootstrap() {
   });
 
   // Gateway auth boundary for fastify proxies (which bypass Nest guards).
-  // AUTH_ENFORCE=true → verify bearer token for /api/* and propagate RBAC claims downstream.
-  if (process.env.AUTH_ENFORCE !== 'false') {
+  // Secure-by-default: ON unless AUTH_DISABLE=true or AUTH_ENFORCE=false (local insecure).
+  if (isAuthEnforced()) {
     fastifyInstance.addHook('onRequest', async (request, reply) => {
       const url = request.url || '';
       if (!url.startsWith('/api/') || isPublicPath(url)) return;
@@ -90,15 +83,22 @@ async function bootstrap() {
         return reply;
       }
     });
-    console.log('[Gateway] AUTH_ENFORCE=true — proxy auth boundary ENABLED');
+    console.log(
+      `[Gateway] AUTH_ENFORCE on — proxy auth boundary ENABLED` +
+        (useKeycloakJwks() ? ' (JWKS)' : ' (HS256)') +
+        (isPilotProfile() ? ' [PILOT]' : ''),
+    );
+  } else {
+    console.warn(
+      '[Gateway] AUTH disabled (AUTH_DISABLE=true or AUTH_ENFORCE=false) — local insecure only',
+    );
   }
 
   // TD-001: JWT Auth wired (Keycloak compatible).
-  // Production: set AUTH_ENFORCE=true to enable the global JWT guard across Nest controllers.
-  // Secure by default: guard is enabled unless AUTH_ENFORCE=false.
-  if (process.env.AUTH_ENFORCE !== 'false') {
+  // Secure by default: global JWT guard unless AUTH_DISABLE=true or AUTH_ENFORCE=false.
+  if (isAuthEnforced()) {
     app.useGlobalGuards(new JwtAuthGuard());
-    console.log('[Gateway] AUTH_ENFORCE=true — global JWT guard ENABLED');
+    console.log('[Gateway] AUTH_ENFORCE on — global JWT guard ENABLED');
   }
   // Claims propagated: user, roles, tenantId. Downstream services read from headers.
   //
@@ -199,18 +199,39 @@ async function bootstrap() {
   });
 
   // CRITICAL: Proxy Search queries to Meilisearch (Port: 7700)
+  // MEILI_MASTER_KEY must come from env — never hardcode secrets in source
+  const meiliMasterKey = (process.env.MEILI_MASTER_KEY || '').trim();
+  const meiliRequired =
+    process.env.MEILI_REQUIRED === 'true' ||
+    process.env.NODE_ENV === 'production' ||
+    process.env.AUTH_ENFORCE === 'true' ||
+    process.env.PILOT === '1';
+  if (!meiliMasterKey) {
+    if (meiliRequired) {
+      throw new Error(
+        'MEILI_MASTER_KEY is required when NODE_ENV=production, AUTH_ENFORCE=true, PILOT=1, or MEILI_REQUIRED=true',
+      );
+    }
+    console.warn(
+      '[api-gateway] MEILI_MASTER_KEY is unset — stripping Authorization toward Meili (set env for pilot/prod)',
+    );
+  }
   await app.register(fastifyHttpProxy as any, {
-    upstream: 'http://127.0.0.1:7700',
+    upstream: process.env.MEILI_URL || 'http://127.0.0.1:7700',
     prefix: '/api/search',
     rewritePrefix: '',
     replyOptions: {
       rewriteRequestHeaders: (originalReq, headers) => {
-        return {
-          ...headers,
-          'Authorization': 'Bearer erp-meili-master-key-2026' // Autoryzacja wbudowana do wewnątrz
-        };
-      }
-    }
+        const next = { ...headers };
+        // Never forward caller JWT/credentials to Meili
+        delete next['authorization'];
+        delete next['Authorization'];
+        if (meiliMasterKey) {
+          next['Authorization'] = `Bearer ${meiliMasterKey}`;
+        }
+        return next;
+      },
+    },
   });
 
   // CRITICAL: Proxy AI Vector queries to Search Microservice (Port: 4008)
