@@ -11,6 +11,15 @@ import { PrismaService } from './prisma.service';
 export class ProductController {
   constructor(private readonly prisma: PrismaService) {}
 
+  /** Decimal standardCost → number for HTTP/JSON and outbox product.* payloads. */
+  private serializeItemMoney<T extends { standardCost?: unknown }>(item: T) {
+    return {
+      ...item,
+      standardCost:
+        item.standardCost == null ? item.standardCost : Number(item.standardCost),
+    };
+  }
+
   private snapshot(item: any) {
     return {
       id: item.id,
@@ -27,7 +36,8 @@ export class ProductController {
       revision: item.revision,
       barcode: item.barcode,
       leadTimeDays: item.leadTimeDays,
-      standardCost: item.standardCost,
+      // money at rest is Decimal; wire/outbox use number (CRM product-sync accepts number)
+      standardCost: item.standardCost == null ? item.standardCost : Number(item.standardCost),
       currency: item.currency,
       isActive: item.isActive,
       attributes: item.attributes,
@@ -80,7 +90,7 @@ export class ProductController {
     ]);
 
     return {
-      rows,
+      rows: rows.map((r) => this.serializeItemMoney(r)),
       total,
       page: parseInt(page, 10) || 1,
       pageSize: take,
@@ -110,7 +120,7 @@ export class ProductController {
       include: { bomVersions: { orderBy: { createdAt: 'desc' } } },
     });
     if (!item) throw new NotFoundException('Pozycja nie istnieje');
-    return item;
+    return this.serializeItemMoney(item);
   }
 
   @Post()
@@ -144,7 +154,7 @@ export class ProductController {
     });
 
     await this.emit('product.created.v1', item);
-    return item;
+    return this.serializeItemMoney(item);
   }
 
   @Patch(':id')
@@ -164,7 +174,7 @@ export class ProductController {
 
     const item = await this.prisma.item.update({ where: { id }, data });
     await this.emit('product.updated.v1', item);
-    return item;
+    return this.serializeItemMoney(item);
   }
 
   @Patch(':id/deactivate')
@@ -176,7 +186,7 @@ export class ProductController {
       data: { isActive: false, lifecycleStatus: 'OBSOLETE' },
     });
     await this.emit('product.deactivated.v1', item);
-    return item;
+    return this.serializeItemMoney(item);
   }
 
   @Patch(':id/activate')
@@ -188,6 +198,6 @@ export class ProductController {
       data: { isActive: true, lifecycleStatus: 'ACTIVE' },
     });
     await this.emit('product.updated.v1', item);
-    return item;
+    return this.serializeItemMoney(item);
   }
 }

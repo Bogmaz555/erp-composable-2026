@@ -39,11 +39,12 @@ export class CreateLeadHandler implements ICommandHandler<CreateLeadCommand> {
         tkw: 0,
         currency: currency || 'PLN',
         status: 'NEW',
-updatedAt: new Date(),
+        updatedAt: new Date(),
         customerId: customerId,
       }
     });
 
-    return opportunity;
+    // Decimal at rest → number on wire
+    return { ...opportunity, value: Number(opportunity.value ?? 0) };
   }
 }

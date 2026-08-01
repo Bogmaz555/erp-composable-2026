@@ -3,6 +3,14 @@
 This directory currently contains **thin/outbox-only** migrations — not a full
 service schema baseline.
 
+## Money (PR 12 secondary)
+
+`Opportunity.value`, `BOMItem.price`, `CatalogItem.basePrice` are **Decimal** in
+`schema.prisma`. Residual Floats: `Opportunity.tkw`, `marginCoefficient` (not in
+secondary list). Until a full baseline lands, non-pilot deploy applies money via
+**`db push`** then this thin outbox migration. No separate ALTER migration is
+shipped for crm while the tree is thin-only.
+
 ## Deploy behavior
 
 `scripts/prisma-migrate-deploy.sh` detects thin-only migration trees and:

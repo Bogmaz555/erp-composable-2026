@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# KD-5 / PR 11: gate that pilot-critical money fields are Prisma Decimal (not Float).
+# KD-5 / PR 11+12: gate that money fields are Prisma Decimal (not Float).
 #
 # Scope = BLOCKLIST only (not "any Float in monorepo").
-# Allowed residual Floats: engineering qty/weight/scrap, FTE units, hours, %, CRM prices (PR 12).
+# Pilot-critical (PR 11) + secondary CRM/PLM standardCost (PR 12).
+# Allowed residual Floats: engineering qty/weight/scrap, FTE units, hours, %, CRM tkw/margin.
 #
 # Usage:
 #   bash scripts/check-no-float-money.sh
@@ -22,6 +23,7 @@ FAILED=0
 
 # Each entry: "relative/schema.prisma|FieldName"
 # finance already Decimal — still asserted so regressions fail the gate.
+# PR 11 pilot-critical + PR 12 secondary (CRM monetary + PLM standardCost).
 BLOCKLIST=(
   "apps/finance/prisma/schema.prisma|amount"
   "apps/finance/prisma/schema.prisma|balance"
@@ -38,9 +40,13 @@ BLOCKLIST=(
   "apps/pm-service/prisma/schema.prisma|actualLaborCost"
   "apps/pm-service/prisma/schema.prisma|targetRevenue"
   "apps/hr/prisma/schema.prisma|hourlyRate"
+  "apps/crm-service/prisma/schema.prisma|value"
+  "apps/crm-service/prisma/schema.prisma|price"
+  "apps/crm-service/prisma/schema.prisma|basePrice"
+  "apps/plm-service/prisma/schema.prisma|standardCost"
 )
 
-echo "=== check-no-float-money (KD-5 blocklist) ==="
+echo "=== check-no-float-money (KD-5 blocklist + PR 12 secondary) ==="
 
 check_field() {
   local schema="$1"
@@ -83,11 +89,15 @@ for entry in "${BLOCKLIST[@]}"; do
   fi
 done
 
-# Explicit residual (must remain Float so secondary PR / engineering qty are not "fixed" away)
+# Explicit residual (engineering qty / non-money — must remain Float)
 RESIDUAL_OK=(
   "apps/pm-service/prisma/schema.prisma|ccpmBufferPct|Float"
   "apps/hr/prisma/schema.prisma|hours|Float"
   "apps/inv-service/prisma/schema.prisma|quantityUsed|Float"
+  "apps/plm-service/prisma/schema.prisma|weightKg|Float"
+  "apps/plm-service/prisma/schema.prisma|scrapFactor|Float"
+  "apps/crm-service/prisma/schema.prisma|tkw|Float"
+  "apps/crm-service/prisma/schema.prisma|marginCoefficient|Float"
 )
 
 echo "--- residual non-money Float (allowed) ---"

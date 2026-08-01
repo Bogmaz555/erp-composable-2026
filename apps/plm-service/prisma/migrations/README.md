@@ -6,6 +6,7 @@
 |--------|------|
 | `20260801000000_baseline` | Full schema from `schema.prisma` (`migrate diff --from-empty`) |
 | `20260801120000_outbox_processing` | Additive outbox `PROCESSING` + attempts/lastError (idempotent) |
+| `20260801210000_decimal_standard_cost` | PR 12: `Item.standardCost` → DECIMAL (not weight/scrap) |
 
 `migration_lock.toml` — `provider = "postgresql"`.
 
@@ -32,6 +33,9 @@ and parity check, mark history applied:
 npx prisma@5.22.0 migrate resolve --applied 20260801000000_baseline \
   --schema apps/plm-service/prisma/schema.prisma
 npx prisma@5.22.0 migrate resolve --applied 20260801120000_outbox_processing \
+  --schema apps/plm-service/prisma/schema.prisma
+# After deploy of standardCost Decimal (or resolve if already manually altered):
+npx prisma@5.22.0 migrate resolve --applied 20260801210000_decimal_standard_cost \
   --schema apps/plm-service/prisma/schema.prisma
 ```
 
