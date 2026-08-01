@@ -16,3 +16,7 @@ coverage/
 .agents/orchestrator/CHECKPOINTS/MISSION-WORKER-LATEST.md
 cluster-keys.json
 *.key
+backups/
+# TLS / vault local material (never commit)
+infra/tls/**/*.key
+infra/vault/unseal/unseal.key

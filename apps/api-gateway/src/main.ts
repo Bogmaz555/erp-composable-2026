@@ -199,18 +199,26 @@ async function bootstrap() {
   });
 
   // CRITICAL: Proxy Search queries to Meilisearch (Port: 7700)
+  // MEILI_MASTER_KEY must come from env — never hardcode secrets in source
+  const meiliMasterKey = process.env.MEILI_MASTER_KEY || '';
+  if (!meiliMasterKey) {
+    console.warn(
+      '[api-gateway] MEILI_MASTER_KEY is unset — Meili proxy will send empty Authorization (set env for pilot/prod)',
+    );
+  }
   await app.register(fastifyHttpProxy as any, {
-    upstream: 'http://127.0.0.1:7700',
+    upstream: process.env.MEILI_URL || 'http://127.0.0.1:7700',
     prefix: '/api/search',
     rewritePrefix: '',
     replyOptions: {
       rewriteRequestHeaders: (originalReq, headers) => {
-        return {
-          ...headers,
-          'Authorization': 'Bearer erp-meili-master-key-2026' // Autoryzacja wbudowana do wewnątrz
-        };
-      }
-    }
+        const next = { ...headers };
+        if (meiliMasterKey) {
+          next['Authorization'] = `Bearer ${meiliMasterKey}`;
+        }
+        return next;
+      },
+    },
   });
 
   // CRITICAL: Proxy AI Vector queries to Search Microservice (Port: 4008)

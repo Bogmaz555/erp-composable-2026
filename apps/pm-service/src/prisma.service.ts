@@ -2,9 +2,13 @@ import { Injectable, Scope, Inject, OnModuleDestroy } from '@nestjs/common';
 import { REQUEST } from '@nestjs/core';
 import { PrismaClient } from '.prisma/client-pm';
 
-// ⚡ OSTATECZNE TWARDE WPIĘCIE - ZANIM SILNIK PRISMA SIĘ OBUDZI ⚡
-const PM_URL = "postgresql://erp_user:erp_password@localhost:5434/pm_db?schema=public";
-
+// Fail-fast: no hardcoded credentials — require env (PM_DATABASE_URL or DATABASE_URL)
+const PM_URL = process.env.PM_DATABASE_URL || process.env.DATABASE_URL;
+if (!PM_URL) {
+  throw new Error(
+    'PM_DATABASE_URL (or DATABASE_URL) is required — set it in the environment; hardcoded DB credentials are not allowed',
+  );
+}
 if (!process.env.PM_DATABASE_URL) {
   process.env.PM_DATABASE_URL = PM_URL;
 }
@@ -17,9 +21,9 @@ export class PrismaService extends PrismaClient implements OnModuleDestroy {
     super({
       datasources: {
         db: {
-          url: process.env.PM_DATABASE_URL || PM_URL
-        }
-      }
+          url: process.env.PM_DATABASE_URL || PM_URL,
+        },
+      },
     });
 
     // Ochrona kontekstu przed awarią NATS

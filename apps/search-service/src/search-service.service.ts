@@ -9,9 +9,15 @@ export class SearchServiceService implements OnModuleInit {
 
   async onModuleInit() {
     const { Meilisearch } = await import('meilisearch');
+    const meiliMasterKey = process.env.MEILI_MASTER_KEY || '';
+    if (!meiliMasterKey) {
+      console.warn(
+        '[search-service] MEILI_MASTER_KEY is unset — connecting without apiKey (set env for pilot/prod)',
+      );
+    }
     this.client = new Meilisearch({
       host: process.env.MEILI_HOST || 'http://localhost:7700',
-      apiKey: process.env.MEILI_MASTER_KEY || 'erp-meili-master-key-2026',
+      ...(meiliMasterKey ? { apiKey: meiliMasterKey } : {}),
     });
     console.log('SearchServiceService initialized. Connecting to Meilisearch...');
     try {

@@ -523,7 +523,7 @@ services:
     container_name: erp-meilisearch
     restart: unless-stopped
     environment:
-      MEILI_MASTER_KEY: "erp-meili-master-key-2026"
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:?set MEILI_MASTER_KEY in environment or .env}
       MEILI_ENV: "development"
     ports:
       - "7700:7700"
