@@ -1,8 +1,15 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { CqrsModule } from '@nestjs/cqrs';
+import { CommandBus, EventBus } from '@nestjs/cqrs';
 import { RecordProductionHandler } from '../src/commands/record-production.handler';
 import { RecordProductionCommand } from '../src/commands/record-production.command';
 import { PrismaService } from '../src/prisma.service';
+
+function mockPrismaTx(store: Record<string, unknown>) {
+  return {
+    ...store,
+    $transaction: jest.fn(async (cb: (tx: typeof store) => Promise<unknown>) => cb(store)),
+  };
+}
 
 // Test for full ETO traceability during production recording (bomComponentId + AsBuilt + events)
 describe('MES: Full Production Traceability (bomComponentId + AsBuilt + Events)', () => {
@@ -10,25 +17,32 @@ describe('MES: Full Production Traceability (bomComponentId + AsBuilt + Events)'
   let prisma: PrismaService;
 
   beforeEach(async () => {
+    const store = {
+      productionRecord: {
+        create: jest.fn().mockResolvedValue({ id: 'pr-full', workOrderId: 'wo-full-trace' }),
+      },
+      materialRequirement: {
+        findMany: jest.fn().mockResolvedValue([]),
+        update: jest.fn(),
+      },
+      asBuiltRecord: { create: jest.fn().mockResolvedValue({}) },
+      outboxEvent: { create: jest.fn().mockResolvedValue({}) },
+      workOrder: {
+        findUnique: jest.fn().mockResolvedValue({
+          projectId: 'proj-eto-1',
+          tenantId: 'default',
+        }),
+      },
+    };
     const moduleRef: TestingModule = await Test.createTestingModule({
-      imports: [CqrsModule],
       providers: [
         RecordProductionHandler,
         {
           provide: PrismaService,
-          useValue: {
-            productionRecord: { create: jest.fn() },
-            materialRequirement: { findMany: jest.fn().mockResolvedValue([]) },
-            asBuiltRecord: { create: jest.fn() },
-            outboxEvent: { create: jest.fn() },
-            workOrder: {
-              findUnique: jest.fn().mockResolvedValue({
-                projectId: 'proj-eto-1',
-                tenantId: 'default',
-              }),
-            },
-          },
+          useValue: mockPrismaTx(store),
         },
+        { provide: CommandBus, useValue: { execute: jest.fn().mockResolvedValue(undefined) } },
+        { provide: EventBus, useValue: { publish: jest.fn() } },
       ],
     }).compile();
 
@@ -42,9 +56,12 @@ describe('MES: Full Production Traceability (bomComponentId + AsBuilt + Events)'
     const result = await handler.execute(command);
 
     expect(result).toBeDefined();
+    expect((prisma as any).$transaction).toHaveBeenCalled();
     expect((prisma as any).asBuiltRecord.create).toHaveBeenCalled();
     expect((prisma as any).outboxEvent.create).toHaveBeenCalledWith(
-      expect.objectContaining({ eventType: 'mes.production.recorded.v1' })
+      expect.objectContaining({
+        data: expect.objectContaining({ eventType: 'mes.production.recorded.v1' }),
+      }),
     );
   });
 
@@ -61,15 +78,17 @@ describe('MES: Full Production Traceability (bomComponentId + AsBuilt + Events)'
 
     expect((prisma as any).outboxEvent.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        eventType: 'mes.production.recorded.v1',
-        payload: expect.objectContaining({
-          workOrderId: 'wo-eto-spine-1',
-          bomComponentIds: expect.arrayContaining(['bom-comp-uuid-1', 'bom-comp-uuid-2']),
-          operatorId: 'op-auth-user',
-          laborHours: 6,
-          projectId: 'proj-eto-1',
+        data: expect.objectContaining({
+          eventType: 'mes.production.recorded.v1',
+          payload: expect.objectContaining({
+            workOrderId: 'wo-eto-spine-1',
+            bomComponentIds: expect.arrayContaining(['bom-comp-uuid-1', 'bom-comp-uuid-2']),
+            operatorId: 'op-auth-user',
+            laborHours: 6,
+            projectId: 'proj-eto-1',
+          }),
         }),
-      })
+      }),
     );
 
     // Note: In real authenticated flow (via WorkOrdersController + Jwt + NATS), x-user-id/x-roles

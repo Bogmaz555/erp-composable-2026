@@ -13,73 +13,29 @@ export class RecordProductionHandler implements ICommandHandler<RecordProduction
   ) {}
 
   async execute(command: RecordProductionCommand) {
-    const record = await this.prisma.productionRecord.create({
-      data: {
-        workOrderId: command.workOrderId,
-        quantityGood: command.quantityGood,
-        quantityScrap: command.quantityScrap,
-        operatorId: command.operatorId,
-      },
-    });
-
-    // Emit local event (existing)
-    this.eventBus.publish(new ProductionRecordedEvent(
-      command.workOrderId,
-      command.quantityGood,
-      command.quantityScrap,
-      new Date(),
-    ));
-
-    // === Faza 1 ETO Traceability: Production → Consumption + Reservation Release ===
     const tenantId = 'default';
 
-    // 1. Find linked MaterialRequirements for this WO (to get bomComponentId + item for accurate consumption)
-    let requirements: { id: string; itemId: string; quantity: number; reservedQty: number; bomComponentId: string | null }[] = [];
+    // Pre-reads outside TX (read-only)
+    let requirements: {
+      id: string;
+      itemId: string;
+      quantity: number;
+      reservedQty: number;
+      bomComponentId: string | null;
+    }[] = [];
     try {
       requirements = await this.prisma.materialRequirement.findMany({
         where: { workOrderId: command.workOrderId, tenantId },
       });
-    } catch { /* env without schema */ }
-
-    // 2. Create MaterialConsumption records via CQRS command (backflush style) with bomComponentId for full genealogy
-    if (command.quantityGood > 0 && requirements.length > 0) {
-      const totalReqQty = requirements.reduce((sum, r) => sum + r.quantity, 0) || 1;
-      for (const req of requirements) {
-        const consumeQty = Math.min(req.quantity, command.quantityGood * (req.quantity / totalReqQty));
-        if (consumeQty <= 0) continue;
-
-        // Use the dedicated command (now supports bomComponentId) instead of direct Prisma
-        await this.commandBus.execute(new (await import('./consume-material.command')).ConsumeMaterialCommand(
-          command.workOrderId,
-          req.itemId,
-          null,
-          consumeQty,
-          req.bomComponentId
-        )).catch(() => { /* safe for env */ });
-
-        // Also update requirement status
-        await this.prisma.materialRequirement.update({
-          where: { id: req.id },
-          data: { status: 'ISSUED', reservedQty: Math.max(0, req.reservedQty - consumeQty) },
-        }).catch(() => {});
-      }
+    } catch {
+      /* env without schema */
     }
 
-    // 3. Create / update AsBuiltRecord (with better item from first requirement if available)
-    const asBuiltItemId = requirements[0]?.itemId || 'unknown';
-    await this.prisma.asBuiltRecord.create({
-      data: {
-        tenantId,
-        workOrderId: command.workOrderId,
-        itemId: asBuiltItemId,
-        quantity: command.quantityGood,
-        completedAt: new Date(),
-      },
-    }).catch(() => { /* schema/env safe */ });
-
-    const workOrder = await this.prisma.workOrder.findUnique({
-      where: { id: command.workOrderId },
-    }).catch(() => null);
+    const workOrder = await this.prisma.workOrder
+      .findUnique({
+        where: { id: command.workOrderId },
+      })
+      .catch(() => null);
 
     const outboxPayload: Record<string, unknown> = {
       workOrderId: command.workOrderId,
@@ -101,19 +57,101 @@ export class RecordProductionHandler implements ICommandHandler<RecordProduction
       }
     }
 
-    // 4. Publish canonical 'mes.production.recorded.v1' via Outbox so INV + Finance can react
-    await this.prisma.outboxEvent.create({
-      data: {
-        tenantId: workOrder?.tenantId || tenantId,
-        aggregateId: command.workOrderId,
-        aggregateType: 'WorkOrder',
-        eventType: 'mes.production.recorded.v1',
-        payload: outboxPayload as object,
-        status: 'PENDING',
-      },
-    }).catch(() => { /* non-fatal */ });
+    const asBuiltItemId = requirements[0]?.itemId || 'unknown';
 
-    console.log(`[MES] Production recorded for WO ${command.workOrderId} - MaterialConsumption + AsBuilt + mes.production.recorded.v1 emitted (requirements: ${requirements.length})`);
+    // Domain write (production + asBuilt + requirement status) + outbox in one TX
+    const record = await this.prisma.$transaction(async (tx) => {
+      const productionRecord = await tx.productionRecord.create({
+        data: {
+          workOrderId: command.workOrderId,
+          quantityGood: command.quantityGood,
+          quantityScrap: command.quantityScrap,
+          operatorId: command.operatorId,
+        },
+      });
+
+      // Update MaterialRequirement status for consumed lines (same TX as production)
+      if (command.quantityGood > 0 && requirements.length > 0) {
+        const totalReqQty = requirements.reduce((sum, r) => sum + r.quantity, 0) || 1;
+        for (const req of requirements) {
+          const consumeQty = Math.min(
+            req.quantity,
+            command.quantityGood * (req.quantity / totalReqQty),
+          );
+          if (consumeQty <= 0) continue;
+          await tx.materialRequirement.update({
+            where: { id: req.id },
+            data: {
+              status: 'ISSUED',
+              reservedQty: Math.max(0, req.reservedQty - consumeQty),
+            },
+          });
+        }
+      }
+
+      await tx.asBuiltRecord.create({
+        data: {
+          tenantId,
+          workOrderId: command.workOrderId,
+          itemId: asBuiltItemId,
+          quantity: command.quantityGood,
+          completedAt: new Date(),
+        },
+      });
+
+      await tx.outboxEvent.create({
+        data: {
+          tenantId: workOrder?.tenantId || tenantId,
+          aggregateId: command.workOrderId,
+          aggregateType: 'WorkOrder',
+          eventType: 'mes.production.recorded.v1',
+          payload: outboxPayload as object,
+          status: 'PENDING',
+        },
+      });
+
+      return productionRecord;
+    });
+
+    // Local in-process event (not bus; no dual-write risk with DB)
+    this.eventBus.publish(
+      new ProductionRecordedEvent(
+        command.workOrderId,
+        command.quantityGood,
+        command.quantityScrap,
+        new Date(),
+      ),
+    );
+
+    // === Faza 1 ETO Traceability: Consumption via CQRS (own Prisma / no shared TX) ===
+    if (command.quantityGood > 0 && requirements.length > 0) {
+      const totalReqQty = requirements.reduce((sum, r) => sum + r.quantity, 0) || 1;
+      for (const req of requirements) {
+        const consumeQty = Math.min(
+          req.quantity,
+          command.quantityGood * (req.quantity / totalReqQty),
+        );
+        if (consumeQty <= 0) continue;
+
+        try {
+          await this.commandBus.execute(
+            new (await import('./consume-material.command')).ConsumeMaterialCommand(
+              command.workOrderId,
+              req.itemId,
+              null,
+              consumeQty,
+              req.bomComponentId,
+            ),
+          );
+        } catch {
+          /* safe for env / missing ConsumeMaterial handler in unit tests */
+        }
+      }
+    }
+
+    console.log(
+      `[MES] Production recorded for WO ${command.workOrderId} - MaterialConsumption + AsBuilt + mes.production.recorded.v1 emitted (requirements: ${requirements.length})`,
+    );
 
     return record;
   }

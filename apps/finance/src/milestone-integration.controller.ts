@@ -31,43 +31,44 @@ export class MilestoneIntegrationController {
       `[Finance] Milestone ${data.milestone} reached for project ${data.projectId} amount=${data.amount} PLN`,
     );
 
-    await this.prisma.milestoneBilling.upsert({
-      where: {
-        tenantId_projectId_milestone: {
+    // Domain write + outbox in one TX (never orphan READY billing without event row)
+    await this.prisma.$transaction(async (tx) => {
+      await tx.milestoneBilling.upsert({
+        where: {
+          tenantId_projectId_milestone: {
+            tenantId,
+            projectId: data.projectId,
+            milestone: data.milestone,
+          },
+        },
+        update: {
+          amount: data.amount,
+          percent: data.percent,
+          status: 'READY',
+          reachedAt: new Date(),
+        },
+        create: {
           tenantId,
           projectId: data.projectId,
           milestone: data.milestone,
+          amount: data.amount,
+          percent: data.percent,
+          status: 'READY',
+          reachedAt: new Date(),
         },
-      },
-      update: {
-        amount: data.amount,
-        percent: data.percent,
-        status: 'READY',
-        reachedAt: new Date(),
-      },
-      create: {
-        tenantId,
-        projectId: data.projectId,
-        milestone: data.milestone,
-        amount: data.amount,
-        percent: data.percent,
-        status: 'READY',
-        reachedAt: new Date(),
-      },
-    }).catch((e) => {
-      this.logger.warn(`[Finance] MilestoneBilling upsert failed: ${e.message}`);
-    });
+      });
 
-    await this.prisma.outboxEvent.create({
-      data: {
-        tenantId,
-        aggregateId: data.projectId,
-        aggregateType: 'Project',
-        eventType: 'finance.payment.milestone.reached.v1',
-        payload: { ...data, processedBy: userId },
-        status: 'PENDING',
-      },
-    }).catch(() => {});
+      await tx.outboxEvent.create({
+        data: {
+          tenantId,
+          aggregateId: data.projectId,
+          aggregateType: 'Project',
+          eventType: 'finance.payment.milestone.reached.v1',
+          payload: { ...data, processedBy: userId },
+          status: 'PENDING',
+        },
+      });
+    });
 
     return { status: 'milestone-recorded', milestone: data.milestone };
   }
@@ -88,32 +89,35 @@ export class MilestoneIntegrationController {
       `[Finance HR] Labor ${data.hours}h @ ${data.hourlyRatePln} for project ${data.projectId}`,
     );
 
-    await this.prisma.projectCost.create({
-      data: {
-        tenantId,
-        projectId: data.projectId,
-        workOrderId: data.workOrderId,
-        costType: 'LABOR',
-        amount: laborAmount,
-        currency: 'PLN',
-        reference: data.employeeId,
-      },
-    }).catch(() => {});
+    // Labor path has no outbox publish; still keep cost + WIP atomic together
+    await this.prisma.$transaction(async (tx) => {
+      await tx.projectCost.create({
+        data: {
+          tenantId,
+          projectId: data.projectId,
+          workOrderId: data.workOrderId,
+          costType: 'LABOR',
+          amount: laborAmount,
+          currency: 'PLN',
+          reference: data.employeeId,
+        },
+      });
 
-    await this.prisma.wipAccount.upsert({
-      where: { projectId: data.projectId },
-      update: {
-        wipBalance: { increment: laborAmount },
-        laborCost: { increment: laborAmount },
-      },
-      create: {
-        tenantId,
-        projectId: data.projectId,
-        wipBalance: laborAmount,
-        laborCost: laborAmount,
-        materialReserved: 0,
-      },
-    }).catch(() => {});
+      await tx.wipAccount.upsert({
+        where: { projectId: data.projectId },
+        update: {
+          wipBalance: { increment: laborAmount },
+          laborCost: { increment: laborAmount },
+        },
+        create: {
+          tenantId,
+          projectId: data.projectId,
+          wipBalance: laborAmount,
+          laborCost: laborAmount,
+          materialReserved: 0,
+        },
+      });
+    });
 
     return { status: 'labor-booked', amount: laborAmount, actor: userId };
   }
@@ -125,6 +129,7 @@ export class MilestoneIntegrationController {
       `[Finance] KSeF confirmed ${data.ksefReferenceNumber} for ${data.milestone} project ${data.projectId}`,
     );
 
+    // Mark invoiced first (status hop before recognition); non-outbox path
     await this.prisma.milestoneBilling.updateMany({
       where: {
         tenantId,
@@ -135,41 +140,63 @@ export class MilestoneIntegrationController {
         status: 'INVOICED',
         invoicedAt: new Date(),
       },
-    }).catch(() => {});
+    });
 
-    // Revenue recognition (Faza 2 — po potwierdzeniu KSeF, percentage-of-completion / milestone)
+    // Revenue recognition (Faza 2 — po potwierdzeniu KSeF) + outbox in one TX
     try {
-      await this.prisma.revenueRecognition.create({
-        data: {
-          tenantId,
-          projectId: data.projectId,
-          milestone: data.milestone,
-          amount: data.amount,
-          currency: data.currency || 'PLN',
-          ksefReferenceNumber: data.ksefReferenceNumber,
-        },
+      await this.prisma.$transaction(async (tx) => {
+        await tx.revenueRecognition.create({
+          data: {
+            tenantId,
+            projectId: data.projectId,
+            milestone: data.milestone,
+            amount: data.amount,
+            currency: data.currency || 'PLN',
+            ksefReferenceNumber: data.ksefReferenceNumber,
+          },
+        });
+
+        const due = new Date();
+        due.setDate(due.getDate() + 30);
+        await tx.receivable.create({
+          data: {
+            tenantId,
+            client: `Projekt ${data.projectId}`,
+            amount: data.amount,
+            currency: data.currency || 'PLN',
+            dueDate: due,
+            status: 'PENDING',
+            invoiceRef: data.ksefReferenceNumber,
+            projectId: data.projectId,
+          },
+        });
+
+        await tx.milestoneBilling.updateMany({
+          where: { tenantId, projectId: data.projectId, milestone: data.milestone },
+          data: { status: 'RECOGNIZED', recognizedAt: new Date() },
+        });
+
+        await tx.outboxEvent.create({
+          data: {
+            tenantId,
+            aggregateId: data.projectId,
+            aggregateType: 'Project',
+            eventType: 'finance.revenue.recognized.v1',
+            payload: {
+              projectId: data.projectId,
+              milestone: data.milestone,
+              amount: data.amount,
+              currency: data.currency || 'PLN',
+              ksefReferenceNumber: data.ksefReferenceNumber,
+              recognizedAt: new Date().toISOString(),
+              tenantId,
+            },
+            status: 'PENDING',
+          },
+        });
       });
 
-      const due = new Date();
-      due.setDate(due.getDate() + 30);
-      await this.prisma.receivable.create({
-        data: {
-          tenantId,
-          client: `Projekt ${data.projectId}`,
-          amount: data.amount,
-          currency: data.currency || 'PLN',
-          dueDate: due,
-          status: 'PENDING',
-          invoiceRef: data.ksefReferenceNumber,
-          projectId: data.projectId,
-        },
-      }).catch(() => {});
-
-      await this.prisma.milestoneBilling.updateMany({
-        where: { tenantId, projectId: data.projectId, milestone: data.milestone },
-        data: { status: 'RECOGNIZED', recognizedAt: new Date() },
-      });
-
+      // GL journal entry uses its own PrismaClient (legacy); after domain+outbox commit
       await this.commandBus.execute(
         new RecordTransactionCommand(
           'mock-revenue-account-id',
@@ -180,25 +207,6 @@ export class MilestoneIntegrationController {
           `Revenue ${data.milestone} project ${data.projectId} (KSeF ${data.ksefReferenceNumber})`,
         ),
       );
-
-      await this.prisma.outboxEvent.create({
-        data: {
-          tenantId,
-          aggregateId: data.projectId,
-          aggregateType: 'Project',
-          eventType: 'finance.revenue.recognized.v1',
-          payload: {
-            projectId: data.projectId,
-            milestone: data.milestone,
-            amount: data.amount,
-            currency: data.currency || 'PLN',
-            ksefReferenceNumber: data.ksefReferenceNumber,
-            recognizedAt: new Date().toISOString(),
-            tenantId,
-          },
-          status: 'PENDING',
-        },
-      });
     } catch (e) {
       this.logger.warn(`[Finance] Revenue recognition failed: ${(e as Error).message}`);
     }

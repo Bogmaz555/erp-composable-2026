@@ -2,18 +2,36 @@ import { Injectable, Inject, Logger, OnModuleInit, OnModuleDestroy } from '@nest
 import { Interval } from '@nestjs/schedule';
 import { ClientProxy } from '@nestjs/microservices';
 import { PrismaService } from './prisma.service';
+import { GenericOutboxRelay } from '@erp/shared-kernel';
 
+/**
+ * MES outbox relay — thin wrapper around shared GenericOutboxRelay v2.
+ * No local dual semantics: claim PROCESSING, await publish, attempts/FAILED.
+ */
 @Injectable()
-export class MesOutboxRelayService implements OnModuleInit, OnModuleDestroy {
-  private readonly logger = new Logger(MesOutboxRelayService.name);
+export class MesOutboxRelayService
+  extends GenericOutboxRelay
+  implements OnModuleInit, OnModuleDestroy
+{
+  protected readonly logger = new Logger(MesOutboxRelayService.name);
+  protected prisma: PrismaService;
 
   constructor(
-    private readonly prisma: PrismaService,
-    @Inject('NATS_SERVICE') private readonly natsClient: ClientProxy,
-  ) {}
+    @Inject('NATS_SERVICE') protected readonly natsClient: ClientProxy,
+    prisma: PrismaService,
+  ) {
+    super();
+    this.prisma = prisma;
+  }
 
   async onModuleInit() {
-    await this.natsClient.connect().catch(() => {});
+    try {
+      await this.natsClient.connect();
+    } catch (e) {
+      this.logger.warn(
+        `NATS connect deferred/failed at init: ${(e as Error).message}`,
+      );
+    }
   }
 
   async onModuleDestroy() {
@@ -21,34 +39,7 @@ export class MesOutboxRelayService implements OnModuleInit, OnModuleDestroy {
   }
 
   @Interval(3000)
-  async relayEvents() {
-    const pending = await this.prisma.outboxEvent
-      .findMany({
-        where: { status: 'PENDING' },
-        take: 50,
-        orderBy: { createdAt: 'asc' },
-      })
-      .catch(() => []);
-
-    for (const event of pending) {
-      try {
-        this.natsClient.emit(event.eventType, event.payload);
-        await this.prisma.outboxEvent.update({
-          where: { id: event.id },
-          data: { status: 'PROCESSED' },
-        });
-        this.logger.debug(`[MES Outbox] ${event.eventType} emitted.`);
-      } catch (e) {
-        await this.prisma.outboxEvent
-          .update({
-            where: { id: event.id },
-            data: {
-              status: 'FAILED',
-            },
-          })
-          .catch(() => {});
-        this.logger.warn(`[MES Outbox] Error emitting ${event.eventType}: ${(e as Error).message}`);
-      }
-    }
+  override async relayEvents() {
+    await super.relayEvents();
   }
 }
