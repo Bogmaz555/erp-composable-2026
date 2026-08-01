@@ -20,9 +20,15 @@
 #   `prisma migrate resolve --applied <migration_name>` for each folder.
 #
 # Usage:
-#   bash scripts/prisma-migrate-deploy.sh            # all services
+#   bash scripts/prisma-migrate-deploy.sh            # all services (dev; may push)
 #   bash scripts/prisma-migrate-deploy.sh inv-service proc-service
+#   pnpm run db:migrate:deploy:pilot                 # PILOT=1 core six only (preferred)
 #   PILOT=1 bash scripts/prisma-migrate-deploy.sh inv-service proc-service pm-service finance plm-service mes-service
+#
+# NOTE: unscoped `PILOT=1 bash scripts/prisma-migrate-deploy.sh` (no service args)
+# iterates ALL_SERVICES and FAILS non-core (thin/no-migrations) BY DESIGN.
+# Always scope to core for pilot, or use db:migrate:deploy:pilot.
+# See docs/PRISMA-MIGRATIONS.md.
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -113,6 +119,11 @@ verify_schema_in_sync() {
 
 if [ "$PILOT" = "1" ]; then
   echo "=== PILOT=1: migrate deploy only (no silent push-only; baselines required for empty DBs) ==="
+  if [ "$#" -eq 0 ]; then
+    echo "NOTE: no service args → ALL_SERVICES. Non-core (thin/no-migrations) will FAIL by design."
+    echo "      Prefer: pnpm run db:migrate:deploy:pilot  (core six only)"
+    echo "      See docs/PRISMA-MIGRATIONS.md"
+  fi
 fi
 
 for svc in "${TARGETS[@]}"; do

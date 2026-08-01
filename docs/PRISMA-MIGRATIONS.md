@@ -18,9 +18,32 @@ Runner: **`scripts/prisma-migrate-deploy.sh`** (`pnpm run db:migrate:deploy`).
 pnpm run db:migrate:deploy
 
 # Core pilot services — migrate deploy only, schema verify
+# Prefer the package script (already scoped to the core six):
+pnpm run db:migrate:deploy:pilot
+# equivalent:
 PILOT=1 bash scripts/prisma-migrate-deploy.sh \
   inv-service proc-service pm-service finance plm-service mes-service
 ```
+
+### Unscoped `PILOT=1` fails non-core **by design**
+
+`scripts/prisma-migrate-deploy.sh` with **no service arguments** targets
+`ALL_SERVICES` (core + quality, hr, tax-legal, crm, eam, analytics, …).
+
+Under `PILOT=1` that unscoped run **will fail** on every service that still has
+only thin/outbox migrations or no migrations dir. That is intentional pilot
+purity — not a bug:
+
+| Invocation | Expected |
+|------------|----------|
+| `PILOT=1 pnpm run db:migrate:deploy:pilot` | OK path for pilot (core six only) |
+| `PILOT=1 bash scripts/prisma-migrate-deploy.sh inv-service … mes-service` | Same — explicit core list |
+| `PILOT=1 bash scripts/prisma-migrate-deploy.sh` (no args) | **Fails** on non-core until those services get baselines |
+| `pnpm run db:migrate:deploy` (no PILOT) | Dev: thin → push+deploy; missing dir → push |
+
+Non-core remain thin/outbox or push-only until a later baseline PR. Do not run
+unscoped `PILOT=1` in pilot/CI rollouts; use `db:migrate:deploy:pilot` or an
+explicit service list.
 
 ## Core services with full baselines (PR 10)
 
@@ -57,6 +80,9 @@ When `PILOT=1`:
 2. **No thin push fallback** — outbox-only trees fail; add a baseline first.
 3. **After `migrate deploy`** — `migrate diff` datamodel ↔ datasource must show
    **no drift** (exit code 0). Connectivity / missing `*_DATABASE_URL` also fails.
+4. **Scope matters** — unscoped runs iterate all services and therefore fail
+   non-core by design (see above). Always pass the core list or use
+   `pnpm run db:migrate:deploy:pilot`.
 
 Dev / non-pilot still allows thin `push` → `deploy` for services without baselines
 (quality, hr, tax-legal, crm, etc.).
