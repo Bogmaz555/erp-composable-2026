@@ -26,9 +26,12 @@ export class ReceiveMaterialHandler implements ICommandHandler<ReceiveMaterialCo
 
     const newReceivedQty = (existing.receivedQty || 0) + command.receivedQuantity;
     const qty = command.receivedQuantity || existing.amount;
-    const unitPrice = command.unitPrice ?? existing.unitPrice ?? 0;
-    const freight = command.freightCost ?? existing.freightCost ?? 0;
-    const customs = command.customsDuty ?? existing.customsDuty ?? 0;
+    // Money columns are Decimal (KD-5); coerce for arithmetic / event payload numbers
+    const asNum = (v: unknown): number =>
+      v == null ? 0 : typeof v === 'number' ? v : Number(v);
+    const unitPrice = command.unitPrice ?? asNum(existing.unitPrice);
+    const freight = command.freightCost ?? asNum(existing.freightCost);
+    const customs = command.customsDuty ?? asNum(existing.customsDuty);
     const totalCost = unitPrice * qty + freight + customs;
     const landedUnitCost = qty > 0 ? Math.round((totalCost / qty) * 10000) / 10000 : 0;
     

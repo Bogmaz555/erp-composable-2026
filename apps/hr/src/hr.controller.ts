@@ -82,7 +82,8 @@ export class HrController {
     return {
       isValid: true,
       employeeId: employee.id,
-      hourlyRate: employee.hourlyRate,
+      // Decimal → number for MES labor math (KD-5 money at rest is Decimal)
+      hourlyRate: Number(employee.hourlyRate),
     };
   }
 
@@ -92,6 +93,6 @@ export class HrController {
       where: { id: data.employeeId },
     });
     if (!employee) return null;
-    return { hourlyRate: employee.hourlyRate };
+    return { hourlyRate: Number(employee.hourlyRate) };
   }
 }
