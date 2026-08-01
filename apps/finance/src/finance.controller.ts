@@ -17,7 +17,7 @@ import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { RolesGuard } from './auth/roles.guard';
 import { Roles } from './auth/roles.decorator';
 
-@UseGuards(JwtAuthGuard, RolesGuard)
+// Guards only on HTTP mutations — do NOT apply at class level (NATS EventPattern + health).
 @Controller('fin')
 export class FinanceController {
   private readonly logger = new Logger(FinanceController.name);
@@ -303,7 +303,9 @@ export class FinanceController {
     });
   }
 
+  /** HTTP WIP / GL write — only mutation guarded (ETO matrix FIN_WIP_WRITE). */
   @Post('journal')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(...ETO_MUTATION_ROLES.FIN_WIP_WRITE)
   async postJournal(@Body() body: { accountCode: string; amount: number; type: 'DEBIT' | 'CREDIT'; description?: string; referenceId?: string }) {
     await this.seedDefaultAccounts();
