@@ -21,8 +21,13 @@ spec:
           ports:
             - containerPort: 4002
           env:
+            - name: HOST
+              value: "0.0.0.0"
+            - name: PORT
+              value: "4002"
             - name: NATS_URL
               value: nats://nats:4222
+            # PM_DATABASE_URL from Secret in prod (Vault); never 127.0.0.1 in-cluster
           livenessProbe:
             httpGet:
               path: /health

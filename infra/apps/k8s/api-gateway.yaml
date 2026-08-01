@@ -31,25 +31,42 @@ spec:
         image: api-gateway:latest
         imagePullPolicy: Never
         ports:
-        - containerPort: 3000
+        - containerPort: 4005
         env:
+        - name: HOST
+          value: "0.0.0.0"
         - name: PORT
-          value: "3000"
+          value: "4005"
+        # Prefer Vault-injected *_SERVICE_URL; defaults use cluster Service DNS (not 127.0.0.1)
+        - name: PM_SERVICE_URL
+          value: "http://pm-service:4002"
+        - name: INV_SERVICE_URL
+          value: "http://inv-service:4003"
+        - name: PROC_SERVICE_URL
+          value: "http://proc-service:4004"
+        - name: MES_SERVICE_URL
+          value: "http://mes-service:4006"
+        - name: PLM_SERVICE_URL
+          value: "http://plm-service:4007"
+        - name: FIN_SERVICE_URL
+          value: "http://finance:4010"
+        - name: ANALYTICS_SERVICE_URL
+          value: "http://analytics-service:4011"
         command: ["/bin/sh", "-c"]
         args:
         - |
           source /vault/secrets/config || true
-          npm run start
+          node apps/api-gateway/dist/main.js
         livenessProbe:
           httpGet:
-            path: /health
-            port: 3000
+            path: /api/health
+            port: 4005
           initialDelaySeconds: 15
           periodSeconds: 10
         readinessProbe:
           httpGet:
-            path: /health
-            port: 3000
+            path: /api/health
+            port: 4005
           initialDelaySeconds: 5
           periodSeconds: 5
 ---
@@ -63,5 +80,5 @@ spec:
     app: api-gateway
   ports:
   - protocol: TCP
-    port: 80
-    targetPort: 3000
+    port: 4005
+    targetPort: 4005

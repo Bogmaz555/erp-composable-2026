@@ -4,7 +4,25 @@ Każdy serwis eksponuje:
 - **liveness:** `GET /health` → `200 { status: "ok", service }`
 - **readiness:** `GET /health/ready` → ping DB (`SELECT 1`); `degraded` gdy DB down
 
-> Gateway: liveness na `/` (proxy). Analytics: `/api/analytics/health` (publiczne nawet przy `AUTH_ENFORCE`).
+> Gateway: liveness/readiness na `/api/health`. Analytics: `/api/analytics/health` (publiczne nawet przy `AUTH_ENFORCE`).
+
+## Service DNS (do not use 127.0.0.1 in pods)
+
+Inside the cluster, upstreams must use Kubernetes Service DNS:
+
+| From | Env example | Value (same namespace) |
+|------|-------------|------------------------|
+| api-gateway | `PM_SERVICE_URL` | `http://pm-service:4002` |
+| api-gateway | `FIN_SERVICE_URL` | `http://finance-service:4010` |
+| api-gateway | `ANALYTICS_SERVICE_URL` | `http://analytics-service:4011` |
+| any | `NATS_URL` | `nats://nats:4222` |
+| gateway | `KEYCLOAK_JWKS_URI` | `http://keycloak:8080/realms/erp/protocol/openid-connect/certs` |
+
+Full FQDN form: `http://pm-service.erp.svc.cluster.local:4002`.
+
+Compose pilot equivalent: `docker compose --profile pilot up` sets the same `*_SERVICE_URL` keys with compose service names.
+
+**Pilot primary** is compose (KD-7 / OQ-3); manifests under `infra/k8s/deploy/` and Helm `infra/helm/erp/` are secondary staging.
 
 ## Porty serwisów
 

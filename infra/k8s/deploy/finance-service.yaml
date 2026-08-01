@@ -21,8 +21,15 @@ spec:
           ports:
             - containerPort: 4010
           env:
+            - name: HOST
+              value: "0.0.0.0"
+            - name: PORT
+              value: "4010"
             - name: NATS_URL
               value: nats://nats:4222
+            # Cross-service calls: use K8s Service DNS, not loopback
+            - name: PM_SERVICE_URL
+              value: http://pm-service:4002
           livenessProbe:
             httpGet:
               path: /fin/health

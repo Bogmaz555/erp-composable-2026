@@ -10,6 +10,25 @@ apiGateway:
   authEnforce: true
   useKeycloakJwks: true
   pilot: "1"
+  natsUrl: nats://nats:4222
+  keycloakJwksUri: http://keycloak:8080/realms/erp/protocol/openid-connect/certs
+  # Cluster-internal DNS (short Service names in the same namespace).
+  # Full form: http://pm-service.erp.svc.cluster.local:4002
+  serviceUrls:
+    crm: http://crm-service:4001
+    pm: http://pm-service:4002
+    inv: http://inv-service:4003
+    proc: http://proc-service:4004
+    mes: http://mes-service:4006
+    plm: http://plm-service:4007
+    quality: http://quality-service:4008
+    eam: http://eam-service:4009
+    fin: http://finance-service:4010
+    analytics: http://analytics-service:4011
+    hr: http://hr:4012
+    tax: http://tax-legal:4015
+    search: http://search-service:4018
+    approvals: http://approvals-service:4019
 
 analyticsService:
   enabled: true

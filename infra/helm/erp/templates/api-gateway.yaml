@@ -24,23 +24,60 @@ spec:
           ports:
             - containerPort: {{ .Values.apiGateway.port }}
           env:
+            - name: HOST
+              value: "0.0.0.0"
+            - name: PORT
+              value: {{ .Values.apiGateway.port | quote }}
             - name: AUTH_ENFORCE
               value: {{ .Values.apiGateway.authEnforce | quote }}
             - name: USE_KEYCLOAK_JWKS
               value: {{ .Values.apiGateway.useKeycloakJwks | default true | quote }}
             - name: PILOT
               value: {{ .Values.apiGateway.pilot | default "1" | quote }}
+            - name: NATS_URL
+              value: {{ .Values.apiGateway.natsUrl | default "nats://nats:4222" | quote }}
+            - name: KEYCLOAK_JWKS_URI
+              value: {{ .Values.apiGateway.keycloakJwksUri | default "http://keycloak:8080/realms/erp/protocol/openid-connect/certs" | quote }}
+            # Service DNS: http://<k8s Service name>:<port> (same namespace short name)
+            - name: CRM_SERVICE_URL
+              value: {{ .Values.apiGateway.serviceUrls.crm | default "http://crm-service:4001" | quote }}
+            - name: PM_SERVICE_URL
+              value: {{ .Values.apiGateway.serviceUrls.pm | default "http://pm-service:4002" | quote }}
+            - name: INV_SERVICE_URL
+              value: {{ .Values.apiGateway.serviceUrls.inv | default "http://inv-service:4003" | quote }}
+            - name: PROC_SERVICE_URL
+              value: {{ .Values.apiGateway.serviceUrls.proc | default "http://proc-service:4004" | quote }}
+            - name: MES_SERVICE_URL
+              value: {{ .Values.apiGateway.serviceUrls.mes | default "http://mes-service:4006" | quote }}
+            - name: PLM_SERVICE_URL
+              value: {{ .Values.apiGateway.serviceUrls.plm | default "http://plm-service:4007" | quote }}
+            - name: QUALITY_SERVICE_URL
+              value: {{ .Values.apiGateway.serviceUrls.quality | default "http://quality-service:4008" | quote }}
+            - name: EAM_SERVICE_URL
+              value: {{ .Values.apiGateway.serviceUrls.eam | default "http://eam-service:4009" | quote }}
+            - name: FIN_SERVICE_URL
+              value: {{ .Values.apiGateway.serviceUrls.fin | default "http://finance-service:4010" | quote }}
+            - name: ANALYTICS_SERVICE_URL
+              value: {{ .Values.apiGateway.serviceUrls.analytics | default "http://analytics-service:4011" | quote }}
+            - name: HR_SERVICE_URL
+              value: {{ .Values.apiGateway.serviceUrls.hr | default "http://hr:4012" | quote }}
+            - name: TAX_SERVICE_URL
+              value: {{ .Values.apiGateway.serviceUrls.tax | default "http://tax-legal:4015" | quote }}
+            - name: SEARCH_SERVICE_URL
+              value: {{ .Values.apiGateway.serviceUrls.search | default "http://search-service:4018" | quote }}
+            - name: APPROVALS_SERVICE_URL
+              value: {{ .Values.apiGateway.serviceUrls.approvals | default "http://approvals-service:4019" | quote }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           livenessProbe:
             httpGet:
-              path: /
+              path: /api/health
               port: {{ .Values.apiGateway.port }}
             initialDelaySeconds: 15
             periodSeconds: 20
           readinessProbe:
             httpGet:
-              path: /
+              path: /api/health
               port: {{ .Values.apiGateway.port }}
             initialDelaySeconds: 5
             periodSeconds: 10
