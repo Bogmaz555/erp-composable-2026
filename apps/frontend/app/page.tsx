@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from 'react'
-import { fetchWithAuth } from '../context/AuthContext'
+import { fetchWithAuth, getAccessToken } from '../context/AuthContext'
 import ModuleKpiGrid from '../components/ModuleKpiGrid'
 import CommandCenterPanel from '../components/CommandCenterPanel'
 import CommandCenterAI from '../components/CommandCenterAI'
@@ -32,47 +32,28 @@ export default function PremiumDashboard() {
   const [totalEvents, setTotalEvents] = useState(0)
   const [topEvents, setTopEvents] = useState<{ eventType: string; count: number }[]>([])
 
-  useEffect(() => {
-    const eventSource = new EventSource('http://localhost:4005/api/analytics/stream');
-
-    eventSource.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.type === 'TELEMETRY_STATS') {
-          setMps(data.mps);
-          setActiveServices(data.activeServices);
-          
-          // Update chart bars with a random-looking but MPS-driven value, or just use MPS
-          // If MPS is low, we can visually boost it for effect or just show exact value
-          setChartData(prev => {
-            const newBars = [...prev.slice(1), data.mps > 0 ? Math.min(100, Math.max(10, data.mps * 2)) : 5];
-            return newBars;
-          });
-        } else if (data.type === 'NATS_EVENT') {
-          // You could show a live feed of events here if you wanted
-        }
-      } catch (err) {
-        console.error("Failed to parse SSE data", err);
-      }
-    };
-
-    return () => {
-      eventSource.close();
-    };
-  }, []);
-
+  // Telemetry via authenticated counters poll (EventSource cannot set Authorization;
+  // stream is no longer public after PUBLIC_PATH shrink). Skip when no bearer token.
   useEffect(() => {
     let active = true;
     const loadCounters = async () => {
       try {
+        if (!getAccessToken()) return;
         const res = await fetchWithAuth('http://localhost:4005/api/analytics/counters');
         if (!res.ok) return;
         const data = await res.json();
         if (!active) return;
+        const nextMps = Number(data.currentMps ?? data.mps ?? 0);
+        setMps(nextMps);
+        setActiveServices(Number(data.activeServices ?? 0));
         setTotalEvents(data.totalEvents ?? 0);
         setTopEvents((data.byEvent ?? []).slice(0, 6));
+        setChartData((prev) => [
+          ...prev.slice(1),
+          nextMps > 0 ? Math.min(100, Math.max(10, nextMps * 2)) : 5,
+        ]);
       } catch {
-        /* analytics offline — non-fatal */
+        /* analytics offline / unauthenticated — non-fatal */
       }
     };
     loadCounters();

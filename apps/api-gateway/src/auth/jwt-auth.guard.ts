@@ -8,11 +8,13 @@ import { isAuthDisabled } from './auth-env';
 export class JwtAuthGuard extends AuthGuard('jwt') {
   canActivate(context: ExecutionContext) {
     if (isAuthDisabled()) {
-      if (process.env.AUTH_DISABLE === 'true') {
-        console.warn(
-          'SECURITY WARNING: JWT Auth is globally disabled (AUTH_DISABLE=true)',
-        );
-      }
+      console.warn(
+        `SECURITY WARNING: JWT Auth bypassed (` +
+          (process.env.AUTH_DISABLE === 'true'
+            ? 'AUTH_DISABLE=true'
+            : 'AUTH_ENFORCE=false') +
+          `)`,
+      );
       return true;
     }
     return super.canActivate(context);

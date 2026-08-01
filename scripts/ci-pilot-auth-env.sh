@@ -83,7 +83,36 @@ if [[ -f "$ROOT/infra/helm/erp/values-staging.yaml" ]]; then
   fi
 fi
 
-echo "✓ static deploy auth profile scan"
+# Static: require JWKS (and pilot intent) on default/prod/staging + k8s deploy
+JWKS_REQUIRED_FILES=(
+  "infra/helm/erp/values.yaml"
+  "infra/helm/erp/values-prod.yaml"
+  "infra/helm/erp/values-staging.yaml"
+  "infra/k8s/deploy/api-gateway.yaml"
+)
+for f in "${JWKS_REQUIRED_FILES[@]}"; do
+  if [[ ! -f "$ROOT/$f" ]]; then
+    fail "missing $f"
+    continue
+  fi
+  if [[ "$f" == *deploy* ]]; then
+    if ! grep -A2 'name: USE_KEYCLOAK_JWKS' "$ROOT/$f" | grep -qE 'value:\s*["'\'']?true'; then
+      fail "$f must set USE_KEYCLOAK_JWKS=true"
+    fi
+    if ! grep -A2 'name: PILOT' "$ROOT/$f" | grep -qE 'value:\s*["'\'']?1'; then
+      fail "$f must set PILOT=1 for pilot deploy profile"
+    fi
+  else
+    if ! grep -qE 'useKeycloakJwks:\s*true' "$ROOT/$f"; then
+      fail "$f must set useKeycloakJwks: true"
+    fi
+    if ! grep -qE 'pilot:\s*["'\'']?1["'\'']?' "$ROOT/$f"; then
+      fail "$f must set pilot: \"1\" (or 1)"
+    fi
+  fi
+done
+
+echo "✓ static deploy auth profile scan (incl. JWKS/pilot)"
 
 # --- Runtime pilot profile ---
 if [[ "${PILOT:-}" == "1" || "${PILOT:-}" == "true" || "${CI_PILOT:-}" == "true" || "${CI_PILOT:-}" == "1" ]]; then

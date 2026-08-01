@@ -28,24 +28,34 @@ export function useKeycloakJwks(): boolean {
 
 /**
  * Fail-fast for pilot: no AUTH_ENFORCE=false / AUTH_DISABLE=true; JWKS required.
+ * Also fail-fast when auth is enforced on HS256 without JWT_SECRET.
  * Call once at gateway bootstrap.
  */
 export function assertPilotAuthConfig(): void {
-  if (!isPilotProfile()) return;
+  if (isPilotProfile()) {
+    if (process.env.AUTH_DISABLE === 'true') {
+      throw new Error(
+        '[Gateway] PILOT=1 forbids AUTH_DISABLE=true — unset AUTH_DISABLE for pilot',
+      );
+    }
+    if (process.env.AUTH_ENFORCE === 'false') {
+      throw new Error(
+        '[Gateway] PILOT=1 forbids AUTH_ENFORCE=false — set AUTH_ENFORCE=true (or unset) for pilot',
+      );
+    }
+    if (process.env.USE_KEYCLOAK_JWKS !== 'true') {
+      throw new Error(
+        '[Gateway] PILOT=1 requires USE_KEYCLOAK_JWKS=true (Keycloak JWKS validation)',
+      );
+    }
+  }
 
-  if (process.env.AUTH_DISABLE === 'true') {
-    throw new Error(
-      '[Gateway] PILOT=1 forbids AUTH_DISABLE=true — unset AUTH_DISABLE for pilot',
-    );
-  }
-  if (process.env.AUTH_ENFORCE === 'false') {
-    throw new Error(
-      '[Gateway] PILOT=1 forbids AUTH_ENFORCE=false — set AUTH_ENFORCE=true (or unset) for pilot',
-    );
-  }
-  if (process.env.USE_KEYCLOAK_JWKS !== 'true') {
-    throw new Error(
-      '[Gateway] PILOT=1 requires USE_KEYCLOAK_JWKS=true (Keycloak JWKS validation)',
-    );
+  // Non-JWKS + auth on: require JWT_SECRET (align with verify-token / JwtStrategy).
+  if (isAuthEnforced() && !useKeycloakJwks()) {
+    if (!process.env.JWT_SECRET?.trim()) {
+      throw new Error(
+        '[Gateway] JWT_SECRET is required when auth is enforced and USE_KEYCLOAK_JWKS is not set',
+      );
+    }
   }
 }

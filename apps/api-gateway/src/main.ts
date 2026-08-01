@@ -16,14 +16,18 @@ import fastifyHttpProxy from '@fastify/http-proxy';
 // Protected (no longer public): /api/analytics/{platform,import,export,outbox,tenants,auth},
 // /api/hr, /api/mes/kiosk, /api/ai, and other analytics data-plane routes.
 // Nest vs proxy dual-path documented until pure-proxy unification (PR 17).
+// Nest AppController health is @Controller('api') + @Get('health') → /api/health.
+// Analytics health via proxy: /api/analytics/health.
 const PUBLIC_PATH_PREFIXES = [
-  '/health',
+  '/api/health',
   '/api/analytics/health',
 ];
 
 function isPublicPath(url: string): boolean {
   const path = url.split('?')[0];
-  return PUBLIC_PATH_PREFIXES.some((p) => path === p || path.startsWith(p + '/') || path === p);
+  return PUBLIC_PATH_PREFIXES.some(
+    (p) => path === p || path.startsWith(p + '/'),
+  );
 }
 
 async function bootstrap() {
