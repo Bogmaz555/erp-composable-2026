@@ -47,6 +47,8 @@
     "ci:contracts": "bash scripts/ci-contract-gate.sh",
     "smoke:rbac": "bash scripts/keycloak-rbac-smoke.sh",
     "db:migrate:deploy": "bash scripts/prisma-migrate-deploy.sh",
+    "db:migrate:deploy:pilot": "PILOT=1 bash scripts/prisma-migrate-deploy.sh inv-service proc-service pm-service finance plm-service mes-service",
+    "db:check:baselines": "bash scripts/check-prisma-baselines.sh",
     "seed": "npx tsx scripts/seed.ts",
     "start:gateway": "pnpm --filter api-gateway run start:dev",
     "start:pm": "pnpm --filter pm-service run start:dev",
