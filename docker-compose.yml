@@ -518,12 +518,15 @@ services:
     networks:
       - erp-network
 
+  # Optional search stack: docker compose --profile search up meilisearch
+  # Set MEILI_MASTER_KEY in .env (see .env.erp.example). Empty = Meili open/dev mode only.
   meilisearch:
     image: getmeili/meilisearch:v1.9
     container_name: erp-meilisearch
+    profiles: ["search"]
     restart: unless-stopped
     environment:
-      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:?set MEILI_MASTER_KEY in environment or .env}
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:-}
       MEILI_ENV: "development"
     ports:
       - "7700:7700"

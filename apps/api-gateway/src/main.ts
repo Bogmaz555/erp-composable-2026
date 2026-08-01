@@ -200,10 +200,20 @@ async function bootstrap() {
 
   // CRITICAL: Proxy Search queries to Meilisearch (Port: 7700)
   // MEILI_MASTER_KEY must come from env — never hardcode secrets in source
-  const meiliMasterKey = process.env.MEILI_MASTER_KEY || '';
+  const meiliMasterKey = (process.env.MEILI_MASTER_KEY || '').trim();
+  const meiliRequired =
+    process.env.MEILI_REQUIRED === 'true' ||
+    process.env.NODE_ENV === 'production' ||
+    process.env.AUTH_ENFORCE === 'true' ||
+    process.env.PILOT === '1';
   if (!meiliMasterKey) {
+    if (meiliRequired) {
+      throw new Error(
+        'MEILI_MASTER_KEY is required when NODE_ENV=production, AUTH_ENFORCE=true, PILOT=1, or MEILI_REQUIRED=true',
+      );
+    }
     console.warn(
-      '[api-gateway] MEILI_MASTER_KEY is unset — Meili proxy will send empty Authorization (set env for pilot/prod)',
+      '[api-gateway] MEILI_MASTER_KEY is unset — stripping Authorization toward Meili (set env for pilot/prod)',
     );
   }
   await app.register(fastifyHttpProxy as any, {
@@ -213,6 +223,9 @@ async function bootstrap() {
     replyOptions: {
       rewriteRequestHeaders: (originalReq, headers) => {
         const next = { ...headers };
+        // Never forward caller JWT/credentials to Meili
+        delete next['authorization'];
+        delete next['Authorization'];
         if (meiliMasterKey) {
           next['Authorization'] = `Bearer ${meiliMasterKey}`;
         }

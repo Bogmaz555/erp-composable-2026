@@ -7,9 +7,21 @@ on:
     branches: [main, master, develop]
 
 jobs:
+  no-secrets:
+    name: Secret scan (no keys / Meili hardcode)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      # No install required — pure repo scan
+      - name: ci-no-secrets
+        run: bash scripts/ci-no-secrets.sh
+        env:
+          CI: 'true'
+
   contracts:
     name: Contract & Smoke Gate
     runs-on: ubuntu-latest
+    needs: [no-secrets]
     env:
       CI_AUTH_ENFORCE: 'true'
     steps:

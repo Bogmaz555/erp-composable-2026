@@ -15,14 +15,24 @@ shred_or_rm() {
   if [[ ! -e "$f" ]]; then
     return 0
   fi
-  if command -v shred >/dev/null 2>&1; then
-    shred -u -z -n 1 "$f" 2>/dev/null || rm -f "$f"
-  else
-    # Overwrite once then unlink (best-effort without shred)
-    if [[ -f "$f" ]]; then
-      dd if=/dev/zero of="$f" bs=4096 count=1 conv=notrunc status=none 2>/dev/null || true
+  if [[ -f "$f" ]]; then
+    if command -v shred >/dev/null 2>&1; then
+      shred -u -z -n 1 "$f" 2>/dev/null || rm -f "$f"
+    else
+      # Full-file overwrite then unlink (best-effort without shred)
+      local sz
+      sz="$(stat -c%s "$f" 2>/dev/null || stat -f%z "$f" 2>/dev/null || echo 0)"
+      if [[ "${sz}" =~ ^[0-9]+$ ]] && [[ "${sz}" -gt 0 ]]; then
+        dd if=/dev/zero of="$f" bs=4096 count=$(( (sz + 4095) / 4096 )) conv=notrunc status=none 2>/dev/null \
+          || dd if=/dev/zero of="$f" bs="$sz" count=1 conv=notrunc status=none 2>/dev/null \
+          || true
+      else
+        echo "  WARN: could not determine size for full wipe of $f; unlinking only" >&2
+      fi
+      rm -f "$f"
     fi
-    rm -f "$f"
+  else
+    rm -rf "$f"
   fi
   echo "  purged: $f"
 }
@@ -68,3 +78,4 @@ fi
 echo "=== purge complete ==="
 echo "Note: regenerate local TLS with scripts/generate-dev-tls-certs.sh / generate-mtls-certs.sh if needed."
 echo "Note: set MEILI_MASTER_KEY and PM_DATABASE_URL in env/.env (never commit secrets)."
+echo "Note: local ci-no-secrets allows gitignored *.key; CI=true enforces empty worktree (run this purge first)."

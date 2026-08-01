@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 # ERP 2026 — CI gate: fail if secret material patterns reappear in the tree.
-# Scans for: tracked/working-tree *.key, cluster-keys.json, hardcoded Meili master key.
+# Scans for: tracked *.key / cluster-keys.json, hardcoded Meili master key, backups/ gitignore.
+#
+# Working-tree *.key / cluster-keys.json:
+#   - When CI=true (GitHub Actions etc.): fail if present on disk (strict purge).
+#   - Locally: only fail if tracked by git; local TLS keys (gitignored) are allowed.
+#     Run scripts/security-purge-local-secrets.sh before a strict local check:
+#       CI=true bash scripts/ci-no-secrets.sh
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -12,11 +18,18 @@ fail() {
   FAILED=1
 }
 
-echo "=== ci-no-secrets ==="
+STRICT_WORKTREE=0
+if [[ "${CI:-}" == "true" || "${CI:-}" == "1" || "${NO_SECRETS_STRICT:-}" == "1" ]]; then
+  STRICT_WORKTREE=1
+fi
 
-# 1) No cluster-keys.json in workspace or git index
-if [[ -f "$ROOT/cluster-keys.json" ]]; then
-  fail "cluster-keys.json present on disk (run scripts/security-purge-local-secrets.sh)"
+echo "=== ci-no-secrets (strict_worktree=${STRICT_WORKTREE}) ==="
+
+# 1) cluster-keys.json
+if [[ "$STRICT_WORKTREE" -eq 1 ]]; then
+  if [[ -f "$ROOT/cluster-keys.json" ]]; then
+    fail "cluster-keys.json present on disk (run scripts/security-purge-local-secrets.sh)"
+  fi
 fi
 if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   if git ls-files --error-unmatch cluster-keys.json >/dev/null 2>&1; then
@@ -24,15 +37,17 @@ if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   fi
 fi
 
-# 2) No *.key files under repo (working tree), excluding node_modules
-KEY_HITS="$(find "$ROOT" \
-  -path '*/node_modules/*' -prune -o \
-  -path '*/.git/*' -prune -o \
-  -path '*/.pnpm-store/*' -prune -o \
-  -type f -name '*.key' -print 2>/dev/null || true)"
-if [[ -n "${KEY_HITS}" ]]; then
-  fail "private key files present:"
-  echo "$KEY_HITS" | sed 's/^/  /' >&2
+# 2) *.key files
+if [[ "$STRICT_WORKTREE" -eq 1 ]]; then
+  KEY_HITS="$(find "$ROOT" \
+    -path '*/node_modules/*' -prune -o \
+    -path '*/.git/*' -prune -o \
+    -path '*/.pnpm-store/*' -prune -o \
+    -type f -name '*.key' -print 2>/dev/null || true)"
+  if [[ -n "${KEY_HITS}" ]]; then
+    fail "private key files present on disk (CI strict; run scripts/security-purge-local-secrets.sh):"
+    echo "$KEY_HITS" | sed 's/^/  /' >&2
+  fi
 fi
 
 if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
