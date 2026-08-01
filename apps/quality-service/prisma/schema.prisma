@@ -136,6 +136,7 @@ model CapaAction {
 
 enum OutboxStatus {
   PENDING
+  PROCESSING
   PROCESSED
   FAILED
 }

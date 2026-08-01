@@ -69,7 +69,7 @@ Legenda: ✅ gotowe · 🟡 częściowe (pilotaż/stub) · ⛔ do zrobienia
 - ✅ **Global `JwtAuthGuard` + proxy auth boundary** — `AUTH_ENFORCE=true` (Nest + fastify proxies); RBAC claims propagowane downstream.
 - ✅ **Outbox dead-letter + retry/backoff** — `attempts`/`lastError` + status `FAILED` po `OUTBOX_MAX_ATTEMPTS` (default 5) w inv/proc/quality.
 - ✅ **Legacy eventy usunięte** (`inventory.stock_depleted`, `procurement.order.approved`) — kanoniczne v1.
-- ✅ **Migracje Prisma** — `npm run db:migrate:deploy` (`scripts/prisma-migrate-deploy.sh`, per-service, migrate deploy z fallbackiem db push).
+- ✅ **Migracje Prisma** — `npm run db:migrate:deploy` (`scripts/prisma-migrate-deploy.sh`). Core services (inv/proc/pm/finance/plm/mes) have full baselines; `PILOT=1` forbids push-only and requires schema parity. Existing push DBs: `docs/PRISMA-MIGRATIONS.md` (`migrate resolve --applied`).
 - ✅ **Healthchecks / readiness probes** — `/health` + `/health/ready` (DB ping) w inv/proc/quality/eam/mes/plm; `infra/k8s/README.md`.
 - ⛔ **Centralny secrets (Vault) + TLS/mTLS** — wymaga infry produkcyjnej.
 - ⛔ **OTel collector + centralne logi/alerting** — wymaga infry produkcyjnej.

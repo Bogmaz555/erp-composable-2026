@@ -39,6 +39,9 @@ jobs:
           node-version: '22'
           cache: 'pnpm'
       - run: pnpm install --no-frozen-lockfile
+      # No-DB gate: core pilot services must keep baseline migration folders (PR 10)
+      - name: Check Prisma baselines (core services)
+        run: pnpm run db:check:baselines
       - run: pnpm run ci:contracts
       - run: CI_AUTH_ENFORCE=true npx tsx scripts/ci-auth-enforce-probe.ts
       - run: CI_AUTH_ENFORCE_LIVE=true npx tsx scripts/ci-auth-enforce-live-probe.ts
