@@ -1,7 +1,7 @@
-import { Controller, Get, Post, Body, Logger, Param } from '@nestjs/common';
+import { Controller, Get, Post, Body, Logger, Param, UseGuards } from '@nestjs/common';
 import { EventPattern, Payload, Ctx, NatsContext } from '@nestjs/microservices';
 import { CommandBus } from '@nestjs/cqrs';
-import type { MesProductionRecordedV1Event } from '@erp/shared-kernel';
+import { ETO_MUTATION_ROLES, type MesProductionRecordedV1Event } from '@erp/shared-kernel';
 import { RecordTransactionCommand } from './commands/record-transaction.handler';
 import { ReverseWipCostCommand } from './commands/reverse-wip-cost.handler';
 import { PrismaService } from './prisma.service';
@@ -13,7 +13,11 @@ import { resolveLaborRatePln, resolveOverheadPct } from './cost-rate.resolver';
 import { ensureAccount } from './finance-accounts';
 import { EntryType } from '@prisma/client-finance';
 import { ProjectAccountingService } from './project-accounting.service';
+import { JwtAuthGuard } from './auth/jwt-auth.guard';
+import { RolesGuard } from './auth/roles.guard';
+import { Roles } from './auth/roles.decorator';
 
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('fin')
 export class FinanceController {
   private readonly logger = new Logger(FinanceController.name);
@@ -300,6 +304,7 @@ export class FinanceController {
   }
 
   @Post('journal')
+  @Roles(...ETO_MUTATION_ROLES.FIN_WIP_WRITE)
   async postJournal(@Body() body: { accountCode: string; amount: number; type: 'DEBIT' | 'CREDIT'; description?: string; referenceId?: string }) {
     await this.seedDefaultAccounts();
     const account = await this.prisma.account.findUnique({ where: { code: body.accountCode } });

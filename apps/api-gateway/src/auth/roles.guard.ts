@@ -1,5 +1,6 @@
 import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { userHasAnyRole } from '@erp/shared-kernel';
 import { isAuthDisabled } from './auth-env';
 
 @Injectable()
@@ -15,6 +16,6 @@ export class RolesGuard implements CanActivate {
     }
     const request = context.switchToHttp().getRequest();
     const user = request.user;
-    return requiredRoles.some((role) => user?.roles?.includes(role));
+    return userHasAnyRole(user?.roles, requiredRoles);
   }
 }

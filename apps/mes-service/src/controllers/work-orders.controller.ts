@@ -4,11 +4,12 @@ import { GetWorkOrdersQuery } from '../queries/get-work-orders.query';
 import { StartProductionCommand } from '../commands/start-production.command';
 import { FinishProductionCommand } from '../commands/finish-production.command';
 import { RecordProductionCommand } from '../commands/record-production.command';
+import { ETO_MUTATION_ROLES } from '@erp/shared-kernel';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 
-// TD-001: Protected with JWT guard + Roles example (real RBAC on production actions)
+// TD-001: Protected with JWT guard + Roles (ETO matrix MES_START)
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('work-orders')
 export class WorkOrdersController {
@@ -23,7 +24,7 @@ export class WorkOrdersController {
   }
 
   @Patch(':id/start')
-  @Roles('PRODUCTION_MANAGER', 'SUPERVISOR')
+  @Roles(...ETO_MUTATION_ROLES.MES_START)
   async startProduction(@Param('id') id: string, @Req() req: any) {
     const operatorId = req.user?.id || 'unknown';
     // Real usage of authenticated user from TD-001 (logged for audit)
@@ -32,7 +33,7 @@ export class WorkOrdersController {
   }
 
   @Patch(':id/finish')
-  @Roles('PRODUCTION_MANAGER', 'SUPERVISOR')
+  @Roles(...ETO_MUTATION_ROLES.MES_START)
   async finishProduction(
     @Param('id') id: string,
     @Body()

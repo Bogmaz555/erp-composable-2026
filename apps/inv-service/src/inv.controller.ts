@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { EventPattern, Payload } from '@nestjs/microservices';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
+import { ETO_MUTATION_ROLES } from '@erp/shared-kernel';
 import { CreateItemCommand } from './commands/create-item.handler';
 import { AdjustStockCommand } from './commands/adjust-stock.handler';
 import { GetInventoryQuery } from './queries/get-inventory.handler';
@@ -9,10 +10,12 @@ import { GetAvailableStockQuery } from './queries/get-available-stock.query';
 import { PlmBomReleasedListener } from './infrastructure/plm-bom-released.listener';
 import { CreateReservationCommand } from './commands/create-reservation.command';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
+import { RolesGuard } from './auth/roles.guard';
+import { Roles } from './auth/roles.decorator';
 import { PrismaService } from './prisma.service';
 
-// TD-001: Protected with JWT guard (claims from Gateway)
-@UseGuards(JwtAuthGuard)
+// TD-001: Protected with JWT + Roles on reserve/stock mutations (ETO matrix INV_RESERVE)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('inventory')
 export class InventoryController {
   constructor(
@@ -22,6 +25,7 @@ export class InventoryController {
   ) {}
 
   @Post('items')
+  @Roles(...ETO_MUTATION_ROLES.INV_RESERVE)
   async createItem(
     @Body() dto: { sku: string; name: string; type: 'RAW_MATERIAL' | 'COMPONENT' | 'FINISHED_GOOD'; unit: string }
   ) {
@@ -29,6 +33,7 @@ export class InventoryController {
   }
 
   @Post('stock/adjust')
+  @Roles(...ETO_MUTATION_ROLES.INV_RESERVE)
   async adjustStock(
     @Body() dto: { itemId: string; quantity: number }
   ) {
@@ -60,6 +65,7 @@ export class InventoryController {
   // Demo endpoint to simulate PLM BOM release triggering auto-reservations (for ETO traceability flow testing)
   // Note: in real the PlmBomReleasedListener is injected and listens via NATS @EventPattern
   @Post('simulate/plm-bom-released')
+  @Roles(...ETO_MUTATION_ROLES.INV_RESERVE)
   async simulatePlmBomReleased(@Body() payload: any) {
     // Use the injected listener if available via DI (added in module); fallback safe
     try {
@@ -95,6 +101,7 @@ export class InventoryController {
   }
 
   @Post('lots')
+  @Roles(...ETO_MUTATION_ROLES.INV_RESERVE)
   async createLot(
     @Body() dto: { itemId: string; lotNumber: string; serialNumber?: string; quantity: number; location?: string },
   ) {

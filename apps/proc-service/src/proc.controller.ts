@@ -1,12 +1,17 @@
-import { Controller, Get, Post, Param, Patch, Body, Logger, Req } from '@nestjs/common';
+import { Controller, Get, Post, Param, Patch, Body, Logger, Req, UseGuards } from '@nestjs/common';
 import type { TenantRequest } from './tenant.middleware';
 import { PrismaService } from './prisma.service';
 import { CommandBus } from '@nestjs/cqrs';
+import { ETO_MUTATION_ROLES } from '@erp/shared-kernel';
 import { ApprovePurchaseOrderCommand } from './commands/approve-purchase-order.handler';
 import { ReceiveMaterialCommand } from './commands/receive-material.handler';
 import { CreatePurchaseOrderCommand } from './commands/create-purchase-order.handler';
 import { UpdatePurchaseOrderEtaCommand } from './commands/update-po-eta.handler';
+import { JwtAuthGuard } from './auth/jwt-auth.guard';
+import { RolesGuard } from './auth/roles.guard';
+import { Roles } from './auth/roles.decorator';
 
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('orders')
 export class ProcurementController {
   private readonly logger = new Logger(ProcurementController.name);
@@ -80,6 +85,7 @@ export class ProcurementController {
   }
 
   @Post()
+  @Roles(...ETO_MUTATION_ROLES.PROC_APPROVE, 'PLANNER')
   async createOrder(
     @Req() req: TenantRequest,
     @Body() body: {
@@ -104,6 +110,7 @@ export class ProcurementController {
   }
 
   @Patch(':id/approve')
+  @Roles(...ETO_MUTATION_ROLES.PROC_APPROVE)
   async approveOrder(
     @Param('id') id: string,
     @Body('approvedBy') approvedBy: string
@@ -112,6 +119,7 @@ export class ProcurementController {
   }
 
   @Patch(':id/reject')
+  @Roles(...ETO_MUTATION_ROLES.PROC_APPROVE)
   async rejectOrder(
     @Param('id') id: string,
     @Body('approvedBy') approvedBy: string

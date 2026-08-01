@@ -1,6 +1,9 @@
 import { Controller, Get, Post, Body, Patch, Param, Req, UseGuards } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
+import { ETO_MUTATION_ROLES } from '@erp/shared-kernel';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
+import { RolesGuard } from './auth/roles.guard';
+import { Roles } from './auth/roles.decorator';
 import { GetBomTreeQuery } from './queries/get-bom-tree.query';
 import { CreateBOMCommand } from './commands/create-bom.handler';
 import { CreateECOCommand } from './commands/create-eco.handler';
@@ -80,7 +83,7 @@ export class PlmEcoController {
 // Item Master (Kartoteka Produktów) jest obsługiwana przez ProductController (product.controller.ts).
 
 @Controller('bom-versions')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class PlmBomVersionsController {
   constructor(
     private readonly commandBus: CommandBus,
@@ -89,6 +92,7 @@ export class PlmBomVersionsController {
   ) {}
 
   @Post()
+  @Roles(...ETO_MUTATION_ROLES.PLM_BOM_RELEASE)
   async createBomVersion(@Body() body: any) {
     return this.commandBus.execute(new CreateBomVersionCommand(
       body.itemId,
@@ -100,19 +104,14 @@ export class PlmBomVersionsController {
   }
 
   @Patch(':id/release')
+  @Roles(...ETO_MUTATION_ROLES.PLM_BOM_RELEASE)
   async releaseBomVersion(@Param('id') id: string, @Body() body: { releasedBy?: string }, @Req() req: any) {
     const user = req.user || {};
     const releasedBy = body.releasedBy || user.id || 'system';
 
-    // TD-001: Real claim usage + basic role check on critical ETO operation
+    // TD-001: claim usage + RolesGuard (ETO matrix PLM_BOM_RELEASE)
     if (user.id) {
-      const roles = user.roles || [];
-      console.log(`[TD-001] BOM release initiated by user=${user.id} roles=${roles}`);
-
-      // Simple role enforcement example (Production Manager or Engineer can release BOMs)
-      if (!roles.includes('PRODUCTION_MANAGER') && !roles.includes('ENGINEER')) {
-        throw new Error('Insufficient permissions to release BOM version');
-      }
+      console.log(`[TD-001] BOM release initiated by user=${user.id} roles=${user.roles || []}`);
     }
 
     return this.commandBus.execute(new ReleaseBomVersionCommand(id, releasedBy));

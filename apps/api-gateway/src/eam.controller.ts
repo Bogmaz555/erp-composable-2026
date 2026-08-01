@@ -9,6 +9,7 @@ export class EamController {
   private readonly targetUrl = 'http://127.0.0.1:4009/eam';
 
   @All('*')
+  // MAINTENANCE is a non-realm alias → expands to ENGINEER via shared-kernel ERP_ROLE_ALIASES
   @Roles('MAINTENANCE', 'ENGINEER', 'ADMIN')
   async proxy(@Req() req: FastifyRequest, @Res() res: FastifyReply) {
     const url = `${this.targetUrl}${req.url.replace('/api/eam', '')}`;

@@ -49,6 +49,7 @@
     "ci:pilot-auth-env": "bash scripts/ci-pilot-auth-env.sh",
     "smoke:auth-401": "npx tsx scripts/smoke-auth-401.ts",
     "smoke:rbac": "bash scripts/keycloak-rbac-smoke.sh",
+    "smoke:rbac-eto": "npx tsx scripts/smoke-rbac-eto.ts",
     "db:migrate:deploy": "bash scripts/prisma-migrate-deploy.sh",
     "seed": "npx tsx scripts/seed.ts",
     "start:gateway": "pnpm --filter api-gateway run start:dev",

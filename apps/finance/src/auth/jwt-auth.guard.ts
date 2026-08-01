@@ -1,6 +1,6 @@
 import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
 
-// TD-001: Downstream guard for PM — trusts Gateway claims (x-user-id, x-roles).
+// TD-001: Downstream guard for Finance — trusts Gateway claims (x-user-id, x-roles).
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
