@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { fetchWithAuth } from '../context/AuthContext';
 
 export interface SearchResult {
   type: string;
@@ -12,7 +13,7 @@ export function useGlobalSearch(q: string) {
   return useQuery<{ results: SearchResult[]; count: number }>({
     queryKey: ['platform-search', q],
     queryFn: async () => {
-      const res = await fetch(`/api/analytics/search?q=${encodeURIComponent(q)}`);
+      const res = await fetchWithAuth(`/api/analytics/search?q=${encodeURIComponent(q)}`);
       if (!res.ok) throw new Error('Search failed');
       return res.json();
     },
@@ -25,7 +26,7 @@ export function useKpiDashboard() {
   return useQuery({
     queryKey: ['platform-kpi'],
     queryFn: async () => {
-      const res = await fetch('/api/analytics/kpi');
+      const res = await fetchWithAuth('/api/analytics/kpi');
       if (!res.ok) throw new Error('KPI failed');
       return res.json();
     },
@@ -42,7 +43,7 @@ export function useAuditLog(opts?: { complianceOnly?: boolean; category?: string
       const params = new URLSearchParams({ take: '50' });
       if (complianceOnly) params.set('complianceOnly', 'true');
       if (category) params.set('category', category);
-      const res = await fetch(`/api/analytics/audit?${params}`);
+      const res = await fetchWithAuth(`/api/analytics/audit?${params}`);
       if (!res.ok) throw new Error('Audit failed');
       return res.json();
     },
@@ -54,7 +55,7 @@ export function useAuditReadiness() {
   return useQuery({
     queryKey: ['platform-audit-readiness'],
     queryFn: async () => {
-      const res = await fetch('/api/analytics/platform/audit/readiness');
+      const res = await fetchWithAuth('/api/analytics/platform/audit/readiness');
       if (!res.ok) throw new Error('Audit readiness failed');
       return res.json();
     },
@@ -66,7 +67,7 @@ export function useNotifications() {
   return useQuery({
     queryKey: ['platform-notifications'],
     queryFn: async () => {
-      const res = await fetch('/api/analytics/notifications');
+      const res = await fetchWithAuth('/api/analytics/notifications');
       if (!res.ok) throw new Error('Notifications failed');
       return res.json();
     },

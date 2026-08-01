@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from 'react'
+import { fetchWithAuth } from '../context/AuthContext'
 import ModuleKpiGrid from '../components/ModuleKpiGrid'
 import CommandCenterPanel from '../components/CommandCenterPanel'
 import CommandCenterAI from '../components/CommandCenterAI'
@@ -64,7 +65,7 @@ export default function PremiumDashboard() {
     let active = true;
     const loadCounters = async () => {
       try {
-        const res = await fetch('http://localhost:4005/api/analytics/counters');
+        const res = await fetchWithAuth('http://localhost:4005/api/analytics/counters');
         if (!res.ok) return;
         const data = await res.json();
         if (!active) return;

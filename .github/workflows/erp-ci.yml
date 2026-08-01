@@ -17,6 +17,11 @@ jobs:
         run: bash scripts/ci-no-secrets.sh
         env:
           CI: 'true'
+      - name: ci-pilot-auth-env
+        run: bash scripts/ci-pilot-auth-env.sh
+        env:
+          CI_PILOT: 'true'
+          USE_KEYCLOAK_JWKS: 'true'
 
   contracts:
     name: Contract & Smoke Gate

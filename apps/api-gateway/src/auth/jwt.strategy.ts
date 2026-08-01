@@ -2,23 +2,25 @@ import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import * as jwksRsa from 'jwks-rsa';
+import { useKeycloakJwks } from './auth-env';
 
 const DEFAULT_KEYCLOAK_JWKS =
   'http://localhost:8080/realms/erp/protocol/openid-connect/certs';
 
 /**
- * TD-001: JWT validation — dev secret OR Keycloak JWKS (USE_KEYCLOAK_JWKS=true).
+ * TD-001: JWT validation — dev secret OR Keycloak JWKS (USE_KEYCLOAK_JWKS=true or PILOT).
  * Docker smoke: start keycloak service, set USE_KEYCLOAK_JWKS=true, obtain token for demo.engineer.
  */
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor() {
-    const useKeycloak = process.env.USE_KEYCLOAK_JWKS === 'true';
+    const useKeycloak = useKeycloakJwks();
     const jwksUri = process.env.KEYCLOAK_JWKS_URI || DEFAULT_KEYCLOAK_JWKS;
 
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
+      algorithms: useKeycloak ? ['RS256'] : ['HS256'],
       ...(useKeycloak
         ? {
             secretOrKeyProvider: jwksRsa.passportJwtSecret({
@@ -29,7 +31,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
             }),
           }
         : {
-            secretOrKey: process.env.JWT_SECRET,
+            secretOrKey: process.env.JWT_SECRET || 'dev-only-insecure-secret',
           }),
     });
   }

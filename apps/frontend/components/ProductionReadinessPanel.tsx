@@ -2,6 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { ShieldCheck, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
+import { fetchWithAuth } from '../context/AuthContext';
 
 interface ReadinessCheck {
   id: string;
@@ -14,7 +15,7 @@ export default function ProductionReadinessPanel() {
   const { data, isLoading } = useQuery({
     queryKey: ['production-readiness'],
     queryFn: async () => {
-      const res = await fetch('/api/analytics/platform/production/readiness', {
+      const res = await fetchWithAuth('/api/analytics/platform/production/readiness', {
         headers: { 'X-Tenant-Id': 'default' },
       });
       if (!res.ok) throw new Error('Production readiness unavailable');

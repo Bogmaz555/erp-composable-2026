@@ -2,6 +2,7 @@
 import { useState, useRef } from 'react';
 import { Database, UploadCloud, RefreshCw, FileSpreadsheet, CheckCircle2, AlertCircle, FileText, Download, Shield } from 'lucide-react';
 import { useAuditLog, useAuditReadiness } from '../../hooks/usePlatform';
+import { fetchWithAuth } from '../../context/AuthContext';
 
 type AuditFilter = 'all' | 'compliance' | 'operational' | 'system';
 
@@ -19,7 +20,7 @@ export default function DataIntegrationHub() {
   const auditEntries = auditData?.entries ?? [];
 
   const handleExport = async (entity: 'products' | 'inventory') => {
-    const res = await fetch(`/api/analytics/export/${entity}`);
+    const res = await fetchWithAuth(`/api/analytics/export/${entity}`);
     const data = await res.json();
     const blob = new Blob([data.csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
@@ -35,7 +36,7 @@ export default function DataIntegrationHub() {
     if (!file) return;
     setImportStatus('Importowanie...');
     const csv = await file.text();
-    const res = await fetch('/api/analytics/import/products', {
+    const res = await fetchWithAuth('/api/analytics/import/products', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ csv }),

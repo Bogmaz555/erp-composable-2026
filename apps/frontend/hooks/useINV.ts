@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { fetchWithAuth } from '../context/AuthContext';
 
 export interface StockLevel {
   id: string;
@@ -141,7 +142,7 @@ export function useGenealogyE2eView(serialOrLot: string | null) {
   return useQuery({
     queryKey: ['genealogy-e2e-view', serialOrLot],
     queryFn: async () => {
-      const res = await fetch(
+      const res = await fetchWithAuth(
         `/api/analytics/traceability/e2e/view?serialOrLot=${encodeURIComponent(serialOrLot!)}`,
         { headers: { 'X-Tenant-Id': 'default' } },
       );

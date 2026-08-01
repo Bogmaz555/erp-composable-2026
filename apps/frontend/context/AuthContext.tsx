@@ -112,10 +112,21 @@ export function useAuth() {
   return v;
 }
 
-/** Fetch z Bearer token (Keycloak / dev). */
-export function fetchWithAuth(input: RequestInfo | URL, init?: RequestInit) {
-  const headers = new Headers(init?.headers);
-  const token = typeof window !== 'undefined' ? localStorage.getItem(TOKEN_KEY) : null;
+/** Read stored Keycloak / dev bearer token (if any). */
+export function getAccessToken(): string | null {
+  return typeof window !== 'undefined' ? localStorage.getItem(TOKEN_KEY) : null;
+}
+
+/** Headers with Authorization: Bearer when token is present. */
+export function authHeaders(extra?: HeadersInit): Headers {
+  const headers = new Headers(extra);
+  const token = getAccessToken();
   if (token) headers.set('Authorization', `Bearer ${token}`);
+  return headers;
+}
+
+/** Fetch z Bearer token (Keycloak / dev). Required for former public analytics routes. */
+export function fetchWithAuth(input: RequestInfo | URL, init?: RequestInit) {
+  const headers = authHeaders(init?.headers);
   return fetch(input, { ...init, headers });
 }

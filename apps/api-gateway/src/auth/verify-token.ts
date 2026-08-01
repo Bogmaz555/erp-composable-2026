@@ -1,5 +1,6 @@
 import * as jwt from 'jsonwebtoken';
 import * as jwksRsa from 'jwks-rsa';
+import { useKeycloakJwks } from './auth-env';
 
 const DEFAULT_KEYCLOAK_JWKS =
   'http://localhost:8080/realms/erp/protocol/openid-connect/certs';
@@ -43,10 +44,11 @@ function toClaims(payload: any): GatewayClaims {
 
 /**
  * Verifies a bearer token at the gateway boundary.
- * Keycloak (USE_KEYCLOAK_JWKS=true) → JWKS RS256; otherwise dev HS256 secret.
+ * Keycloak (USE_KEYCLOAK_JWKS=true or PILOT) → JWKS RS256; otherwise dev HS256 secret.
+ * Explicit algorithms reject alg=none.
  */
 export function verifyToken(token: string): Promise<GatewayClaims> {
-  const useKeycloak = process.env.USE_KEYCLOAK_JWKS === 'true';
+  const useKeycloak = useKeycloakJwks();
 
   return new Promise((resolve, reject) => {
     if (useKeycloak) {
@@ -56,10 +58,11 @@ export function verifyToken(token: string): Promise<GatewayClaims> {
       });
     } else {
       try {
-        const decoded = jwt.verify(
-          token,
-          process.env.JWT_SECRET,
-        );
+        const secret = process.env.JWT_SECRET;
+        if (!secret) {
+          return reject(new Error('JWT_SECRET is required when USE_KEYCLOAK_JWKS is not set'));
+        }
+        const decoded = jwt.verify(token, secret, { algorithms: ['HS256'] });
         resolve(toClaims(decoded));
       } catch (e) {
         reject(e);

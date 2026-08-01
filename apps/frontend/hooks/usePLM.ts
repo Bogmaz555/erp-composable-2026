@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { fetchWithAuth } from '../context/AuthContext';
 
 export interface BomSummary {
   id: string;
@@ -113,7 +114,7 @@ export function useEtoExplosion() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (payload: { bomVersionId: string; projectId?: string }) => {
-      const res = await fetch('/api/analytics/eto-chain/plm-explosion', {
+      const res = await fetchWithAuth('/api/analytics/eto-chain/plm-explosion', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
