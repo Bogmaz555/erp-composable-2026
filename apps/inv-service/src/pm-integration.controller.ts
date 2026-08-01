@@ -5,7 +5,7 @@ import { ReserveMaterialCommand } from './commands/reserve-material.handler';
 import { CreateReservationCommand } from './commands/create-reservation.command';
 import { propagation, context as otelContext } from '@opentelemetry/api';
 import type { MaterialRequestedEvent } from '@erp/shared-kernel';
-import { assertEtoOperationalPayload } from '@erp/shared-kernel';
+import { assertEtoOperationalPayload, runWithTenantAsync } from '@erp/shared-kernel';
 import { PrismaService } from './prisma.service';
 
 @Controller()
@@ -31,29 +31,35 @@ export class PmIntegrationController {
       'pm.material.requested.v1',
     );
 
-    const hdrs = context.getHeaders();
-    const traceparent = hdrs?.get('traceparent') as string;
-    
-    if (traceparent) {
-      const activeContext = propagation.extract(otelContext.active(), { traceparent });
-      otelContext.with(activeContext, async () => {
+    // Worker ALS: no HTTP REQUEST scope — bind tenant from event (or DEFAULT_TENANT_ID).
+    const tenantForWorker =
+      payload.tenantId || process.env.DEFAULT_TENANT_ID || 'default';
+
+    return runWithTenantAsync(tenantForWorker, async () => {
+      const hdrs = context.getHeaders();
+      const traceparent = hdrs?.get('traceparent') as string;
+
+      if (traceparent) {
+        const activeContext = propagation.extract(otelContext.active(), { traceparent });
+        await otelContext.with(activeContext, async () => {
+          await this.commandBus.execute(new ReserveMaterialCommand(
+            payload.projectId,
+            payload.wbsElementId,
+            payload.itemId,
+            payload.requestedQuantity,
+            payload.bomComponentId,
+            payload.tenantId
+          ));
+        });
+      } else {
         await this.commandBus.execute(new ReserveMaterialCommand(
           payload.projectId,
           payload.wbsElementId,
           payload.itemId,
-          payload.requestedQuantity,
-          payload.bomComponentId,
-          payload.tenantId
+          payload.requestedQuantity
         ));
-      });
-    } else {
-      await this.commandBus.execute(new ReserveMaterialCommand(
-        payload.projectId,
-        payload.wbsElementId,
-        payload.itemId,
-        payload.requestedQuantity
-      ));
-    }
+      }
+    });
   }
 
   // Production complete listener (Faza 1 ETO close-loop)

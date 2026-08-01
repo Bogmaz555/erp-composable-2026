@@ -1,7 +1,11 @@
 import { Controller, Get, Post, Body, Logger, Param, UseGuards } from '@nestjs/common';
 import { EventPattern, Payload, Ctx, NatsContext } from '@nestjs/microservices';
 import { CommandBus } from '@nestjs/cqrs';
-import { ETO_MUTATION_ROLES, type MesProductionRecordedV1Event } from '@erp/shared-kernel';
+import {
+  ETO_MUTATION_ROLES,
+  runWithTenantAsync,
+  type MesProductionRecordedV1Event,
+} from '@erp/shared-kernel';
 import { RecordTransactionCommand } from './commands/record-transaction.handler';
 import { ReverseWipCostCommand } from './commands/reverse-wip-cost.handler';
 import { PrismaService } from './prisma.service';
@@ -175,9 +179,12 @@ export class FinanceController {
   ) {
     if (!data.projectId || !data.correlationId) return;
     this.logger.log(`[Finance WIP] Received finance.wip.cost.reversed for project ${data.projectId}`);
-    await this.commandBus.execute(
-      new ReverseWipCostCommand(data.projectId, data.tenantId || 'default', data.correlationId),
-    );
+    const tenantId = data.tenantId || process.env.DEFAULT_TENANT_ID || 'default';
+    await runWithTenantAsync(tenantId, async () => {
+      await this.commandBus.execute(
+        new ReverseWipCostCommand(data.projectId, tenantId, data.correlationId),
+      );
+    });
   }
 
   @EventPattern('inventory.reservation.released.v1')

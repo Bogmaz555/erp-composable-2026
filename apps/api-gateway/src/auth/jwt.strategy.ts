@@ -3,6 +3,7 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import * as jwksRsa from 'jwks-rsa';
 import * as crypto from 'crypto';
+import { TENANT_JWT_CLAIM } from '@erp/shared-kernel';
 import { isAuthEnforced, useKeycloakJwks } from './auth-env';
 
 const DEFAULT_KEYCLOAK_JWKS =
@@ -57,10 +58,15 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: any) {
+    // OQ-1: claim name = tenantId (legacy `tenant` fallback only)
+    const tenantClaim =
+      (typeof payload?.[TENANT_JWT_CLAIM] === 'string' && payload[TENANT_JWT_CLAIM]) ||
+      (typeof payload?.tenant === 'string' && payload.tenant) ||
+      'public';
     return {
       id: payload.sub || payload.userId,
       roles: payload.realm_access?.roles || payload.roles || ['VIEWER'],
-      tenantId: payload.tenantId || payload.tenant || 'public',
+      tenantId: tenantClaim,
       email: payload.email,
     };
   }

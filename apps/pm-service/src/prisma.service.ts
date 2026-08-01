@@ -1,6 +1,13 @@
 import { Injectable, Scope, Inject, OnModuleDestroy } from '@nestjs/common';
 import { REQUEST } from '@nestjs/core';
 import { PrismaClient } from '.prisma/client-pm';
+import {
+  extendPrismaWithTenant,
+  getTenantIdFromAls,
+  resolveTenantId,
+  SYSTEM_TENANT_ID,
+  TENANT_HEADER,
+} from '@erp/shared-kernel';
 
 // Fail-fast: no hardcoded credentials — prefer PM_DATABASE_URL (pilot/prod: required only)
 const isProdLike =
@@ -34,6 +41,10 @@ if (!process.env.PM_DATABASE_URL) {
   process.env.PM_DATABASE_URL = PM_URL;
 }
 
+/**
+ * PM Prisma — request-scoped with shared tenant extension.
+ * All PM models (Project, WBS, Task, OutboxEvent, …) carry `tenantId`.
+ */
 @Injectable({ scope: Scope.REQUEST })
 export class PrismaService extends PrismaClient implements OnModuleDestroy {
   public tenantId: string;
@@ -47,25 +58,41 @@ export class PrismaService extends PrismaClient implements OnModuleDestroy {
       },
     });
 
-    // Ochrona kontekstu przed awarią NATS
-    this.tenantId = (this.request?.headers?.['x-tenant-id'] as string) || this.request?.tenantId || 'system-tenant';
+    this.tenantId = this.resolveRequestTenant();
   }
 
+  private resolveRequestTenant(): string {
+    const fromAls = getTenantIdFromAls();
+    if (fromAls) return fromAls;
+
+    const header =
+      (this.request?.headers?.[TENANT_HEADER] as string | undefined) ||
+      (this.request?.headers?.['x-tenant-id'] as string | undefined);
+    const fromReq = header || (this.request?.tenantId as string | undefined);
+
+    if (fromReq && fromReq !== SYSTEM_TENANT_ID) {
+      return resolveTenantId(fromReq);
+    }
+    if (fromReq === SYSTEM_TENANT_ID && process.env.ALLOW_SYSTEM_TENANT === 'true') {
+      return SYSTEM_TENANT_ID;
+    }
+    return resolveTenantId(process.env.DEFAULT_TENANT_ID || 'default');
+  }
 
   async onModuleDestroy() {
     await this.$disconnect();
   }
 
+  /**
+   * Tenant-aware client — real row filters via shared-kernel tenant-extension.
+   * findUnique is rewritten to findFirst({ id, tenantId }) (no illegal unique merge).
+   */
   get isolatedClient() {
-    return this.$extends({
-      query: {
-        $allModels: {
-          async $allOperations({ args, query }) {
-            // Pseudo-isolation schema strategy simulating SET search_path TO [currentTenant]
-            return query(args);
-          },
-        },
-      },
-    });
+    const currentTenant = this.tenantId;
+    return extendPrismaWithTenant(
+      this,
+      () => getTenantIdFromAls() || currentTenant,
+      { modelsWithTenantId: 'all' },
+    );
   }
 }

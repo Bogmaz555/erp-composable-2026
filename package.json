@@ -50,6 +50,7 @@
     "smoke:auth-401": "npx tsx scripts/smoke-auth-401.ts",
     "smoke:rbac": "bash scripts/keycloak-rbac-smoke.sh",
     "smoke:rbac-eto": "npx tsx scripts/smoke-rbac-eto.ts",
+    "smoke:tenant-isolation": "npx tsx scripts/smoke-tenant-isolation.ts",
     "db:migrate:deploy": "bash scripts/prisma-migrate-deploy.sh",
     "db:migrate:deploy:pilot": "PILOT=1 bash scripts/prisma-migrate-deploy.sh inv-service proc-service pm-service finance plm-service mes-service",
     "db:check:baselines": "bash scripts/check-prisma-baselines.sh",

@@ -1,5 +1,6 @@
 import * as jwt from 'jsonwebtoken';
 import * as jwksRsa from 'jwks-rsa';
+import { TENANT_JWT_CLAIM } from '@erp/shared-kernel';
 import { useKeycloakJwks } from './auth-env';
 
 const DEFAULT_KEYCLOAK_JWKS =
@@ -8,6 +9,7 @@ const DEFAULT_KEYCLOAK_JWKS =
 export interface GatewayClaims {
   userId: string;
   roles: string[];
+  /** OQ-1: claim name is always `tenantId` (see TENANT_JWT_CLAIM). */
   tenantId: string;
   email?: string;
 }
@@ -34,10 +36,15 @@ function getKey(header: jwt.JwtHeader, callback: jwt.SigningKeyCallback) {
 }
 
 function toClaims(payload: any): GatewayClaims {
+  // Canonical claim = tenantId (OQ-1). Legacy `tenant` accepted only as fallback.
+  const claim =
+    (typeof payload?.[TENANT_JWT_CLAIM] === 'string' && payload[TENANT_JWT_CLAIM]) ||
+    (typeof payload?.tenant === 'string' && payload.tenant) ||
+    'public';
   return {
     userId: payload.sub || payload.userId || 'unknown',
     roles: payload.realm_access?.roles || payload.roles || ['VIEWER'],
-    tenantId: payload.tenantId || payload.tenant || 'public',
+    tenantId: claim,
     email: payload.email,
   };
 }

@@ -15,3 +15,4 @@ export * from './types/eto-saga';
 export * from './types/eto-operational';
 export * from './roles';
 export * from './outbox-relay';
+export * from './tenant-extension';
