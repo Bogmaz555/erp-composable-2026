@@ -94,7 +94,8 @@ export class ProjectController {
       include: { wbsElements: true, tasks: true },
     });
     if (!project) return { error: 'Project not found' };
-    const pv = project.budget ?? 0;
+    // Decimal at rest (KD-5) → number for EVM math and JSON wire
+    const pv = Number(project.budget ?? 0);
     const wbs = project.wbsElements;
     const done = wbs.filter((w) => w.status === 'DONE' || w.status === 'COMPLETED').length;
     const pct = wbs.length ? done / wbs.length : (project.tasks.filter((t) => t.status === 'DONE').length / Math.max(project.tasks.length, 1));
