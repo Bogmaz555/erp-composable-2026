@@ -18,7 +18,12 @@ export class HrController {
 
   @Get('employees')
   async listEmployees() {
-    return this.prisma.employee.findMany({ where: { isActive: true }, take: 50 });
+    const employees = await this.prisma.employee.findMany({
+      where: { isActive: true },
+      take: 50,
+    });
+    // Decimal → number so FE emp.hourlyRate.toFixed(2) works (JSON Decimal is string)
+    return employees.map((e) => ({ ...e, hourlyRate: Number(e.hourlyRate) }));
   }
 
   @Post('time-entries')

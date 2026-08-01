@@ -21,21 +21,40 @@ export class ProcurementController {
     private readonly commandBus: CommandBus
   ) {}
 
+  /** Map Prisma Decimal money fields to plain numbers for HTTP/JSON (FE .toFixed). */
+  private serializeOrderMoney<T extends {
+    unitPrice?: unknown;
+    freightCost?: unknown;
+    customsDuty?: unknown;
+    landedUnitCost?: unknown;
+  }>(order: T) {
+    return {
+      ...order,
+      unitPrice: order.unitPrice == null ? order.unitPrice : Number(order.unitPrice),
+      freightCost: Number(order.freightCost ?? 0),
+      customsDuty: Number(order.customsDuty ?? 0),
+      landedUnitCost:
+        order.landedUnitCost == null ? order.landedUnitCost : Number(order.landedUnitCost),
+    };
+  }
+
   @Get()
   async getOrders(@Req() req: TenantRequest) {
     const tenantId = req.tenantId || 'default';
     try {
-      return await this.prisma.purchaseOrder.findMany({
+      const orders = await this.prisma.purchaseOrder.findMany({
         where: { tenantId },
         orderBy: { createdAt: 'desc' },
         include: { supplier: true },
       });
+      return orders.map((o) => this.serializeOrderMoney(o));
     } catch (e) {
       this.logger.warn(`getOrders fallback (tenant=${tenantId}): ${(e as Error).message}`);
-      return this.prisma.purchaseOrder.findMany({
+      const orders = await this.prisma.purchaseOrder.findMany({
         where: { tenantId },
         orderBy: { createdAt: 'desc' },
       });
+      return orders.map((o) => this.serializeOrderMoney(o));
     }
   }
 
@@ -84,7 +103,11 @@ export class ProcurementController {
       (s, o) => s + Number(o.landedUnitCost ?? 0) * (o.receivedQty ?? o.amount),
       0,
     );
-    return { count: orders.length, totalLandedValue: Math.round(totalLanded * 100) / 100, orders };
+    return {
+      count: orders.length,
+      totalLandedValue: Math.round(totalLanded * 100) / 100,
+      orders: orders.map((o) => this.serializeOrderMoney(o)),
+    };
   }
 
   @Post()
