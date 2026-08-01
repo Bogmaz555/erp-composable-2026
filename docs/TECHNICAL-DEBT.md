@@ -1,97 +1,106 @@
-# ERP 2026 – Rejestr Długu Technicznego (Faza 0 – Wersja Finalna)
+# ERP 2026 – Rejestr Długu Technicznego
 
-**Cel:** Priorytetyzowany backlog do realizacji w Fazie 1+.  
-**Ostatnia aktualizacja:** 2026-04 (MISSION-004)
+**Cel:** Priorytetyzowany backlog po Faza 0–28 demo oraz **Pilot v1 hardening** (PR 1–21).  
+**Ostatnia aktualizacja:** 2026-08-01 (PR 21 docs honesty)  
+**Design:** [`docs/PILOT-V1-DESIGN.md`](./PILOT-V1-DESIGN.md)
 
----
-
-## Priorytet 1 – Critical (Zrób na samym początku Fazy 1)
-
-| ID | Problem | Wpływ | Wysiłek | Sugerowana Kolejność | Notatki |
-|----|---------|-------|---------|----------------------|---------|
-| TD-001 | Brak jakiejkolwiek autoryzacji / Auth | Krytyczny (nie nadaje się do użytku) | Wysoki | — | 🟡 W37: platform/auth/readiness, RBAC 7 ról |
-| TD-002 | Niespójny mechanizm proxy w API Gateway | Wysoki (niestabilność, trudna rozbudowa) | Średni | — | 🟡 W42: `GET /platform/gateway/readiness`, proxy probes (FA/PM/INV/HR), smoke + contract |
-| TD-003 | Brak realnej Saga Orchestracji dla długich procesów | Bardzo wysoki przy integracjach ETO | Wysoki | 3 | 🟡 G-lite (PR16): real correlationId + reverse WIP; Temporal TCP/bridge = **non-DoD** (KD-4); full Temporal residual |
-| TD-004 | Płytkie modele domenowe w kluczowych modułach (PLM, MES, INV, Finance) | Bardzo wysoki (rdzeń wartości systemu) | Bardzo wysoki | 4 | To jest głównie praca domenowa, nie "dług" |
+> **Honesty:** W142 / Faza 28 „FINAL” **nie zamyka** production debt.  
+> Pilot gate = `pnpm run smoke:pilot` — nie contract/regression theater.  
+> Poziom docelowy Pilot v1 = single-tenant pilot, **nie** multi-customer production.
 
 ---
 
-## Priorytet 2 – High (Zrób wcześnie w Fazie 1)
+## Priorytet 1 – Critical (Pilot v1 baseline)
 
-| ID | Problem | Wpływ | Wysiłek | Kolejność | Notatki |
-|----|---------|-------|---------|-----------|---------|
-| TD-005 | Brak wersjonowania eventów w kodzie | Wysoki | Średni | Po TD-002 | Używać Event Registry jako źródła prawdy |
-| TD-006 | Mnóstwo `fix-*.js` na root + chaotyczny monorepo | Średni-wysoki (utrudnia pracę) | Niski | — | ✅ Usunięte 2026-06-06 (`scripts/repo-cleanup.sh`) |
-| TD-007 | Niespójne Prisma client outputs i generowanie | Wysoki | Średni | Wczesna Faza 1 | Standaryzacja ścieżek i nazw |
-| TD-008 | Brak centralnego mechanizmu retry / circuit breaker | Średni | Średni | — | 🟡 W28+W34: outbox DLQ + observability readiness |
-| TD-009 | Słaba observability (tracing tylko częściowy) | Średni | Średni | — | 🟡 W26+W34: Jaeger + otel/status + readiness API |
-
----
-
-## Priorytet 3 – Medium (Można robić równolegle z rozwojem domeny)
-
-| ID | Problem | Wpływ | Wysiłek | Notatki |
-|----|---------|-------|---------|---------|
-| TD-010 | Różne wersje NestJS w overrides | Ryzyko | Niski | 🟡 W32: pnpm overrides 11.1.19 + audit API |
-| TD-011 | Brak standaryzowanego `pnpm run boot:all` / docker dev experience | Uciążliwy | Średni | 🟡 W44: ensure-core-stack.sh, stack/readiness, regression 59/59 |
-| F2-TAX | TaxLegal KSeF/JPK produkcyjny | Średni | Po Faza 2 | 🟡 W45: `/platform/tax/readiness`, KSeF sandbox env-gated |
-| TD-012 | Brak pełnego testowania kontraktowego (Pact) | Średni | Średni-wysoki | 🟡 W48: Event Registry readiness API; Pact broker odłożony |
-| TD-013 | Brak centralnego Audit Log | 🟡 W36 — structured fields + readiness API |
+| ID | Problem | Wpływ | Status | Notatki |
+|----|---------|-------|--------|---------|
+| TD-001 | Auth produkcyjny / surface | Krytyczny | ✅ **Pilot** | **Auth default ON** (`AUTH_ENFORCE` unless `false`; `AUTH_DISABLE`). JWKS pilot, PUBLIC shrink, 401 P0 (`smoke:pilot:auth`). Residual: Vault/mTLS mesh prod |
+| TD-002 | Gateway hybrid proxy vs Nest | Wysoki | ✅ **Pilot** | Pure env-based proxy + `*_SERVICE_URL` (PR 17); bind `0.0.0.0` / PORT. Residual: edge ACL polish |
+| TD-003 | Saga orchestration | Wysoki ETO | 🟡 **G-lite** | Real correlationId + hardened reverse WIP (PR 16). **Temporal = non-DoD (KD-4)**. Full Temporal residual |
+| TD-004 | Płytkie modele domenowe | Wysoki | 🟡 | Praca domenowa (nie „dług” pure); genealogy E2E partial |
 
 ---
 
-## Priorytet 4 – Low / Nice to Have
+## Priorytet 2 – High (Pilot reliability / data)
 
-- Lepsze tooling wokół seedów i migracji
-- Ujednolicenie tsconfigów i build pipeline
-- Więcej metryk biznesowych w analytics-service
-
----
-
-## Uwagi Ogólne
-
-- Pozycje TD-001 i TD-002 są **blokujące** dla jakiegokolwiek poważniejszego użycia systemu.
-- Prace domenowe (PLM, MES, Finance deep models) są **nie długiem**, tylko zaplanowanym zakresem Fazy 1.
-- Przy każdej większej misji w Fazie 1 — aktualizować ten rejestr (usuwać zamknięte, dodawać nowe).
-
-**Właściciel:** erp-orchestrator + erp-guardian
-
-**Faza 1 Autonomous Progress (TD-001 - Auth):**
-- Real JWT guards + req.user usage in PLM, MES, PM, INV HTTP controllers (critical ETO ops protected).
-- Consistent x-user-id / x-roles extraction + audit logging now live in NATS listeners for plm.bom.released.v2, mes.production.recorded.v1, inventory.reservation.released.v1 (INV + MES + Finance WIP).
-- Basic RBAC examples (@Roles + RolesGuard or inline) on BOM release and production start/finish.
-- ETO traceability spine (bomComponentId flows) is now identity-aware end-to-end.
-- Status: TD-001 significantly advanced in Manufacturing Core cluster.
-- **SILENT-60:** Keycloak 24 w docker-compose (realm `erp`), `USE_KEYCLOAK_JWKS=true` w gateway, demo user `demo.engineer`.
-- Remaining: end-to-end JWT smoke, broader RBAC matrix, mTLS later.
-
-| Problem | Wpływ | Priorytet | Wysiłek |
-|--------|-------|---------|---------|
-| **Brak jakiejkolwiek autoryzacji** (największe ryzyko produkcyjne) | Krytyczny | Critical | Wysoki |
-| Brak mTLS / zabezpieczeń między serwisami | Wysoki | High | Wysoki |
-| Słaba observability (tylko częściowy tracing) | Średni | Medium | Średni |
-| Brak centralnego audytu | Wysoki (compliance) | High | Średni |
+| ID | Problem | Wpływ | Status | Notatki |
+|----|---------|-------|--------|---------|
+| TD-OUTBOX | Outbox dual-write / invalid status / dual relay | Krytyczny reliability | ✅ **Pilot** | Schema `PROCESSING`+attempts (PR 4); relay v2 (PR 5); **TX writes** core producers (PR 6–9). Gate: `smoke:pilot:outbox` |
+| TD-JS | JetStream unused / dual consumer risk | Wysoki | 🟡 **opt-in** | Kernel + bootstrap + single consumer path (PR 13–14). Flag `NATS_JETSTREAM`. Gate: `smoke:pilot:js` (skip `SKIP_JS=1`) |
+| TD-TENANT | Tenancy no-op / cross-tenant leak | Wysoki | ✅ **Pilot** | Shared `tenant-extension` + worker ALS (PR 15). Single-tenant-per-deploy + row filter. Gate: `smoke:pilot:tenant` |
+| TD-MONEY | Monetary Float drift | Średni-wysoki | 🟡 | Pilot-critical Decimal blocklist (PR 11); secondary residual (PR 12 / KD-5) |
+| TD-MIG | Prisma push-only / no baselines | Wysoki | ✅ **core** | Baselines + `PILOT=1` forbids push (`docs/PRISMA-MIGRATIONS.md`, PR 10) |
+| TD-005 | Event versioning w kodzie | Wysoki | 🟡 | Event Registry = source of truth; freeze reverse payload (OQ-5) |
+| TD-006 | `fix-*.js` root chaos | Średni | ✅ | Usunięte 2026-06-06 |
+| TD-007 | Prisma client outputs | Wysoki | 🟡 | Standaryzacja częściowa |
+| TD-008 | Retry / circuit breaker | Średni | 🟡 | Outbox attempts/FAILED + reclaim; no full CB mesh |
+| TD-009 | Observability partial | Średni | 🟡 | Jaeger/OTel residual; R-OBS accepted for pilot |
 
 ---
 
-## Kategoria 4: Modele Domenowe (najwięcej pracy w Fazie 1)
+## Priorytet 3 – Medium
 
-- PLM: components jako JSON string (bardzo zły)
-- MES: praktycznie brak routingu i operacji
-- Inventory: brak LOT/SN + genealogy
-- Finance: prawie zerowy project accounting → **Significant progress (SILENT-51/54)**: Real ProjectCost (MATERIAL) + WipAccount (wipBalance + materialReserved) now created/updated on inventory.reservation.released.v1 events from the ETO spine.
-- TaxLegal: prawie pusty
-
-**Uwaga:** Te problemy są **oczekiwane** w Fazie 0. Nie są długiem — są po prostu zakresem do zaimplementowania.
+| ID | Problem | Wpływ | Status | Notatki |
+|----|---------|-------|--------|---------|
+| TD-010 | NestJS version overrides | Ryzyko | 🟡 | overrides 11.x + audit |
+| TD-011 | boot:all / docker dev UX | Uciążliwy | 🟡 | `boot:smart` + compose **profile pilot** (PR 18) |
+| F2-TAX | KSeF/JPK produkcyjny | Średni | 🟡 | Sandbox env-gated; prod profile residual |
+| TD-012 | Pact broker full | Średni | ⛔ residual | Event Registry readiness only; broker deferred |
+| TD-013 | Central Audit Log | Compliance | 🟡 | Structured fields + readiness; not SIEM |
+| TD-THEATER | Readiness/contract self-assert noise | Zaufanie | 🟡 accepted | **Not in pilot gate** (KD-6 / A7). Do not treat 130/130 as prod |
+| TD-DR | Backup/restore unproven | Wysoki ops | ✅ **Pilot** | `backup-dbs` / `restore-dbs` / `dr-drill` — RPO 24h / RTO 2h (PR 19) |
 
 ---
 
-## Rekomendacja dla MISSION-004
+## Priorytet 4 – Low / Nice to Have / Out of Pilot DoD
 
-W MISSION-004 skupić się przede wszystkim na:
-1. Gateway stabilization + ujednolicenie proxy
-2. Plan czyszczenia fix-*.js i Prisma clients
-3. Dokumentacja + backlog na wdrożenie Auth (Keycloak/Auth0)
-4. Propozycja prostego mechanizmu Saga (nawet lekkiego na początek)
+- Full Temporal workers (beyond G-lite status probe)
+- mTLS mesh, Vault HA prod unseal, multi-region SaaS tenancy
+- Convert **all** non-money Floats (engineering qty allowed — KD-5)
+- Delete readiness theater files wholesale
+- DMS full, iot-ai full, ISO certification track
+- Lepsze tooling seedów; ujednolicenie tsconfigów
 
-Ten dokument powinien być aktualizowany przez erp-orchestrator i erp-guardian.
+---
+
+## Pilot v1 residual risk (from design)
+
+| ID | Residual | Sev | Pilot stance |
+|----|----------|-----|--------------|
+| R5 | Partial compensation only (WIP + reservation scope) | Med | **Accepted** — G-lite in-scope only |
+| R8 | G-lite ≠ Temporal | Med | **Accepted** KD-4 |
+| R9 | Readiness noise | Low | Quarantined from `smoke:pilot` |
+| R10 | mTLS out of pilot | Med | Network isolation residual |
+| R-MONEY | Non-blocklist Floats | Med | KD-5 secondary residual |
+| R-OBS | Metrics/alerts not DoD | Low | Best-effort |
+
+---
+
+## Uwagi ogólne
+
+- **TD-001 / TD-002 / outbox / DR** are closed **for Pilot v1**, not for enterprise multi-env production.
+- Domain depth (PLM/MES/INV deep models) remains planned product work, not pure debt.
+- **Never claim production-ready solely because W142 or contract counts are green.**
+- Update this registry when pilot residuals close or new gaps appear.
+
+**Właściciel:** erp-orchestrator + erp-guardian  
+**Gate:** `pnpm run smoke:pilot` · Design: `docs/PILOT-V1-DESIGN.md`
+
+---
+
+## TD-001 history (auth progress — consolidated)
+
+- JWT guards + claim propagation on gateway proxy; Nest service guards on ETO mutations.
+- Keycloak realm `erp`, demo users, role matrix + aliases (`WAREHOUSE`→`PRODUCTION_MANAGER`, etc.).
+- Pilot: default-on auth; forbid `AUTH_ENFORCE=false` / missing JWKS in pilot CI (`ci-pilot-auth-env`).
+- Smoke: `smoke:pilot:auth` → `smoke-auth-401` + `smoke-rbac-eto`.
+- Remaining beyond pilot: Vault-managed secrets rotation, mTLS service mesh, device token for MES kiosk (OQ-2 → D60).
+
+---
+
+## Kategoria: Modele Domenowe (zakres produktowy)
+
+- PLM / MES routing depth, INV LOT/SN genealogy completeness, Finance project accounting depth, TaxLegal fullness — **product scope**, partially advanced in Fazy 1–4.
+- Finance WIP + reverse path hardened for pilot G-lite (PR 16).
+
+**Uwaga:** Oczekiwane w Faza 0; nie mylić z „production ready”.
