@@ -13,34 +13,44 @@ export class RecordTimeEntryHandler implements ICommandHandler<RecordTimeEntryCo
     if (!employee) throw new Error('Employee not found');
 
     const tenantId = command.tenantId || 'default';
-    const entry = await this.prisma.timeEntry.create({
-      data: {
-        tenantId,
-        employeeId: command.employeeId,
-        projectId: command.projectId,
-        workOrderId: command.workOrderId,
-        hours: command.hours,
-      },
-    });
+    const hourlyRatePln =
+      typeof employee.hourlyRate === 'object' && employee.hourlyRate != null
+        ? Number(employee.hourlyRate)
+        : Number(employee.hourlyRate);
 
-    await this.prisma.outboxEvent.create({
-      data: {
-        tenantId,
-        aggregateId: entry.id,
-        aggregateType: 'TimeEntry',
-        eventType: 'hr.time.entry.recorded.v1',
-        payload: {
-          timeEntryId: entry.id,
-          employeeId: employee.id,
+    // Domain write + outbox in one TX (never book time without labor event row)
+    const entry = await this.prisma.$transaction(async (tx) => {
+      const timeEntry = await tx.timeEntry.create({
+        data: {
+          tenantId,
+          employeeId: command.employeeId,
           projectId: command.projectId,
           workOrderId: command.workOrderId,
           hours: command.hours,
-          hourlyRatePln: employee.hourlyRate,
-          tenantId,
-          recordedAt: new Date().toISOString(),
         },
-        status: 'PENDING',
-      },
+      });
+
+      await tx.outboxEvent.create({
+        data: {
+          tenantId,
+          aggregateId: timeEntry.id,
+          aggregateType: 'TimeEntry',
+          eventType: 'hr.time.entry.recorded.v1',
+          payload: {
+            timeEntryId: timeEntry.id,
+            employeeId: employee.id,
+            projectId: command.projectId,
+            workOrderId: command.workOrderId,
+            hours: command.hours,
+            hourlyRatePln,
+            tenantId,
+            recordedAt: new Date().toISOString(),
+          },
+          status: 'PENDING',
+        },
+      });
+
+      return timeEntry;
     });
 
     return { success: true, timeEntryId: entry.id };

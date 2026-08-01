@@ -2,20 +2,36 @@ import { Injectable, Inject, Logger, OnModuleInit, OnModuleDestroy } from '@nest
 import { Interval } from '@nestjs/schedule';
 import { ClientProxy } from '@nestjs/microservices';
 import { PrismaService } from './prisma/prisma.service';
-import { OutboxStatus } from '@prisma/client-quality';
+import { GenericOutboxRelay } from '@erp/shared-kernel';
 
+/**
+ * Quality outbox relay — thin wrapper around shared GenericOutboxRelay v2.
+ * No local dual semantics: claim PROCESSING, await publish, attempts/FAILED.
+ */
 @Injectable()
-export class QualityOutboxRelayService implements OnModuleInit, OnModuleDestroy {
-  private readonly logger = new Logger(QualityOutboxRelayService.name);
-  private readonly maxAttempts = Number(process.env.OUTBOX_MAX_ATTEMPTS || 5);
+export class QualityOutboxRelayService
+  extends GenericOutboxRelay
+  implements OnModuleInit, OnModuleDestroy
+{
+  protected readonly logger = new Logger(QualityOutboxRelayService.name);
+  protected prisma: PrismaService;
 
   constructor(
-    private readonly prisma: PrismaService,
-    @Inject('NATS_CLIENT') private readonly natsClient: ClientProxy,
-  ) {}
+    @Inject('NATS_CLIENT') protected readonly natsClient: ClientProxy,
+    prisma: PrismaService,
+  ) {
+    super();
+    this.prisma = prisma;
+  }
 
   async onModuleInit() {
-    await this.natsClient.connect().catch(() => {});
+    try {
+      await this.natsClient.connect();
+    } catch (e) {
+      this.logger.warn(
+        `NATS connect deferred/failed at init: ${(e as Error).message}`,
+      );
+    }
   }
 
   async onModuleDestroy() {
@@ -23,40 +39,7 @@ export class QualityOutboxRelayService implements OnModuleInit, OnModuleDestroy 
   }
 
   @Interval(3000)
-  async relayEvents() {
-    const pending = await this.prisma.outboxEvent
-      .findMany({
-        where: { status: OutboxStatus.PENDING },
-        take: 50,
-        orderBy: { createdAt: 'asc' },
-      })
-      .catch(() => []);
-
-    for (const event of pending) {
-      try {
-        this.natsClient.emit(event.eventType, event.payload);
-        await this.prisma.outboxEvent.update({
-          where: { id: event.id },
-          data: { status: OutboxStatus.PROCESSED },
-        });
-        this.logger.debug(`[QMS Outbox] ${event.eventType}`);
-      } catch (e) {
-        const attempts = (event.attempts ?? 0) + 1;
-        const dead = attempts >= this.maxAttempts;
-        await this.prisma.outboxEvent
-          .update({
-            where: { id: event.id },
-            data: {
-              attempts,
-              lastError: (e as Error).message?.slice(0, 500),
-              ...(dead ? { status: OutboxStatus.FAILED } : {}),
-            },
-          })
-          .catch(() => {});
-        this.logger.warn(
-          `[QMS Outbox] ${dead ? 'DEAD-LETTER' : 'retry'} ${event.eventType} (attempt ${attempts}/${this.maxAttempts}): ${(e as Error).message}`,
-        );
-      }
-    }
+  override async relayEvents() {
+    await super.relayEvents();
   }
 }

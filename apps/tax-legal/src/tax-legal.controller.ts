@@ -92,6 +92,7 @@ export class TaxLegalController {
       `[TaxLegal] KSeF invoice for ${data.milestone} project=${data.projectId} amount=${data.amount}`,
     );
 
+    // Create DRAFT first (pre-external call); failures surface (no empty catch)
     const invoice = await this.prisma.taxInvoice.create({
       data: {
         tenantId,
@@ -101,8 +102,9 @@ export class TaxLegalController {
         currency: data.currency || 'PLN',
         status: 'DRAFT',
       },
-    }).catch(() => null);
+    });
 
+    // External KSeF call cannot sit inside a DB transaction
     const ksefResult = await this.ksef.sendInvoice({
       projectId: data.projectId,
       milestone: data.milestone,
@@ -111,36 +113,37 @@ export class TaxLegalController {
     });
     const { ksefReferenceNumber } = ksefResult;
 
-    if (invoice) {
-      await this.prisma.taxInvoice.update({
+    // Domain update SENT + outbox in one TX (never mark SENT without event row)
+    await this.prisma.$transaction(async (tx) => {
+      await tx.taxInvoice.update({
         where: { id: invoice.id },
         data: {
           ksefReferenceNumber,
           status: 'SENT',
           sentAt: new Date(),
         },
-      }).catch(() => {});
-    }
+      });
 
-    await this.prisma.outboxEvent.create({
-      data: {
-        tenantId,
-        aggregateId: invoice?.id || data.projectId,
-        aggregateType: 'TaxInvoice',
-        eventType: 'tax.invoice.ksef.sent.v1',
-        payload: {
-          invoiceId: invoice?.id || require('crypto').randomUUID(),
-          ksefReferenceNumber,
-          projectId: data.projectId,
-          milestone: data.milestone,
-          amount: data.amount,
-          currency: data.currency || 'PLN',
-          sentAt: new Date().toISOString(),
+      await tx.outboxEvent.create({
+        data: {
           tenantId,
+          aggregateId: invoice.id,
+          aggregateType: 'TaxInvoice',
+          eventType: 'tax.invoice.ksef.sent.v1',
+          payload: {
+            invoiceId: invoice.id,
+            ksefReferenceNumber,
+            projectId: data.projectId,
+            milestone: data.milestone,
+            amount: data.amount,
+            currency: data.currency || 'PLN',
+            sentAt: new Date().toISOString(),
+            tenantId,
+          },
+          status: 'PENDING',
         },
-        status: 'PENDING',
-      },
-    }).catch(() => {});
+      });
+    });
 
     return { status: 'ksef-sent', ksefReferenceNumber };
   }

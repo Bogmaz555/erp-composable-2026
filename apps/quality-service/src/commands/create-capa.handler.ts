@@ -23,37 +23,40 @@ export class CreateCapaHandler implements ICommandHandler<CreateCapaCommand> {
   async execute(command: CreateCapaCommand) {
     const tenantId = command.meta?.tenantId || 'default';
 
-    const capa = await this.prisma.capaAction.create({
-      data: {
-        tenantId,
-        ncrId: command.ncrId,
-        type: command.type,
-        description: command.description,
-        rootCause: command.meta?.rootCause,
-        assignee: command.meta?.assignee,
-        dueDate: command.meta?.dueDate ? new Date(command.meta.dueDate) : null,
-        status: 'OPEN',
-      },
-    });
-
-    await this.prisma.outboxEvent.create({
-      data: {
-        tenantId,
-        aggregateId: capa.id,
-        aggregateType: 'CapaAction',
-        eventType: 'quality.capa.created.v1',
-        payload: {
-          capaId: capa.id,
-          ncrId: capa.ncrId,
-          type: capa.type,
-          assignee: capa.assignee,
-          dueDate: capa.dueDate?.toISOString(),
-          status: capa.status,
+    // Domain write + outbox in one TX (never create CAPA without event row)
+    return this.prisma.$transaction(async (tx) => {
+      const capa = await tx.capaAction.create({
+        data: {
+          tenantId,
+          ncrId: command.ncrId,
+          type: command.type,
+          description: command.description,
+          rootCause: command.meta?.rootCause,
+          assignee: command.meta?.assignee,
+          dueDate: command.meta?.dueDate ? new Date(command.meta.dueDate) : null,
+          status: 'OPEN',
         },
-        status: OutboxStatus.PENDING,
-      },
-    }).catch(() => {});
+      });
 
-    return capa;
+      await tx.outboxEvent.create({
+        data: {
+          tenantId,
+          aggregateId: capa.id,
+          aggregateType: 'CapaAction',
+          eventType: 'quality.capa.created.v1',
+          payload: {
+            capaId: capa.id,
+            ncrId: capa.ncrId,
+            type: capa.type,
+            assignee: capa.assignee,
+            dueDate: capa.dueDate?.toISOString(),
+            status: capa.status,
+          },
+          status: OutboxStatus.PENDING,
+        },
+      });
+
+      return capa;
+    });
   }
 }

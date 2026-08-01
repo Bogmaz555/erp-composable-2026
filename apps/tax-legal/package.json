@@ -15,8 +15,10 @@
     "@nestjs/core": "^11.1.19",
     "@nestjs/microservices": "^11.1.19",
     "@nestjs/platform-fastify": "^11.0.0",
+    "@nestjs/schedule": "^6.1.1",
     "@prisma/client": "5.22.0",
-    "@prisma/client-tax-legal": "link:../../node_modules/.prisma/client-tax-legal"
+    "@prisma/client-tax-legal": "link:../../node_modules/.prisma/client-tax-legal",
+    "nats": "^2.29.3"
   },
   "devDependencies": {
     "@nestjs/testing": "^11.0.1",

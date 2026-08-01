@@ -1,4 +1,5 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { randomUUID } from 'crypto';
 import { UpdatePipelineStageCommand } from './update-pipeline-stage.command';
 import { PrismaService } from '../prisma.service';
 import { OutboxStatus } from '.prisma/client-crm';
@@ -9,22 +10,25 @@ export class UpdatePipelineStageHandler implements ICommandHandler<UpdatePipelin
 
   async execute(command: UpdatePipelineStageCommand) {
     const { id, status } = command;
-    
+
     if (status === 'ACCEPTED') {
-      const opportunity = await this.prisma.isolatedClient.opportunity.findUnique({ 
+      const opportunity = await this.prisma.isolatedClient.opportunity.findUnique({
         where: { id },
-        include: { BOMItem: true }
+        include: { BOMItem: true },
       });
       if (!opportunity) throw new Error('Opportunity not found');
 
+      // Domain write + outbox already co-located in $transaction (PR 9 verify)
       return this.prisma.isolatedClient.$transaction(async (tx) => {
         const updated = await tx.opportunity.update({
           where: { id },
           data: { status },
-          include: { BOMItem: true }
+          include: { BOMItem: true },
         });
 
-        await tx.outboxEvent.create({ data: { id: require('crypto').randomUUID(), 
+        await tx.outboxEvent.create({
+          data: {
+            id: randomUUID(),
             aggregateId: updated.id,
             aggregateType: 'Opportunity',
             eventType: 'crm.opportunity.won.v1',

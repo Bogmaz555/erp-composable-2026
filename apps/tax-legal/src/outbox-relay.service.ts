@@ -18,7 +18,13 @@ export class OutboxRelayService extends GenericOutboxRelay implements OnModuleIn
   }
 
   async onModuleInit() {
-    await this.natsClient.connect().catch(() => {});
+    try {
+      await this.natsClient.connect();
+    } catch (e) {
+      this.logger.warn(
+        `NATS connect deferred/failed at init: ${(e as Error).message}`,
+      );
+    }
   }
 
   async onModuleDestroy() {

@@ -19,32 +19,35 @@ export class UpdateCapaStatusHandler implements ICommandHandler<UpdateCapaStatus
   async execute(command: UpdateCapaStatusCommand) {
     const isClosed = command.status === 'DONE' || command.status === 'VERIFIED';
 
-    const capa = await this.prisma.capaAction.update({
-      where: { id: command.capaId },
-      data: {
-        status: command.status,
-        ...(command.rootCause ? { rootCause: command.rootCause } : {}),
-        ...(isClosed ? { completedAt: new Date() } : {}),
-      },
-    });
-
-    if (command.status === 'VERIFIED') {
-      await this.prisma.outboxEvent.create({
+    // Domain write + outbox (when VERIFIED) in one TX
+    return this.prisma.$transaction(async (tx) => {
+      const capa = await tx.capaAction.update({
+        where: { id: command.capaId },
         data: {
-          tenantId: capa.tenantId,
-          aggregateId: capa.id,
-          aggregateType: 'CapaAction',
-          eventType: 'quality.capa.verified.v1',
-          payload: {
-            capaId: capa.id,
-            ncrId: capa.ncrId,
-            verifiedAt: new Date().toISOString(),
-          },
-          status: OutboxStatus.PENDING,
+          status: command.status,
+          ...(command.rootCause ? { rootCause: command.rootCause } : {}),
+          ...(isClosed ? { completedAt: new Date() } : {}),
         },
-      }).catch(() => {});
-    }
+      });
 
-    return capa;
+      if (command.status === 'VERIFIED') {
+        await tx.outboxEvent.create({
+          data: {
+            tenantId: capa.tenantId,
+            aggregateId: capa.id,
+            aggregateType: 'CapaAction',
+            eventType: 'quality.capa.verified.v1',
+            payload: {
+              capaId: capa.id,
+              ncrId: capa.ncrId,
+              verifiedAt: new Date().toISOString(),
+            },
+            status: OutboxStatus.PENDING,
+          },
+        });
+      }
+
+      return capa;
+    });
   }
 }

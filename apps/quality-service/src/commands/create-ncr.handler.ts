@@ -37,45 +37,48 @@ export class CreateNcrHandler implements ICommandHandler<CreateNcrCommand> {
     const projectId = command.meta?.projectId;
     const tenantId = command.meta?.tenantId || 'default';
 
-    const ncr = await this.prisma.nonConformanceReport.create({
-      data: {
-        tenantId,
-        inspectionId: command.meta?.inspectionId,
-        defectCode: command.meta?.defectCode,
-        defectDescription: command.defectDescription,
-        attachmentIds: command.meta?.attachmentIds || [],
-        severity: command.severity,
-        status: 'OPEN',
-        projectId,
-        workOrderId,
-        bomComponentId: command.meta?.bomComponentId,
-      },
-    });
-
-    await this.prisma.outboxEvent.create({
-      data: {
-        tenantId,
-        aggregateId: ncr.id,
-        aggregateType: 'NonConformanceReport',
-        eventType: 'quality.ncr.raised.v1',
-        payload: {
-          ncrId: ncr.id,
-          inspectionId: ncr.inspectionId,
-          defectCode: ncr.defectCode,
-          defectDescription: ncr.defectDescription,
-          attachmentIds: ncr.attachmentIds,
-          severity: ncr.severity,
-          status: ncr.status,
-          projectId: ncr.projectId,
-          workOrderId: ncr.workOrderId,
-          bomComponentId: ncr.bomComponentId,
+    // Domain write + outbox in one TX (never open NCR without event row)
+    return this.prisma.$transaction(async (tx) => {
+      const ncr = await tx.nonConformanceReport.create({
+        data: {
           tenantId,
-          raisedAt: ncr.createdAt.toISOString(),
+          inspectionId: command.meta?.inspectionId,
+          defectCode: command.meta?.defectCode,
+          defectDescription: command.defectDescription,
+          attachmentIds: command.meta?.attachmentIds || [],
+          severity: command.severity,
+          status: 'OPEN',
+          projectId,
+          workOrderId,
+          bomComponentId: command.meta?.bomComponentId,
         },
-        status: OutboxStatus.PENDING,
-      },
-    }).catch(() => {});
+      });
 
-    return ncr;
+      await tx.outboxEvent.create({
+        data: {
+          tenantId,
+          aggregateId: ncr.id,
+          aggregateType: 'NonConformanceReport',
+          eventType: 'quality.ncr.raised.v1',
+          payload: {
+            ncrId: ncr.id,
+            inspectionId: ncr.inspectionId,
+            defectCode: ncr.defectCode,
+            defectDescription: ncr.defectDescription,
+            attachmentIds: ncr.attachmentIds,
+            severity: ncr.severity,
+            status: ncr.status,
+            projectId: ncr.projectId,
+            workOrderId: ncr.workOrderId,
+            bomComponentId: ncr.bomComponentId,
+            tenantId,
+            raisedAt: ncr.createdAt.toISOString(),
+          },
+          status: OutboxStatus.PENDING,
+        },
+      });
+
+      return ncr;
+    });
   }
 }
