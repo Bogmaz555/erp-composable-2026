@@ -20,6 +20,7 @@ export class OutboxRelayService extends GenericOutboxRelay implements OnModuleIn
   }
 
   async onModuleDestroy() {
+    await this.closeJetStreamTransport();
     await this.prisma.$disconnect();
     this.natsClient.close();
   }

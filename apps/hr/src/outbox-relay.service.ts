@@ -22,6 +22,7 @@ export class OutboxRelayService extends GenericOutboxRelay implements OnModuleIn
   }
 
   async onModuleDestroy() {
+    await this.closeJetStreamTransport();
     this.natsClient.close();
   }
 

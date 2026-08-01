@@ -14,6 +14,7 @@ import { FixedAssetsService } from './fixed-assets.service';
 import { UniversalJournalService } from './universal-journal.service';
 import { UniversalJournalController } from './universal-journal.controller';
 import { ProjectAccountingService } from './project-accounting.service';
+import { FinWipJetStreamConsumer } from './jetstream-fin-wip.consumer';
 
 @Module({
   imports: [
@@ -24,7 +25,7 @@ import { ProjectAccountingService } from './project-accounting.service';
         name: 'NATS_SERVICE',
         transport: Transport.NATS,
         options: {
-          servers: ['nats://localhost:4222'],
+          servers: [process.env.NATS_URL || 'nats://localhost:4222'],
         },
       },
     ]),
@@ -37,7 +38,8 @@ import { ProjectAccountingService } from './project-accounting.service';
     PrismaService,
     FixedAssetsService,
     UniversalJournalService,
-    ProjectAccountingService
+    ProjectAccountingService,
+    FinWipJetStreamConsumer,
   ],
 })
 export class AppModule {}

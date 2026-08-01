@@ -35,6 +35,7 @@ export class InvOutboxRelayService
   }
 
   async onModuleDestroy() {
+    await this.closeJetStreamTransport();
     this.natsClient.close();
   }
 

@@ -5,6 +5,7 @@ import { GenericOutboxRelay } from '../src/outbox-relay';
 jest.mock('nats', () => ({
   headers: () => ({
     append: jest.fn(),
+    set: jest.fn(),
   }),
 }));
 
@@ -24,6 +25,40 @@ jest.mock('@nestjs/microservices', () => ({
     }
   },
 }));
+
+// Factory creates mutable state (jest.mock is hoisted before consts).
+jest.mock('../src/jetstream', () => {
+  const state = {
+    enabled: false,
+    publishJsonWithAck: jest.fn(async () => ({
+      stream: 'ETO_CORE',
+      seq: 1,
+      duplicate: false,
+    })),
+    connectJetStream: jest.fn(async () => ({
+      nc: { drain: jest.fn(), close: jest.fn() },
+      js: {},
+      jsm: {},
+    })),
+    closeJetStream: jest.fn(async () => undefined),
+  };
+  (globalThis as any).__outboxJsMockState = state;
+  return {
+    isJetStreamEnabled: () => state.enabled,
+    connectJetStream: state.connectJetStream,
+    closeJetStream: state.closeJetStream,
+    publishJsonWithAck: state.publishJsonWithAck,
+  };
+});
+
+function jsMockState(): {
+  enabled: boolean;
+  publishJsonWithAck: jest.Mock;
+  connectJetStream: jest.Mock;
+  closeJetStream: jest.Mock;
+} {
+  return (globalThis as any).__outboxJsMockState;
+}
 
 type OutboxRow = {
   id: string;
@@ -109,6 +144,16 @@ describe('GenericOutboxRelay v2', () => {
     else process.env.OUTBOX_MAX_ATTEMPTS = prevMax;
     if (prevReclaim === undefined) delete process.env.OUTBOX_RECLAIM_MINUTES;
     else process.env.OUTBOX_RECLAIM_MINUTES = prevReclaim;
+    const st = jsMockState();
+    st.enabled = false;
+    st.publishJsonWithAck.mockReset();
+    st.publishJsonWithAck.mockResolvedValue({
+      stream: 'ETO_CORE',
+      seq: 1,
+      duplicate: false,
+    } as any);
+    st.connectJetStream.mockClear();
+    st.closeJetStream.mockClear();
     jest.clearAllMocks();
   });
 
@@ -273,6 +318,44 @@ describe('GenericOutboxRelay v2', () => {
     expect(
       errorCalls.some((c: any[]) => String(c[0]).includes('DEAD-LETTER') || String(c[0]).includes('Failed to relay')),
     ).toBe(false);
+  });
+
+  it('when NATS_JETSTREAM on: publishJsonWithAck with msgID = outbox id (no Nest emit)', async () => {
+    const st = jsMockState();
+    st.enabled = true;
+    process.env.OUTBOX_RECLAIM_MINUTES = '0';
+    const prisma = createPrismaMock([makeEvent({ id: 'outbox-uuid-42' })]);
+    const natsClient = { emit: jest.fn(() => of(undefined)) };
+    const relay = new TestRelay(prisma, natsClient);
+
+    await relay.relayEvents();
+
+    expect(natsClient.emit).not.toHaveBeenCalled();
+    expect(st.connectJetStream).toHaveBeenCalled();
+    expect(st.publishJsonWithAck).toHaveBeenCalledWith(
+      expect.anything(),
+      'inventory.stock.reserved.v1',
+      { sku: 'A' },
+      expect.objectContaining({ msgID: 'outbox-uuid-42' }),
+    );
+    expect(prisma._store.get('outbox-uuid-42')!.status).toBe('PROCESSED');
+  });
+
+  it('when NATS_JETSTREAM on and publish fails: markPublishFailure path', async () => {
+    const st = jsMockState();
+    st.enabled = true;
+    process.env.OUTBOX_RECLAIM_MINUTES = '0';
+    process.env.OUTBOX_MAX_ATTEMPTS = '5';
+    st.publishJsonWithAck.mockRejectedValueOnce(new Error('js ack timeout'));
+    const prisma = createPrismaMock([makeEvent({ id: 'js-fail', attempts: 0 })]);
+    const relay = new TestRelay(prisma, { emit: jest.fn() });
+
+    await relay.relayEvents();
+
+    const final = prisma._store.get('js-fail')!;
+    expect(final.status).toBe('PENDING');
+    expect(final.attempts).toBe(1);
+    expect(final.lastError).toContain('js ack timeout');
   });
 
   it('skips overlapping relayEvents while a batch is running (reentrancy guard)', async () => {

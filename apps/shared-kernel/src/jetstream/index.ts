@@ -3,11 +3,9 @@
  *
  * - Stream names: ETO_CORE / SUPPLY / QUALITY
  * - Feature flag: NATS_JETSTREAM
- * - publishWithAck / publishJsonWithAck
+ * - publishWithAck / publishJsonWithAck (GenericOutboxRelay when flag on)
  * - ensurePilotStreams (idempotent bootstrap)
- *
- * Relay integration (GenericOutboxRelay → JS) and single durable consumer
- * path land in a follow-up PR; this package only provides the shared kernel.
+ * - runDurablePullLoop + single consumer path policy (fin-wip / inv-eto)
  */
 
 export {
@@ -51,3 +49,21 @@ export {
   ensurePilotStreamsOnConnection,
 } from './bootstrap';
 export type { EnsureStreamsResult, EnsureStreamsOptions } from './bootstrap';
+
+export { runDurablePullLoop, parseJsMsg } from './consumer';
+export type {
+  DurableMessage,
+  DurableMessageHandler,
+  RunDurablePullOptions,
+} from './consumer';
+
+export {
+  preferJetStreamConsumerPath,
+  nestEventPatternDisabled,
+  DURABLE_FIN_WIP,
+  DURABLE_INV_ETO,
+  STREAM_FOR_ETO_DURABLES,
+  FIN_WIP_CONSUMER_SUBJECTS,
+  INV_ETO_CONSUMER_SUBJECTS,
+  FIN_WIP_FILTER_SUBJECTS,
+} from './consumer-path';

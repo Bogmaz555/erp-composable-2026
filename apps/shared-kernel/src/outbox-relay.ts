@@ -3,6 +3,13 @@ import { ClientProxy, NatsRecordBuilder } from '@nestjs/microservices';
 import { propagation, context } from '@opentelemetry/api';
 import { headers as natsHeaders } from 'nats';
 import { lastValueFrom } from 'rxjs';
+import {
+  closeJetStream,
+  connectJetStream,
+  isJetStreamEnabled,
+  publishJsonWithAck,
+  type JetStreamHandles,
+} from './jetstream';
 
 /** Canonical OutboxStatus values (must match Prisma OutboxStatus enums). */
 export type OutboxRelayStatus = 'PENDING' | 'PROCESSING' | 'PROCESSED' | 'FAILED';
@@ -14,6 +21,8 @@ export type OutboxRelayStatus = 'PENDING' | 'PROCESSING' | 'PROCESSED' | 'FAILED
  * 1. Optional reclaim of stuck PROCESSING → PENDING (createdAt older than N minutes)
  * 2. Claim rows: PENDING → PROCESSING (conditional updateMany per id)
  * 3. await publish (not fire-and-forget)
+ *    - NATS_JETSTREAM=true → JetStream publishWithAck, msgID = outbox id (server de-dupe)
+ *    - else → Nest ClientProxy.emit (core NATS)
  * 4. Success → PROCESSED; failure → attempts++, lastError, PENDING or FAILED after max
  * 5. No empty catch blocks
  * 6. In-process reentrancy guard (overlapping @Interval ticks skip)
@@ -37,6 +46,11 @@ export abstract class GenericOutboxRelay {
   /** Prevents overlapping relayEvents ticks (e.g. @Interval while a batch is still running). */
   private running = false;
 
+  /** Lazy JetStream connection when NATS_JETSTREAM is on. */
+  private jsHandles: JetStreamHandles | null = null;
+  private jsConnectPromise: Promise<JetStreamHandles> | null = null;
+  private jsPathLogged = false;
+
   /** Max publish attempts before marking FAILED (env OUTBOX_MAX_ATTEMPTS, default 5). */
   protected get maxAttempts(): number {
     const n = Number(process.env.OUTBOX_MAX_ATTEMPTS ?? 5);
@@ -47,7 +61,7 @@ export abstract class GenericOutboxRelay {
    * Reclaim PROCESSING rows whose createdAt is older than this many minutes.
    * 0 disables reclaim. Env: OUTBOX_RECLAIM_MINUTES (default 15).
    *
-   * Residual: no lockedAt/updatedAt on OutboxEvent — see class doc. Multi-instance
+   * Residual: no lockedAt/updatedAt on OutboxEvent — see class residual note. Multi-instance
    * double delivery on aged backlog is accepted (at-least-once) until a later PR.
    */
   protected get reclaimMinutes(): number {
@@ -60,6 +74,48 @@ export abstract class GenericOutboxRelay {
   protected get batchSize(): number {
     const n = Number(process.env.OUTBOX_BATCH_SIZE ?? 50);
     return Number.isFinite(n) && n > 0 ? n : 50;
+  }
+
+  /** Whether this tick should publish via JetStream (flag checked live). */
+  protected useJetStreamPublish(): boolean {
+    return isJetStreamEnabled();
+  }
+
+  /**
+   * Close JetStream connection if opened. Call from OnModuleDestroy in subclasses
+   * when NATS_JETSTREAM may have been used.
+   */
+  async closeJetStreamTransport(): Promise<void> {
+    const handles = this.jsHandles;
+    this.jsHandles = null;
+    this.jsConnectPromise = null;
+    if (handles) {
+      await closeJetStream(handles);
+    }
+  }
+
+  protected async ensureJetStream(): Promise<JetStreamHandles> {
+    if (this.jsHandles) return this.jsHandles;
+    if (!this.jsConnectPromise) {
+      this.jsConnectPromise = connectJetStream({
+        connectOpts: { name: `outbox-relay-${process.pid}` },
+      })
+        .then((h) => {
+          this.jsHandles = h;
+          if (!this.jsPathLogged) {
+            this.jsPathLogged = true;
+            this.logger.log(
+              'Outbox relay JetStream publish path active (NATS_JETSTREAM) — msgID=outbox id',
+            );
+          }
+          return h;
+        })
+        .catch((err) => {
+          this.jsConnectPromise = null;
+          throw err;
+        });
+    }
+    return this.jsConnectPromise;
   }
 
   async relayEvents(): Promise<void> {
@@ -155,19 +211,7 @@ export abstract class GenericOutboxRelay {
 
     // Publish only — transport errors count as attempts / may DLQ.
     try {
-      const hdrs = natsHeaders();
-      const carrier: Record<string, string> = {};
-      propagation.inject(context.active(), carrier);
-
-      for (const [k, v] of Object.entries(carrier)) {
-        hdrs.append(k, v);
-      }
-
-      const record = new NatsRecordBuilder(event.payload).setHeaders(hdrs).build();
-      const subject = event.eventType || event.topic;
-      const obs = this.natsClient.emit(subject, record);
-      // Await publish; do not fire-and-forget (INV local relay bug).
-      await lastValueFrom(obs, { defaultValue: undefined });
+      await this.publishEvent(event);
     } catch (error) {
       await this.markPublishFailure(event, error);
       return;
@@ -193,6 +237,46 @@ export abstract class GenericOutboxRelay {
         persistError as Error,
       );
     }
+  }
+
+  /**
+   * Publish one outbox event. JetStream path awaits PubAck with msgID=outbox id;
+   * core path awaits Nest emit.
+   */
+  protected async publishEvent(event: {
+    id: string;
+    eventType?: string;
+    topic?: string;
+    payload: unknown;
+  }): Promise<void> {
+    const subject = event.eventType || event.topic;
+    if (!subject) {
+      throw new Error(`Outbox event ${event.id} has no eventType/topic`);
+    }
+
+    const hdrs = natsHeaders();
+    const carrier: Record<string, string> = {};
+    propagation.inject(context.active(), carrier);
+
+    for (const [k, v] of Object.entries(carrier)) {
+      hdrs.append(k, v);
+    }
+    // Correlate durable consumers / de-dupe diagnostics with outbox row
+    hdrs.set('x-outbox-id', event.id);
+
+    if (this.useJetStreamPublish()) {
+      const { js } = await this.ensureJetStream();
+      await publishJsonWithAck(js, subject, event.payload, {
+        msgID: event.id,
+        headers: hdrs,
+      });
+      return;
+    }
+
+    const record = new NatsRecordBuilder(event.payload).setHeaders(hdrs).build();
+    const obs = this.natsClient.emit(subject, record);
+    // Await publish; do not fire-and-forget (INV local relay bug).
+    await lastValueFrom(obs, { defaultValue: undefined });
   }
 
   /**

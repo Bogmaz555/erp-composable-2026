@@ -5,6 +5,7 @@ import {
   RetentionPolicy,
   StorageType,
   nanos,
+  type ConsumerConfig,
   type JetStreamManager,
   type NatsConnection,
 } from 'nats';
@@ -108,30 +109,61 @@ export async function ensurePilotStreams(
   if (ensureConsumers) {
     for (const c of BOOTSTRAP_DURABLE_CONSUMERS) {
       const key = `${c.stream}/${c.durable}`;
-      let exists = false;
+      let info: { config: Partial<ConsumerConfig> } | null = null;
       try {
-        await jsm.consumers.info(c.stream, c.durable);
-        exists = true;
+        info = await jsm.consumers.info(c.stream, c.durable);
       } catch {
-        exists = false;
+        info = null;
       }
 
-      if (exists) {
-        result.consumersExisting.push(key);
-        log(`[jetstream] consumer ok: ${key}`);
-        continue;
-      }
-
-      await jsm.consumers.add(c.stream, {
+      const consumerCfg: Partial<ConsumerConfig> = {
         durable_name: c.durable,
         ack_policy: AckPolicy.Explicit,
         deliver_policy: DeliverPolicy.All,
-        filter_subject: c.filterSubject,
         description: c.description,
         // Pull consumer (no deliver_subject) — workers fetch via JetStream pull API.
-      });
-      result.consumersCreated.push(key);
-      log(`[jetstream] consumer created: ${key}`);
+      };
+      // filter_subject XOR filter_subjects (nats server)
+      if (c.filterSubjects && c.filterSubjects.length > 0) {
+        consumerCfg.filter_subjects = [...c.filterSubjects];
+      } else if (c.filterSubject) {
+        consumerCfg.filter_subject = c.filterSubject;
+      }
+
+      if (!info) {
+        await jsm.consumers.add(c.stream, consumerCfg);
+        result.consumersCreated.push(key);
+        log(`[jetstream] consumer created: ${key}`);
+        continue;
+      }
+
+      // Existing durable: leave in place unless multi-filter list is missing subjects
+      // (PR14 fin-wip expanded from finance.wip.> only → + reservation + production).
+      if (c.filterSubjects && c.filterSubjects.length > 0) {
+        const current =
+          info.config.filter_subjects ??
+          (info.config.filter_subject ? [info.config.filter_subject] : []);
+        const missing = c.filterSubjects.filter((s) => !current.includes(s));
+        if (missing.length > 0) {
+          try {
+            // Server may reject filter changes in-place; delete + re-add durable.
+            await jsm.consumers.delete(c.stream, c.durable);
+            await jsm.consumers.add(c.stream, consumerCfg);
+            result.consumersCreated.push(key);
+            log(
+              `[jetstream] consumer recreated: ${key} added filters=${missing.join(',')}`,
+            );
+            continue;
+          } catch (e) {
+            log(
+              `[jetstream] consumer filter update failed for ${key}: ${(e as Error).message}`,
+            );
+          }
+        }
+      }
+
+      result.consumersExisting.push(key);
+      log(`[jetstream] consumer ok: ${key}`);
     }
   }
 

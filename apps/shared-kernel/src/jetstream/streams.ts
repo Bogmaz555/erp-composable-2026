@@ -39,12 +39,23 @@ export const STREAM_SUBJECTS: Readonly<Record<JetStreamName, readonly string[]>>
   [STREAM_QUALITY]: ['quality.>', 'eam.>'],
 };
 
-/** Durable consumer names created by bootstrap (examples; PR 14 wires handlers). */
+/**
+ * Durable consumer names created by bootstrap.
+ * PR 14 wires fin-wip-worker + inv-eto-worker handlers (single consumer path).
+ */
 export interface DurableConsumerDef {
   stream: JetStreamName;
   durable: string;
-  /** Optional single filter subject; omit for whole-stream pull. */
+  /**
+   * Optional single filter subject (exclusive of filterSubjects).
+   * Omit both for whole-stream pull.
+   */
   filterSubject?: string;
+  /**
+   * Multi-subject filter (exclusive of filterSubject). Used by fin-wip-worker
+   * for finance.wip.> + inventory.reservation.released.v1 + mes.production.recorded.v1.
+   */
+  filterSubjects?: readonly string[];
   description?: string;
 }
 
@@ -52,8 +63,13 @@ export const BOOTSTRAP_DURABLE_CONSUMERS: readonly DurableConsumerDef[] = [
   {
     stream: STREAM_ETO_CORE,
     durable: 'fin-wip-worker',
-    filterSubject: 'finance.wip.>',
-    description: 'Finance WIP record/reverse path',
+    // Multi-filter: WIP subjects + reservation release + production labor (design §3)
+    filterSubjects: [
+      'finance.wip.>',
+      'inventory.reservation.released.v1',
+      'mes.production.recorded.v1',
+    ],
+    description: 'Finance WIP record/reverse path (single consumer when NATS_JETSTREAM)',
   },
   {
     stream: STREAM_ETO_CORE,

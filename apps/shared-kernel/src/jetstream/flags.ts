@@ -1,10 +1,13 @@
 /**
- * Feature flag for JetStream publish/consume path (Pilot v1 KD-3).
+ * Feature flag for JetStream publish/consume path (Pilot v1 KD-3 / PR 14).
  *
  * Env: `NATS_JETSTREAM=true|1|yes|on` enables durable JetStream.
- * Default: **off** (core NATS / Nest Transport.NATS) until relay + single
- * consumer path are wired (PR 14). Never dual-subscribe Nest + JS for the
- * same subjects when this flag is true.
+ * Default: **off** (core NATS / Nest Transport.NATS).
+ *
+ * When true:
+ * - GenericOutboxRelay publishes via publishWithAck (msgID = outbox id)
+ * - fin-wip / inv-eto workers pull durables; Nest @EventPattern for those
+ *   subjects must no-op (never dual-subscribe Nest + JS)
  */
 
 export type EnvLike = Record<string, string | undefined>;

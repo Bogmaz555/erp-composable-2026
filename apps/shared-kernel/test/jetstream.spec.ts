@@ -1,8 +1,11 @@
 import {
   ALL_STREAM_NAMES,
   BOOTSTRAP_DURABLE_CONSUMERS,
+  FIN_WIP_FILTER_SUBJECTS,
   isJetStreamEnabled,
+  nestEventPatternDisabled,
   parseTruthyEnv,
+  preferJetStreamConsumerPath,
   resolveNatsUrl,
   resolveStreamForSubject,
   STREAM_ETO_CORE,
@@ -98,4 +101,45 @@ describe('JetStream kernel — stream map', () => {
       ]),
     );
   });
+
+  it('fin-wip-worker multi-filter covers WIP + reservation release + production', () => {
+    const fin = BOOTSTRAP_DURABLE_CONSUMERS.find((c) => c.durable === 'fin-wip-worker');
+    expect(fin?.filterSubjects).toEqual(
+      expect.arrayContaining([
+        'finance.wip.>',
+        'inventory.reservation.released.v1',
+        'mes.production.recorded.v1',
+      ]),
+    );
+    expect(FIN_WIP_FILTER_SUBJECTS).toEqual(
+      expect.arrayContaining(['finance.wip.>', 'inventory.reservation.released.v1']),
+    );
+  });
 });
+
+describe('JetStream kernel — single consumer path policy', () => {
+  it('preferJetStreamConsumerPath follows NATS_JETSTREAM', () => {
+    expect(preferJetStreamConsumerPath({})).toBe(false);
+    expect(preferJetStreamConsumerPath({ NATS_JETSTREAM: 'true' })).toBe(true);
+  });
+
+  it('nestEventPatternDisabled only for migrated subjects when flag on', () => {
+    expect(
+      nestEventPatternDisabled('inventory.reservation.released.v1', {
+        NATS_JETSTREAM: 'true',
+      }),
+    ).toBe(true);
+    expect(
+      nestEventPatternDisabled('plm.bom.released.v2', { NATS_JETSTREAM: 'true' }),
+    ).toBe(true);
+    expect(
+      nestEventPatternDisabled('inventory.reservation.released.v1', {}),
+    ).toBe(false);
+    expect(
+      nestEventPatternDisabled('proc.purchaseorder.approved.v1', {
+        NATS_JETSTREAM: 'true',
+      }),
+    ).toBe(false);
+  });
+});
+

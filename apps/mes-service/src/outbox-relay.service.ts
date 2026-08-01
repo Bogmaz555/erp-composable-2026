@@ -35,6 +35,7 @@ export class MesOutboxRelayService
   }
 
   async onModuleDestroy() {
+    await this.closeJetStreamTransport();
     this.natsClient.close();
   }
 

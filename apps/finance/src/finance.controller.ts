@@ -2,6 +2,7 @@ import { Controller, Get, Post, Body, Logger, Param } from '@nestjs/common';
 import { EventPattern, Payload, Ctx, NatsContext } from '@nestjs/microservices';
 import { CommandBus } from '@nestjs/cqrs';
 import type { MesProductionRecordedV1Event } from '@erp/shared-kernel';
+import { preferJetStreamConsumerPath } from '@erp/shared-kernel';
 import { RecordTransactionCommand } from './commands/record-transaction.handler';
 import { ReverseWipCostCommand } from './commands/reverse-wip-cost.handler';
 import { PrismaService } from './prisma.service';
@@ -86,12 +87,23 @@ export class FinanceController {
 
   // TD-001 + Faza 1: Finance WIP listener on reservation release (closing the ETO loop)
   // Now extracts claims when available (NATS header propagation) and enriches audit description
-  /** Labor + overhead costing on production complete (before/at reservation release) */
+  /**
+   * Labor + overhead costing on production complete (before/at reservation release).
+   * @param fromJetStream when true, skip Nest dual-path guard (called by fin-wip-worker).
+   */
   @EventPattern('mes.production.recorded.v1')
   async handleProductionRecorded(
     @Payload() data: MesProductionRecordedV1Event,
     @Ctx() context?: NatsContext,
+    fromJetStream = false,
   ) {
+    // Single consumer path: durable fin-wip-worker owns this subject when flag on
+    if (!fromJetStream && preferJetStreamConsumerPath()) {
+      this.logger.debug(
+        'NATS_JETSTREAM on — Nest mes.production.recorded.v1 skipped (fin-wip-worker)',
+      );
+      return;
+    }
     const hdrs = context?.getHeaders?.() || {};
     const userId = (hdrs?.['x-user-id'] as string) || data.operatorId || 'system';
     const laborHours = data.laborHours ?? 0;
@@ -168,7 +180,14 @@ export class FinanceController {
   async handleWipCostReversed(
     @Payload() data: { projectId: string; tenantId: string; correlationId: string },
     @Ctx() context?: NatsContext,
+    fromJetStream = false,
   ) {
+    if (!fromJetStream && preferJetStreamConsumerPath()) {
+      this.logger.debug(
+        'NATS_JETSTREAM on — Nest finance.wip.cost.reversed skipped (fin-wip-worker)',
+      );
+      return;
+    }
     if (!data.projectId || !data.correlationId) return;
     this.logger.log(`[Finance WIP] Received finance.wip.cost.reversed for project ${data.projectId}`);
     await this.commandBus.execute(
@@ -177,7 +196,17 @@ export class FinanceController {
   }
 
   @EventPattern('inventory.reservation.released.v1')
-  async handleReservationReleased(@Payload() data: { workOrderId: string, tenantId: string, releasedReservations: any[] }, @Ctx() context?: NatsContext) {
+  async handleReservationReleased(
+    @Payload() data: { workOrderId: string, tenantId: string, releasedReservations: any[] },
+    @Ctx() context?: NatsContext,
+    fromJetStream = false,
+  ) {
+    if (!fromJetStream && preferJetStreamConsumerPath()) {
+      this.logger.debug(
+        'NATS_JETSTREAM on — Nest inventory.reservation.released.v1 skipped (fin-wip-worker)',
+      );
+      return;
+    }
     const hdrs = context?.getHeaders?.() || {};
     const userId = (hdrs?.['x-user-id'] as string) || 'system';
     const roles = (hdrs?.['x-roles'] as string) || '';

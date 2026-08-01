@@ -5,7 +5,10 @@ import { ReserveMaterialCommand } from './commands/reserve-material.handler';
 import { CreateReservationCommand } from './commands/create-reservation.command';
 import { propagation, context as otelContext } from '@opentelemetry/api';
 import type { MaterialRequestedEvent } from '@erp/shared-kernel';
-import { assertEtoOperationalPayload } from '@erp/shared-kernel';
+import {
+  assertEtoOperationalPayload,
+  preferJetStreamConsumerPath,
+} from '@erp/shared-kernel';
 import { PrismaService } from './prisma.service';
 
 @Controller()
@@ -18,7 +21,18 @@ export class PmIntegrationController {
   ) {}
 
   @EventPattern('pm.material.requested.v1')
-  async handleMaterialRequested(@Payload() payload: MaterialRequestedEvent, @Ctx() context: NatsContext) {
+  async handleMaterialRequested(
+    @Payload() payload: MaterialRequestedEvent,
+    @Ctx() context: NatsContext,
+    fromJetStream = false,
+  ) {
+    // Single consumer path: durable inv-eto-worker owns this subject when flag on
+    if (!fromJetStream && preferJetStreamConsumerPath()) {
+      this.logger.debug(
+        'NATS_JETSTREAM on — Nest pm.material.requested.v1 skipped (inv-eto-worker)',
+      );
+      return;
+    }
     this.logger.debug(`Received Material Requested Event for Item: ${payload.itemId}`);
 
     assertEtoOperationalPayload(
@@ -60,7 +74,17 @@ export class PmIntegrationController {
   // On mes.production.recorded.v1: release active reservations for the WO (by workOrderId or bomComponentIds),
   // create RELEASE StockTransaction records, mark genealogy progress.
   @EventPattern('mes.production.recorded.v1')
-  async handleProductionRecorded(@Payload() payload: any, @Ctx() context: NatsContext) {
+  async handleProductionRecorded(
+    @Payload() payload: any,
+    @Ctx() context: NatsContext,
+    fromJetStream = false,
+  ) {
+    if (!fromJetStream && preferJetStreamConsumerPath()) {
+      this.logger.debug(
+        'NATS_JETSTREAM on — Nest mes.production.recorded.v1 skipped (inv-eto-worker)',
+      );
+      return;
+    }
     this.logger.debug(`[INV] Received mes.production.recorded.v1 for WO ${payload.workOrderId}`);
 
     if (payload.projectId) {
@@ -177,7 +201,17 @@ export class PmIntegrationController {
   // Real NATS listener for PLM BOM release (production pattern)
   // Replaces / complements the injectable skeleton listener for full event-driven flow
   @EventPattern('plm.bom.released.v2')
-  async handlePlmBomReleased(@Payload() payload: any, @Ctx() context: NatsContext) {
+  async handlePlmBomReleased(
+    @Payload() payload: any,
+    @Ctx() context: NatsContext,
+    fromJetStream = false,
+  ) {
+    if (!fromJetStream && preferJetStreamConsumerPath()) {
+      this.logger.debug(
+        'NATS_JETSTREAM on — Nest plm.bom.released.v2 skipped (inv-eto-worker)',
+      );
+      return;
+    }
     this.logger.debug(`[INV] Received plm.bom.released.v2 for BOM ${payload.bomVersionId}`);
 
     // TD-001: Extract authenticated user claims from NATS headers (consistent with MES pattern)

@@ -1,5 +1,6 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { EventPattern, Payload } from '@nestjs/microservices';
+import { preferJetStreamConsumerPath } from '@erp/shared-kernel';
 import { UniversalJournalService } from './universal-journal.service';
 
 @Controller('fin/universal-journal')
@@ -17,7 +18,12 @@ export class UniversalJournalController {
   }
 
   @EventPattern('finance.wip.cost.recorded')
-  async onWipCost(@Payload() data: Record<string, unknown>) {
+  async onWipCost(
+    @Payload() data: Record<string, unknown>,
+    fromJetStream = false,
+  ) {
+    // Durable fin-wip-worker owns finance.wip.* when NATS_JETSTREAM=true
+    if (!fromJetStream && preferJetStreamConsumerPath()) return;
     await this.journal.record({
       tenantId: String(data.tenantId || 'default'),
       projectId: data.projectId ? String(data.projectId) : undefined,
@@ -31,7 +37,11 @@ export class UniversalJournalController {
   }
 
   @EventPattern('mes.production.recorded.v1')
-  async onProduction(@Payload() data: Record<string, unknown>) {
+  async onProduction(
+    @Payload() data: Record<string, unknown>,
+    fromJetStream = false,
+  ) {
+    if (!fromJetStream && preferJetStreamConsumerPath()) return;
     const hours = Number(data.laborHours || data.hours || 0);
     const rate = Number(data.laborRate || 120);
     await this.journal.record({
