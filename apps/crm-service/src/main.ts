@@ -18,6 +18,9 @@ async function bootstrap() {
   app.enableCors({ origin: process.env.FRONTEND_URL || 'http://localhost:3000', credentials: true });
 
   await app.startAllMicroservices();
-  await app.listen(4001, '127.0.0.1');
+  const port = Number(process.env.PORT) || 4001;
+  const host = process.env.HOST || '0.0.0.0';
+  await app.listen(port, host);
+  console.log(`CRM Service listening on http://${host}:${port}`);
 }
 bootstrap();

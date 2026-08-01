@@ -6,12 +6,12 @@ import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
     QualityModule,
-    new FastifyAdapter()
+    new FastifyAdapter(),
   );
 
   app.enableCors({
     origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE'
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
   });
 
   app.connectMicroservice<MicroserviceOptions>({
@@ -22,6 +22,10 @@ async function bootstrap() {
   });
 
   await app.startAllMicroservices();
-  await app.listen(4008, '127.0.0.1');
+  // Keeps 4008 (search-service moved to 4018)
+  const port = Number(process.env.PORT) || 4008;
+  const host = process.env.HOST || '0.0.0.0';
+  await app.listen(port, host);
+  console.log(`Quality Service listening on http://${host}:${port}`);
 }
 bootstrap();

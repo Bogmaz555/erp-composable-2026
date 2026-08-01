@@ -13,7 +13,9 @@ async function bootstrap() {
 
   app.enableCors({ origin: process.env.FRONTEND_URL || 'http://localhost:3000' });
   await app.startAllMicroservices();
-  await app.listen(4012, '127.0.0.1');
-  console.log('HR Service http://localhost:4012');
+  const port = Number(process.env.PORT) || 4012;
+  const host = process.env.HOST || '0.0.0.0';
+  await app.listen(port, host);
+  console.log(`HR Service http://${host}:${port}`);
 }
 bootstrap();

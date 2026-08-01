@@ -6,21 +6,24 @@ import { EamModule } from './eam.module';
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
     EamModule,
-    new FastifyAdapter()
+    new FastifyAdapter(),
   );
 
-  app.enableCors({ origin: 'http://localhost:3000' });
+  app.enableCors({ origin: process.env.FRONTEND_URL || 'http://localhost:3000' });
 
   app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.NATS,
     options: {
-      servers: ['nats://localhost:4222'],
+      servers: [process.env.NATS_URL || 'nats://localhost:4222'],
       queue: 'eam_queue',
     },
   });
 
   await app.startAllMicroservices();
-  await app.listen(4009, '127.0.0.1');
-  console.log(`EAM Service is running on http://127.0.0.1:4009`);
+  // Keeps 4009 (approvals-service moved to 4019)
+  const port = Number(process.env.PORT) || 4009;
+  const host = process.env.HOST || '0.0.0.0';
+  await app.listen(port, host);
+  console.log(`EAM Service listening on http://${host}:${port}`);
 }
 bootstrap();

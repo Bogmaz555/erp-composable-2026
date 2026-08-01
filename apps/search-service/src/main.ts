@@ -18,7 +18,10 @@ async function bootstrap() {
   });
 
   await app.startAllMicroservices();
-  await app.listen(4008, '127.0.0.1');
-  console.log('Search Service listening on port 4008');
+  // Reassigned from 4008 → 4018 (4008 reserved for quality-service)
+  const port = Number(process.env.PORT) || 4018;
+  const host = process.env.HOST || '0.0.0.0';
+  await app.listen(port, host);
+  console.log(`Search Service listening on http://${host}:${port}`);
 }
 bootstrap();

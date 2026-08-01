@@ -19,7 +19,9 @@ async function bootstrap() {
   });
 
   await app.startAllMicroservices();
-  await app.listen(process.env.PORT || 4004, '127.0.0.1');
-  console.log(`PROC-Service (Procurement) is running on port ${process.env.PORT || 4004} with NATS Listener`);
+  const port = Number(process.env.PORT) || 4004;
+  const host = process.env.HOST || '0.0.0.0';
+  await app.listen(port, host);
+  console.log(`PROC-Service (Procurement) listening on http://${host}:${port} with NATS`);
 }
 bootstrap();
