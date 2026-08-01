@@ -14,3 +14,4 @@ export * from './types';
 export * from './types/eto-saga';
 export * from './types/eto-operational';
 export * from './outbox-relay';
+export * from './jetstream';

@@ -451,10 +451,15 @@ services:
     image: nats:2.10-alpine
     container_name: erp-nats
     restart: unless-stopped
+    # Explicit conf so JetStream store_dir=/data and monitor :8222 are active.
+    # Image entrypoint already defaults to --config /etc/nats/nats-server.conf;
+    # keep command explicit for ops clarity (Pilot v1 / PR 13).
+    command: ["--config", "/etc/nats/nats-server.conf"]
     ports:
       - "4222:4222"
       - "8222:8222"
     volumes:
+      # Persistent JetStream file store (survives container restart)
       - nats_data:/data
       - ./infra/nats/nats.conf:/etc/nats/nats-server.conf:ro
     healthcheck:
