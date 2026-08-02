@@ -1,23 +1,37 @@
-<!-- generated 2026-08-02T12:06:29.730Z milestone=Q2 phase=RELEASE sha=fdb7822 -->
+<!-- generated 2026-08-02T12:07:36.520Z milestone=Q3 phase=DESIGN sha=4bed95b -->
 <!-- Unattended: paste into Grok OR run /workflow enterprise-20-step|continuous -->
 
-# AGENT MISSION — Q2 RELEASE (autonomous)
+# AGENT MISSION — Q3 DESIGN (autonomous)
 
 Repo: /home/bogdan-mazur/PROGRAMY/ERP/erp-composable-2026
-Branch: `enterprise-0.3-finance-compliance`
-Tag: **enterprise-0.3-finance-compliance**
+Baseline: pilot-v1.1.0 → current master
+Branch: `enterprise-0.4-isolation-scale` (create from master if missing)
+Tenancy lock: **DEDICATED_STACK**
+
+## Identity
+Principal Architect. Full autonomy. No "should I continue?" questions.
 
 ## Task
-1. Ensure gates green
-2. `gh pr create --base master --head enterprise-0.3-finance-compliance` (or update existing)
-3. Merge when required CI green (admin OK if only optional red)
-4. Tag `enterprise-0.3-finance-compliance` on merge commit; push tag
-5. Advance STATUS to next milestone DESIGN (or DONE if Q5)
-6. Commit STATUS on master or automation branch; push
+Produce design document at **`docs/ENTERPRISE-0.4-SCALE-DESIGN.md`** for milestone **Q3: Isolation and Scale**.
 
-Milestone order: Q0→Q1→Q2→Q3→Q4→Q5→DONE
+### Workstreams
+- Tenancy model enforced (DEDICATED or SHARED_RLS)
+- NetworkPolicy + non-public services
+- NATS 3-node or documented HA path
+- k6 business-path load budgets
+- HPA PDB resources on Helm
 
-START NOW.
+### Rules
+- Include Key Decisions, Alternatives, Security, risks, **## PR Plan** with `### PR N: Title`, Dependencies, Files, Description
+- No readiness theater / Faza 29+
+- Non-negotiables: ADR-008 + docs/ENTERPRISE-2.0-PLAN.md
+- After design file written: update docs/ENTERPRISE-2.0-STATUS.md phase=IMPLEMENT, commit, push branch `enterprise-2.0-automation` or `enterprise-0.4-isolation-scale`
+- Prefer also running: `/design` equivalent quality (self-review once)
+
+### Forbidden
+- domain scope creep
+
+START NOW. Write the design file.
 
 ## Autonomy contract (mandatory)
 - ZERO confirmation pauses. Execute fully.
