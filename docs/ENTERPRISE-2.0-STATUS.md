@@ -1,19 +1,19 @@
 # Enterprise 2.0 — automation status
 
 ```
-updated: 2026-08-02T11:38:25.186Z
+updated: 2026-08-02T11:46:28.119Z
 program: enterprise-2.0
 baseline_tag: pilot-v1.1.0
 target_tag: enterprise-2.0.0
 tenancy: DEDICATED_STACK
 automation_mode: full
 branch: enterprise-0.2-eto-spine
-sha: 1e7ec1e
+sha: d1df3aa
 milestone: Q1
 phase: GATE
 milestone_index: 1
 phase_index: 1
-state: READY
+state: BLOCKED
 checklist:
   Q0: done
   Q1: pending
@@ -22,9 +22,11 @@ checklist:
   Q4: pending
   Q5: pending
   automation_scaffold: true
-last_error: none
+last_error: gate failed Q1
 next_action: Execute docs/enterprise-2.0/NEXT_AGENT_PROMPT.md (Q1/GATE)
 resume_prompt: |
+  RESUME Enterprise 2.0. checkout current branch. Read docs/ENTERPRISE-2.0-STATUS.md.
+  milestone=Q1 phase=GATE. Continue autonomy. No confirmation pauses.
   RESUME Enterprise 2.0. checkout current branch. Read docs/ENTERPRISE-2.0-STATUS.md.
   milestone=Q1 phase=GATE. Continue autonomy. No confirmation pauses.
   RESUME Enterprise 2.0 full automation. No confirmation pauses.
@@ -61,3 +63,4 @@ See `docs/enterprise-2.0/milestones.json` for milestone definitions and gates.
 | 2026-08-02T11:34:00.000Z | Design doc hardened (code-grounded residuals + PR 1–10); STATUS Q1/IMPLEMENT READY |
 
 | 2026-08-02T11:38:25.186Z | advance success: Q1/GATE Q1 IMPLEMENT core PR1-8: contracts, PLM release/ECO, PM EVM/HTTP block, MES genealogy, INV lot receive, PROC ProcessedEvent |
+| 2026-08-02T11:46:28.119Z | advance fail: Q1/GATE gate failed Q1 |
