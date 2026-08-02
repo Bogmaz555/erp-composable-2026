@@ -20,7 +20,7 @@ export function useINVInventory() {
   return useQuery<InventoryItem[]>({
     queryKey: ['inv-inventory'],
     queryFn: async () => {
-      const res = await fetch('/api/inv/inventory');
+      const res = await fetchWithAuth('/api/inv/inventory');
       if (!res.ok) throw new Error('Nie udało się pobrać stanów magazynowych');
       return res.json();
     },
@@ -31,7 +31,7 @@ export function useINVCreateItem() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (payload: { sku: string; name: string; type: string; unit: string }) => {
-      const res = await fetch('/api/inv/inventory/items', {
+      const res = await fetchWithAuth('/api/inv/inventory/items', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -61,7 +61,7 @@ export function useINVLots(itemId?: string) {
   return useQuery<LotRecord[]>({
     queryKey: ['inv-lots', itemId],
     queryFn: async () => {
-      const res = await fetch(`/api/inv/inventory/lots${q}`);
+      const res = await fetchWithAuth(`/api/inv/inventory/lots${q}`);
       if (!res.ok) throw new Error('Błąd pobierania partii');
       return res.json();
     },
@@ -72,7 +72,7 @@ export function useINVCreateLot() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (payload: { itemId: string; lotNumber: string; serialNumber?: string; quantity: number; location?: string }) => {
-      const res = await fetch('/api/inv/inventory/lots', {
+      const res = await fetchWithAuth('/api/inv/inventory/lots', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -91,7 +91,7 @@ export function useINVGenealogyForward(serialOrLot: string | null) {
   return useQuery({
     queryKey: ['inv-genealogy-fwd', serialOrLot],
     queryFn: async () => {
-      const res = await fetch(`/api/inv/inventory/genealogy/forward/${encodeURIComponent(serialOrLot!)}`);
+      const res = await fetchWithAuth(`/api/inv/inventory/genealogy/forward/${encodeURIComponent(serialOrLot!)}`);
       if (!res.ok) throw new Error('Błąd genealogii forward');
       return res.json();
     },
@@ -108,7 +108,7 @@ export function useINVGenealogyBackward(params: { childLotId?: string; bomCompon
   return useQuery({
     queryKey: ['inv-genealogy-bwd', params],
     queryFn: async () => {
-      const res = await fetch(`/api/inv/inventory/genealogy/backward?${qs}`);
+      const res = await fetchWithAuth(`/api/inv/inventory/genealogy/backward?${qs}`);
       if (!res.ok) throw new Error('Błąd genealogii backward');
       return res.json();
     },
@@ -120,7 +120,7 @@ export function useINVGenealogyChain(serialOrLot: string | null) {
   return useQuery({
     queryKey: ['inv-genealogy-chain', serialOrLot],
     queryFn: async () => {
-      const res = await fetch(`/api/inv/inventory/genealogy/chain/${encodeURIComponent(serialOrLot!)}`);
+      const res = await fetchWithAuth(`/api/inv/inventory/genealogy/chain/${encodeURIComponent(serialOrLot!)}`);
       if (!res.ok) throw new Error('Błąd genealogii chain');
       return res.json();
     },
@@ -191,7 +191,7 @@ export function useWmsBins() {
   return useQuery<StorageBin[]>({
     queryKey: ['inv-wms-bins'],
     queryFn: async () => {
-      const res = await fetch('/api/inv/wms/bins');
+      const res = await fetchWithAuth('/api/inv/wms/bins');
       if (!res.ok) throw new Error('Błąd lokalizacji WMS');
       return res.json();
     },
@@ -202,7 +202,7 @@ export function useWmsPickLists() {
   return useQuery<PickList[]>({
     queryKey: ['inv-wms-picks'],
     queryFn: async () => {
-      const res = await fetch('/api/inv/wms/pick-lists');
+      const res = await fetchWithAuth('/api/inv/wms/pick-lists');
       if (!res.ok) throw new Error('Błąd list kompletacji');
       return res.json();
     },
@@ -214,7 +214,7 @@ export function useCreatePickList() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (payload?: { projectId?: string }) => {
-      const res = await fetch('/api/inv/wms/pick-lists', {
+      const res = await fetchWithAuth('/api/inv/wms/pick-lists', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload ?? {}),
@@ -230,7 +230,7 @@ export function useConfirmPick() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (payload: { pickListId: string; lineId: string; pickedQty: number }) => {
-      const res = await fetch(`/api/inv/wms/pick-lists/${payload.pickListId}/lines/${payload.lineId}/pick`, {
+      const res = await fetchWithAuth(`/api/inv/wms/pick-lists/${payload.pickListId}/lines/${payload.lineId}/pick`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pickedQty: payload.pickedQty }),
@@ -246,7 +246,7 @@ export function useINVAdjustStock() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (payload: { itemId: string; quantity: number }) => {
-      const res = await fetch('/api/inv/inventory/stock/adjust', {
+      const res = await fetchWithAuth('/api/inv/inventory/stock/adjust', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),

@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { fetchWithAuth } from '../context/AuthContext';
 import { fetchWithTenant } from '../context/TenantContext';
 import { useTenant } from '../context/TenantContext';
 
@@ -28,7 +29,7 @@ export function usePROCSuppliers() {
   return useQuery<Supplier[]>({
     queryKey: ['proc-suppliers'],
     queryFn: async () => {
-      const res = await fetch('/api/proc/suppliers');
+      const res = await fetchWithAuth('/api/proc/suppliers');
       if (!res.ok) throw new Error('Błąd pobierania dostawców');
       return res.json();
     },
@@ -39,7 +40,7 @@ export function useCreateSupplier() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (payload: { code: string; name: string; nip?: string; email?: string }) => {
-      const res = await fetch('/api/proc/suppliers', {
+      const res = await fetchWithAuth('/api/proc/suppliers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -55,7 +56,7 @@ export function useCreatePO() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (payload: { sku: string; amount: number; supplierId?: string; projectId?: string }) => {
-      const res = await fetch('/api/proc/orders', {
+      const res = await fetchWithAuth('/api/proc/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -83,7 +84,7 @@ export function useMrpNetting(projectId?: string) {
   return useQuery<{ lines: MrpNetLine[]; runAt: string }>({
     queryKey: ['proc-mrp-netting', projectId],
     queryFn: async () => {
-      const res = await fetch(`/api/proc/mrp/netting${q}`);
+      const res = await fetchWithAuth(`/api/proc/mrp/netting${q}`);
       if (!res.ok) throw new Error('Błąd MRP netting');
       return res.json();
     },
@@ -95,7 +96,7 @@ export function useMrpRun() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (payload: { projectId?: string; createOrders?: boolean; skus?: string[] }) => {
-      const res = await fetch('/api/proc/mrp/run', {
+      const res = await fetchWithAuth('/api/proc/mrp/run', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),

@@ -59,7 +59,19 @@ export function verifyToken(token: string): Promise<GatewayClaims> {
 
   return new Promise((resolve, reject) => {
     if (useKeycloak) {
-      jwt.verify(token, getKey, { algorithms: ['RS256'] }, (err, decoded) => {
+      const issuer =
+        process.env.KEYCLOAK_ISSUER ||
+        process.env.JWT_ISSUER ||
+        'http://localhost:8080/realms/erp';
+      const audience = process.env.JWT_AUDIENCE; // optional; Keycloak often omits azp-only
+      const opts: jwt.VerifyOptions = {
+        algorithms: ['RS256'],
+        issuer,
+      };
+      if (audience) {
+        opts.audience = audience;
+      }
+      jwt.verify(token, getKey, opts, (err, decoded) => {
         if (err || !decoded) return reject(err || new Error('invalid token'));
         resolve(toClaims(decoded));
       });
