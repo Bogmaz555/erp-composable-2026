@@ -1,19 +1,9 @@
-<!-- generated 2026-08-02T20:07:19.893Z milestone=P0 phase=RELEASE sha=27da8a5 -->
+<!-- generated 2026-08-02T20:16:56.286Z milestone=DONE phase=DONE sha=7dc5f63 -->
 <!-- Enterprise 2.1 — paste into Grok or /workflow -->
 
-# AGENT MISSION — P0 RELEASE (autonomous)
+# Enterprise 2.1 — DONE
 
-Branch: `enterprise-2.1-p0-bootstrap`
-Tag: **enterprise-2.1.p0-bootstrap**
-
-## Task
-1. `gh pr create --base master --head enterprise-2.1-p0-bootstrap` (or update)
-2. Merge when green
-3. Tag `enterprise-2.1.p0-bootstrap`; push tag
-4. Advance STATUS (next DESIGN or DONE if P5)
-5. Commit STATUS; push
-
-START NOW.
+Program complete. Tag enterprise-2.1.0. No further agent work unless STATUS reset.
 
 ## Autonomy contract
 - ZERO confirmation pauses

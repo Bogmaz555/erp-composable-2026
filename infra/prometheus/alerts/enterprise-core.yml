@@ -1,0 +1,24 @@
+groups:
+  - name: erp_enterprise_core
+    rules:
+      - alert: ErpGatewayDown
+        expr: erp_up{service="api-gateway"} != 1 or absent(erp_up{service="api-gateway"})
+        for: 2m
+        labels:
+          severity: critical
+          domain: enterprise-core
+        annotations:
+          summary: API gateway erp_up missing or zero
+          description: >
+            Scrape job erp-api-gateway reports gateway down.
+            Run: pnpm run health:matrix && bash scripts/boot-enterprise.sh
+
+      - alert: ErpGatewayScrapeAbsent
+        expr: absent(up{job="erp-api-gateway"} == 1)
+        for: 5m
+        labels:
+          severity: warning
+          domain: enterprise-core
+        annotations:
+          summary: Prometheus cannot scrape api-gateway /api/metrics
+          description: Check network host.docker.internal:4005 and gateway process

@@ -24,6 +24,7 @@ import fastifyHttpProxy from '@fastify/http-proxy';
 // Analytics health via proxy: /api/analytics/health.
 export const PUBLIC_PATH_PREFIXES = [
   '/api/health',
+  '/api/metrics',
   '/api/analytics/health',
 ];
 

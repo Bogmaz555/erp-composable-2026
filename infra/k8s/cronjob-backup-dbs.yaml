@@ -1,0 +1,25 @@
+# Example CronJob — backup DBs nightly (operator fills image/command secrets)
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: erp-backup-dbs
+  labels:
+    enterprise.p2: dr
+spec:
+  schedule: "0 2 * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: backup
+              image: erp/ops-backup:latest
+              command: ["bash", "scripts/backup-dbs.sh", "/backups"]
+              volumeMounts:
+                - name: backups
+                  mountPath: /backups
+          volumes:
+            - name: backups
+              persistentVolumeClaim:
+                claimName: erp-backups
