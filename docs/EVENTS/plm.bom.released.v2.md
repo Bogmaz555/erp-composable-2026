@@ -25,6 +25,7 @@ Wersja v2 wprowadza pełne drzewo komponentów w payloadzie (dla łatwej konsump
   "revision": "string",
   "projectId": "uuid?",
   "tenantId": "string?",
+  "correlationId": "uuid?",
   "effectivityFrom": "date?",
   "effectivityTo": "date?",
   "components": [
@@ -36,9 +37,11 @@ Wersja v2 wprowadza pełne drzewo komponentów w payloadzie (dla łatwej konsump
       "position": "number?",
       "scrapFactor": "number?",
       "bomLevel": "number?",
+      "level": "number?",
       "parentBomComponentId": "uuid?",
       "isSubAssembly": "boolean?",
       "subBomVersionId": "uuid?",
+      "makeBuy": "BUY|MAKE|PHANTOM?",
       "effectivityFrom": "...",
       "effectivityTo": "..."
     }
@@ -48,7 +51,8 @@ Wersja v2 wprowadza pełne drzewo komponentów w payloadzie (dla łatwej konsump
 }
 ```
 
-TypeScript: `PlmBomReleasedV2Event` in `@erp/shared-kernel`.
+TypeScript: `PlmBomReleasedV2Event` in `@erp/shared-kernel`.  
+Runtime validation: `assertValidEventPayload('plm.bom.released.v2', …)` under `ENTERPRISE=1`.
 
 ---
 

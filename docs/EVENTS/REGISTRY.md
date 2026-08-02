@@ -38,7 +38,7 @@ Ten dokument jest **Single Source of Truth** dla wszystkich zdarzeń w systemie.
 - `mes.workorder.created.v1` — **Planned**
 - `mes.workorder.started.v1` — **Planned**
 - `mes.production.recorded.v1` — **Active** (INV release + Finance LABOR/OVERHEAD) — see `mes.production.recorded.v1.md`
-- `mes.workorder.completed.v1` — **Planned**
+- `mes.workorder.completed.v1` — **Active** (Enterprise Q1 — emitted with production record)
 - `mes.workorder.failed.v1` — **Planned**
 
 ### PLM

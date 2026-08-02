@@ -2,13 +2,13 @@
 
 **Status:** Active (Enterprise Q1)  
 **Emitowany przez:** plm-service  
-**Konsumenci:** pm-service, mes-service (freeze / impact awareness)
+**Konsumenci:** pm-service, mes-service, inv-service, proc-service (optional react)
 
 ---
 
 ## Opis
 
-Zatwierdzenie Engineering Change Order. Emitowane wyłącznie z outbox w tej samej transakcji co status ECO → APPROVED. Nie mutuje peer BC przez HTTP.
+Engineering Change Order approved. Downstream must not be mutated via HTTP — consumers react to this event and/or the subsequent `plm.bom.released.v2` re-release.
 
 ---
 
@@ -20,12 +20,16 @@ Zatwierdzenie Engineering Change Order. Emitowane wyłącznie z outbox w tej sam
   "ecoNumber": "ECO-1234",
   "title": "string?",
   "affectedBomVersionIds": ["uuid"],
-  "impactSummary": {},
-  "approvedBy": "string",
+  "releasedBomVersionIds": ["uuid?"],
+  "approvedBy": "string?",
   "approvedAt": "ISO",
-  "tenantId": "string?",
-  "supersedingBomVersionId": "uuid?"
+  "correlationId": "uuid?",
+  "tenantId": "string?"
 }
 ```
 
-TypeScript: `PlmEcoApprovedV1Event` in `@erp/shared-kernel`.
+---
+
+## Contract
+
+Validated by `apps/shared-kernel/src/events/validate.ts` (`validatePlmEcoApprovedV1`).

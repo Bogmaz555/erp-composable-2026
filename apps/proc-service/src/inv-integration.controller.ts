@@ -6,6 +6,7 @@ import { propagation, context as otelContext } from '@opentelemetry/api';
 import type { OutOfStockEvent } from '@erp/shared-kernel';
 import { resolveEventId, withProcessedEventGuard } from '@erp/shared-kernel';
 import { PrismaService } from './prisma.service';
+import { applyStockProjection } from './mrp-netting.service';
 
 @Controller()
 export class InvIntegrationController {
@@ -19,6 +20,12 @@ export class InvIntegrationController {
   @EventPattern('inv.stock.out.v1')
   async handleOutOfStock(@Payload() payload: OutOfStockEvent, @Ctx() context: NatsContext) {
     this.logger.debug(`Received OutOfStockEvent for Item: ${payload.itemId}`);
+
+    // Feed MRP stock projection (event-only; Q1 E1.5)
+    const sku = payload.sku || payload.itemId;
+    if (sku) {
+      applyStockProjection(sku, -Math.abs(payload.missingQuantity || 0), 'delta');
+    }
 
     const eventId =
       resolveEventId({

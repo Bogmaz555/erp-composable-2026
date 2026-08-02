@@ -30,7 +30,8 @@
 | TD-TENANT | Tenancy no-op / cross-tenant leak | Wysoki | ✅ **Pilot** | Shared `tenant-extension` + worker ALS (PR 15). Single-tenant-per-deploy + row filter. Gate: `smoke:pilot:tenant` |
 | TD-MONEY | Monetary Float drift | Średni-wysoki | 🟡 | Pilot-critical Decimal blocklist (PR 11); secondary residual (PR 12 / KD-5) |
 | TD-MIG | Prisma push-only / no baselines | Wysoki | ✅ **core** | Baselines + `PILOT=1` forbids push (`docs/PRISMA-MIGRATIONS.md`, PR 10) |
-| TD-005 | Event versioning w kodzie | Wysoki | 🟡 | Event Registry = source of truth; freeze reverse payload (OQ-5) |
+| TD-005 | Event versioning w kodzie | Wysoki | 🟢 **Q1 spine** | Active spine validators in shared-kernel + `pnpm run check:event-schemas`; residual non-spine events |
+| TD-Q1-HTTP | Sync HTTP reads MRP/PLM | Średni | 🟡 | ENTERPRISE blocks write demos + MRP HTTP; non-enterprise GET residual for local |
 | TD-006 | `fix-*.js` root chaos | Średni | ✅ | Usunięte 2026-06-06 |
 | TD-007 | Prisma client outputs | Wysoki | 🟡 | Standaryzacja częściowa |
 | TD-008 | Retry / circuit breaker | Średni | 🟡 | Outbox attempts/FAILED + reclaim; no full CB mesh |
