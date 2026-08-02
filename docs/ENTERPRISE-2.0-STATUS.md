@@ -1,16 +1,16 @@
 # Enterprise 2.0 — automation status
 
 ```
-updated: 2026-08-02T13:20:09.126Z
+updated: 2026-08-02T13:21:02.036Z
 program: enterprise-2.0
 baseline_tag: pilot-v1.1.0
 target_tag: enterprise-2.0.0
 tenancy: DEDICATED_STACK
 automation_mode: full
 branch: enterprise-2.0.0-ga
-sha: 7a0692b
+sha: 0b96ec7
 milestone: Q5
-phase: GATE
+phase: RELEASE
 milestone_index: 2
 phase_index: 0
 state: READY
@@ -23,8 +23,10 @@ checklist: Q0: done
   Q5: pending
   automation_scaffold: true
 last_error: none
-next_action: Execute docs/enterprise-2.0/NEXT_AGENT_PROMPT.md (Q5/GATE)
+next_action: Execute docs/enterprise-2.0/NEXT_AGENT_PROMPT.md (Q5/RELEASE)
 resume_prompt: |
+  RESUME Enterprise 2.0. checkout current branch. Read docs/ENTERPRISE-2.0-STATUS.md.
+  milestone=Q5 phase=RELEASE. Continue autonomy. No confirmation pauses.
   RESUME Enterprise 2.0. checkout current branch. Read docs/ENTERPRISE-2.0-STATUS.md.
   milestone=Q5 phase=GATE. Continue autonomy. No confirmation pauses.
   RESUME Enterprise 2.0. checkout current branch. Read docs/ENTERPRISE-2.0-STATUS.md.
@@ -98,3 +100,4 @@ See `docs/enterprise-2.0/milestones.json` for milestone definitions and gates.
 | 2026-08-02T13:19:14.040Z | Q4 RELEASE complete; Q5 DESIGN next (Ops GA) |
 | 2026-08-02T13:20:09.095Z | Q5 DESIGN GA written |
 | 2026-08-02T13:20:09.126Z | advance success: Q5/GATE Q5 IMPLEMENT ops docs+scripts |
+| 2026-08-02T13:21:02.036Z | advance success: Q5/RELEASE gate passed Q5 |
