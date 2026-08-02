@@ -1,16 +1,16 @@
 # Enterprise 2.0 — automation status
 
 ```
-updated: 2026-08-02T12:07:03.101Z
+updated: 2026-08-02T12:07:13.327Z
 program: enterprise-2.0
 baseline_tag: pilot-v1.1.0
 target_tag: enterprise-2.0.0
 tenancy: DEDICATED_STACK
 automation_mode: full
 branch: enterprise-0.3-finance-compliance
-sha: d97681e
-milestone: Q2
-phase: GATE
+sha: 5194c28
+milestone: Q3
+phase: DESIGN
 milestone_index: 1
 phase_index: 1
 state: READY
@@ -23,8 +23,12 @@ checklist: Q0: done
   Q5: pending
   automation_scaffold: true
 last_error: none
-next_action: Run bash scripts/enterprise-2.0/gate-check.sh Q2 then RELEASE
+next_action: Execute docs/enterprise-2.0/NEXT_AGENT_PROMPT.md (Q3/DESIGN)
 resume_prompt: |
+  RESUME Enterprise 2.0. checkout current branch. Read docs/ENTERPRISE-2.0-STATUS.md.
+  milestone=Q3 phase=DESIGN. Continue autonomy. No confirmation pauses.
+  RESUME Enterprise 2.0. checkout current branch. Read docs/ENTERPRISE-2.0-STATUS.md.
+  milestone=Q2 phase=RELEASE. Continue autonomy. No confirmation pauses.
   RESUME Enterprise 2.0. checkout current branch. Read docs/ENTERPRISE-2.0-STATUS.md.
   milestone=Q2 phase=RELEASE. Continue autonomy. No confirmation pauses.
   RESUME Enterprise 2.0. checkout current branch. Read docs/ENTERPRISE-2.0-STATUS.md.
@@ -86,3 +90,5 @@ See `docs/enterprise-2.0/milestones.json` for milestone definitions and gates.
 | 2026-08-02T12:06:21.658Z | Q2 PR1-4 verified green (period/AR-AP/KSeF/compensations); PR5-8 already landed; orchestrator matrix publish; phase GATE |
 | 2026-08-02T12:06:29.697Z | advance success: Q2/RELEASE gate passed Q2 |
 | 2026-08-02T12:07:03.101Z | Q2 IMPLEMENT PR1-4 done (verified); PR5-8 landed in 0daa02c; hold GATE until gate-check green (not RELEASE yet) |
+| 2026-08-02T12:07:03.214Z | advance success: Q2/RELEASE Q2 RELEASE PR#7 tag enterprise-0.3-finance-compliance @ 4bed95b |
+| 2026-08-02T12:07:13.327Z | advance success: Q3/DESIGN Q2 RELEASE complete PR#7 tag enterprise-0.3-finance-compliance |
