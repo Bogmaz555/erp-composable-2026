@@ -6,7 +6,8 @@ apiGateway:
   replicaCount: 3
   authEnforce: true
   useKeycloakJwks: true
-  pilot: "0"
+  # PILOT=1 required by ci-pilot-auth-env (JWKS auth surface); coexists with ENTERPRISE=1
+  pilot: "1"
   # Enterprise profile (assertEnterpriseMessaging at gateway boot)
   enterprise: "1"
   natsJetstream: "true"
