@@ -44,6 +44,14 @@ export abstract class GenericOutboxRelay {
   /** Prevents overlapping relayEvents ticks (e.g. @Interval while a batch is still running). */
   private running = false;
 
+  protected get instanceId(): string {
+    const host =
+      (typeof process !== 'undefined' && (process.env.HOSTNAME || process.env.COMPUTERNAME)) ||
+      'relay';
+    const pid = typeof process !== 'undefined' ? process.pid : 0;
+    return `${host}:${pid}`;
+  }
+
   /** Lazy JetStream connection when NATS_JETSTREAM is on. */
   private jsHandles: JetStreamHandles | null = null;
   private jsConnectPromise: Promise<JetStreamHandles> | null = null;
@@ -166,7 +174,7 @@ export abstract class GenericOutboxRelay {
             { lockedAt: null, createdAt: { lt: cutoff } },
           ],
         },
-        data: { status: 'PENDING', lockedAt: null },
+        data: { status: 'PENDING', lockedAt: null, lockedBy: null },
       });
       const count = result?.count ?? 0;
       if (count > 0) {
@@ -199,7 +207,7 @@ export abstract class GenericOutboxRelay {
       const now = new Date();
       const result = await this.prisma.outboxEvent.updateMany({
         where: { id: event.id, status: 'PENDING' },
-        data: { status: 'PROCESSING', lockedAt: now },
+        data: { status: 'PROCESSING', lockedAt: now, lockedBy: this.instanceId },
       });
       claimed = (result?.count ?? 0) > 0;
     } catch (e) {
