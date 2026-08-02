@@ -1,12 +1,17 @@
-<!-- generated 2026-08-02T20:05:21.234Z milestone=P0 phase=GATE sha=52c9513 -->
+<!-- generated 2026-08-02T20:07:19.893Z milestone=P0 phase=RELEASE sha=27da8a5 -->
 <!-- Enterprise 2.1 — paste into Grok or /workflow -->
 
-# AGENT MISSION — P0 GATE (autonomous)
+# AGENT MISSION — P0 RELEASE (autonomous)
+
+Branch: `enterprise-2.1-p0-bootstrap`
+Tag: **enterprise-2.1.p0-bootstrap**
 
 ## Task
-1. `bash scripts/enterprise-2.1/gate-check.sh P0`
-2. Fix up to 3 times or STATUS BLOCKED
-3. On pass: STATUS phase=RELEASE, commit, push
+1. `gh pr create --base master --head enterprise-2.1-p0-bootstrap` (or update)
+2. Merge when green
+3. Tag `enterprise-2.1.p0-bootstrap`; push tag
+4. Advance STATUS (next DESIGN or DONE if P5)
+5. Commit STATUS; push
 
 START NOW.
 
