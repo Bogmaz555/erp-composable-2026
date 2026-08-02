@@ -1,17 +1,31 @@
-<!-- generated 2026-08-02T20:07:19.893Z milestone=P0 phase=RELEASE sha=27da8a5 -->
+<!-- generated 2026-08-02T20:08:03.342Z milestone=P1 phase=DESIGN sha=c52fd22 -->
 <!-- Enterprise 2.1 — paste into Grok or /workflow -->
 
-# AGENT MISSION — P0 RELEASE (autonomous)
+# AGENT MISSION — P1 DESIGN (autonomous)
 
-Branch: `enterprise-2.1-p0-bootstrap`
-Tag: **enterprise-2.1.p0-bootstrap**
+Repo: /home/bogdan-mazur/PROGRAMY/ERP/erp-composable-2026
+Baseline: enterprise-2.0.0
+Branch: `enterprise-2.1-p1-observability` (create from master if missing)
+Tenancy: **DEDICATED_STACK**
+
+## Identity
+Principal Architect. Full autonomy. No confirmation pauses.
 
 ## Task
-1. `gh pr create --base master --head enterprise-2.1-p0-bootstrap` (or update)
-2. Merge when green
-3. Tag `enterprise-2.1.p0-bootstrap`; push tag
-4. Advance STATUS (next DESIGN or DONE if P5)
-5. Commit STATUS; push
+Produce design at **`docs/ENTERPRISE-2.1-P1-OBS-DESIGN.md`** for **P1: Observability and SLO**.
+
+### Workstreams
+- OTel/traces on gateway + PM INV FIN MES
+- Prometheus scrapes + Grafana SLO dashboards
+- Burn-rate / availability alerts
+- On-call runbook
+
+### Rules
+- Key Decisions, Alternatives, Security, risks, **## PR Plan** with `### PR N: Title`
+- Non-negotiables: ADR-008 + docs/ENTERPRISE-2.1-PLAN.md
+- Do **not** reset Enterprise 2.0 STATUS (stays DONE)
+- After design: STATUS phase=IMPLEMENT, commit, push
+- Forbidden: readiness theater, Faza 29+, secrets in git
 
 START NOW.
 
