@@ -1,29 +1,9 @@
-<!-- generated 2026-08-02T20:10:04.274Z milestone=P1 phase=IMPLEMENT sha=3bf4eef -->
+<!-- generated 2026-08-02T20:16:56.286Z milestone=DONE phase=DONE sha=7dc5f63 -->
 <!-- Enterprise 2.1 — paste into Grok or /workflow -->
 
-# AGENT MISSION — P1 IMPLEMENT (autonomous)
+# Enterprise 2.1 — DONE
 
-Repo: /home/bogdan-mazur/PROGRAMY/ERP/erp-composable-2026
-Design: `docs/ENTERPRISE-2.1-P1-OBS-DESIGN.md`
-Branch: `enterprise-2.1-p1-observability`
-
-## Task
-1. Read docs/ENTERPRISE-2.1-P1-OBS-DESIGN.md ## PR Plan
-2. Implement in dependency order on `enterprise-2.1-p1-observability`
-3. When complete: STATUS phase=GATE, commit, push
-4. Prefer: `bash scripts/enterprise-2.1/gate-check.sh P1`
-
-### Workstreams
-- OTel/traces on gateway + PM INV FIN MES
-- Prometheus scrapes + Grafana SLO dashboards
-- Burn-rate / availability alerts
-- On-call runbook
-
-### Gates next
-  - `pnpm run smoke:pilot`
-  - `bash scripts/enterprise-2.1/check-p1-obs.sh`
-
-START NOW.
+Program complete. Tag enterprise-2.1.0. No further agent work unless STATUS reset.
 
 ## Autonomy contract
 - ZERO confirmation pauses
