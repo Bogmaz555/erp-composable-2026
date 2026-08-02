@@ -216,3 +216,29 @@ DR_DRILL_DRY_RUN=0 RESTORE_FROM=./backups/<timestamp> ./scripts/dr-drill.sh
 - [`docs/PROJECT-STATE.md`](./PROJECT-STATE.md) — honest project state
 - [`docs/TECHNICAL-DEBT.md`](./TECHNICAL-DEBT.md) — TD registry aligned to pilot
 - `scripts/smoke-pilot-suite.ts` — honest gate orchestrator
+
+---
+
+## Pilot v1 CLOSED (2026-08-02)
+
+**Tag:** `pilot-v1.0.0` · **Merge:** PR #1 · **SHA:** `da7569f`
+
+### Accepted residual (not blockers for single-tenant pilot)
+
+| ID | Item |
+|----|------|
+| R3 | Git history may still contain old keys — rotate if repo public; tree clean |
+| R5 | CRM lacks tenantId columns — single-tenant deployment |
+| R6 | Multi-instance outbox reclaim double-delivery — pilot single replica |
+| R7 | Full saga compensation BOM/MES — WIP reverse only |
+| R8 | Temporal full SDK — non-DoD |
+| UAT-UI | Full browser ETO path as engineer — manual before customer demo |
+| DR-live | `DR_DRILL_DRY_RUN=0` not run on shared env — dry-run PASS |
+
+### Gate commands
+
+```bash
+pnpm run smoke:pilot
+REQUIRE_LIVE=1 AUTH_ENFORCE=true USE_KEYCLOAK_JWKS=true NATS_JETSTREAM=true pnpm run smoke:pilot
+DR_DRILL_DRY_RUN=1 bash scripts/dr-drill.sh
+```

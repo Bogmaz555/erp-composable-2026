@@ -1,9 +1,11 @@
 # ERP Composable 2026 — Stan Projektu (pełne podsumowanie)
 
-**Ostatnia aktualizacja:** 2026-08-01 (PR 21 — docs honesty)  
-**Bieżąca warstwa (honest):** **Pilot v1 hardening** (design PR 1–21) — **nie production**  
+**Ostatnia aktualizacja:** 2026-08-02  
+**Bieżąca warstwa (honest):** **Pilot v1 CLOSED** — tag `pilot-v1.0.0` @ `da7569f`  
+**UAT:** [`docs/PILOT-V1-UAT.md`](./PILOT-V1-UAT.md) — **GO conditional**  
 **Design binding:** [`docs/PILOT-V1-DESIGN.md`](./PILOT-V1-DESIGN.md)  
-**Honest quality gate:** `pnpm run smoke:pilot` / `pnpm run pipeline:pilot`
+**Honest quality gate:** `pnpm run smoke:pilot` / `REQUIRE_LIVE=1 pnpm run smoke:pilot`  
+**Closure board:** [`docs/PILOT-V1-CLOSURE-BOARD.md`](./PILOT-V1-CLOSURE-BOARD.md)
 
 > ### ⚠️ Honesty banner
 >
