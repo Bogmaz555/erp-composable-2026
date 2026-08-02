@@ -1,0 +1,138 @@
+{
+  "program": "enterprise-2.0",
+  "baseline_tag": "pilot-v1.1.0",
+  "target_tag": "enterprise-2.0.0",
+  "tenancy_default": "DEDICATED_STACK",
+  "milestones": [
+    {
+      "id": "Q0",
+      "name": "Platform Certification",
+      "tag": "enterprise-0.1-platform",
+      "branch": "enterprise-0.1-platform",
+      "design_doc": "docs/ENTERPRISE-0.1-PLATFORM-DESIGN.md",
+      "phases": ["DESIGN", "IMPLEMENT", "GATE", "RELEASE"],
+      "workstreams": [
+        "E0.1 JetStream mandatory (no core-NATS prod path)",
+        "E0.2 Outbox lockedAt + multi-replica safe",
+        "E0.3 Idempotent consumers processed_events",
+        "E0.4 Secrets Variant B (A only if APPROVED_BY_USER_A)",
+        "E0.5 Auth hard iss/aud/azp rate-limit",
+        "E0.6 Tenancy ADR + enforcement sketch"
+      ],
+      "gate_commands": [
+        "pnpm run smoke:pilot",
+        "REQUIRE_LIVE=1 REQUIRE_LIVE_STRICT=1 pnpm run smoke:pilot",
+        "REQUIRE_LIVE=1 npx tsx scripts/smoke-outbox-live-hard.ts",
+        "REQUIRE_LIVE=1 REQUIRE_LIVE_STRICT=1 npx tsx scripts/smoke-saga-compensation.ts",
+        "bash scripts/ci-no-secrets.sh",
+        "pnpm run db:check:baselines",
+        "pnpm run check:no-float-money"
+      ],
+      "do_not": ["domain feature expansion", "readiness theater", "Faza 29+"]
+    },
+    {
+      "id": "Q1",
+      "name": "ETO Manufacturing Spine",
+      "tag": "enterprise-0.2-eto-spine",
+      "branch": "enterprise-0.2-eto-spine",
+      "design_doc": "docs/ENTERPRISE-0.2-ETO-DESIGN.md",
+      "depends_on": ["Q0"],
+      "phases": ["DESIGN", "IMPLEMENT", "GATE", "RELEASE"],
+      "workstreams": [
+        "PLM BOM/ECO depth event-only write path",
+        "PM CCPM EVM real journey",
+        "MES routing operations genealogy",
+        "INV LOT/SN WMS traceability",
+        "PROC MRP PO receive",
+        "Remove sync HTTP write-path between services",
+        "Event schema contracts for Active events"
+      ],
+      "gate_commands": [
+        "pnpm run smoke:pilot",
+        "REQUIRE_LIVE=1 REQUIRE_LIVE_STRICT=1 pnpm run smoke:pilot",
+        "./node_modules/.bin/playwright test e2e/pilot-eto-complete.spec.ts"
+      ]
+    },
+    {
+      "id": "Q2",
+      "name": "Finance Tax Quality EAM Temporal",
+      "tag": "enterprise-0.3-finance-compliance",
+      "branch": "enterprise-0.3-finance-compliance",
+      "design_doc": "docs/ENTERPRISE-0.3-FINANCE-DESIGN.md",
+      "depends_on": ["Q1"],
+      "phases": ["DESIGN", "IMPLEMENT", "GATE", "RELEASE"],
+      "workstreams": [
+        "Finance journal AR/AP period close",
+        "KSeF prod-capable path",
+        "Quality NCR CAPA full",
+        "EAM real IoT adapter interface",
+        "Temporal (or equivalent) for ETO/finance/proc sagas",
+        "Full financial compensations"
+      ],
+      "gate_commands": [
+        "REQUIRE_LIVE=1 REQUIRE_LIVE_STRICT=1 pnpm run smoke:pilot",
+        "REQUIRE_LIVE=1 REQUIRE_LIVE_STRICT=1 npx tsx scripts/smoke-saga-compensation.ts"
+      ]
+    },
+    {
+      "id": "Q3",
+      "name": "Isolation and Scale",
+      "tag": "enterprise-0.4-isolation-scale",
+      "branch": "enterprise-0.4-isolation-scale",
+      "design_doc": "docs/ENTERPRISE-0.4-SCALE-DESIGN.md",
+      "depends_on": ["Q2"],
+      "phases": ["DESIGN", "IMPLEMENT", "GATE", "RELEASE"],
+      "workstreams": [
+        "Tenancy model enforced (DEDICATED or SHARED_RLS)",
+        "NetworkPolicy + non-public services",
+        "NATS 3-node or documented HA path",
+        "k6 business-path load budgets",
+        "HPA PDB resources on Helm"
+      ],
+      "gate_commands": [
+        "pnpm run smoke:pilot",
+        "bash scripts/enterprise-2.0/gate-check.sh Q3"
+      ]
+    },
+    {
+      "id": "Q4",
+      "name": "UX MDM DMS Integrations",
+      "tag": "enterprise-0.5-ux-mdm",
+      "branch": "enterprise-0.5-ux-mdm",
+      "design_doc": "docs/ENTERPRISE-0.5-UX-DESIGN.md",
+      "depends_on": ["Q3"],
+      "phases": ["DESIGN", "IMPLEMENT", "GATE", "RELEASE"],
+      "workstreams": [
+        "MDM product/partner SoR",
+        "DMS documents versioned",
+        "Full UI CRUD ETO week without CLI",
+        "Global search authz",
+        "Signed webhooks integrations"
+      ],
+      "gate_commands": [
+        "./node_modules/.bin/playwright test e2e/pilot-eto-complete.spec.ts",
+        "pnpm run smoke:pilot"
+      ]
+    },
+    {
+      "id": "Q5",
+      "name": "Ops Certification GA",
+      "tag": "enterprise-2.0.0",
+      "branch": "enterprise-2.0.0-ga",
+      "design_doc": "docs/ENTERPRISE-2.0-GA-DESIGN.md",
+      "depends_on": ["Q4"],
+      "phases": ["DESIGN", "IMPLEMENT", "GATE", "RELEASE"],
+      "workstreams": [
+        "SLO real metrics all services",
+        "DR enterprise RPO/RTO drilled",
+        "Pen-test pack + SBOM",
+        "ISO 27001 control map",
+        "Helm umbrella all services air-gap notes"
+      ],
+      "gate_commands": [
+        "bash scripts/enterprise-2.0/gate-check.sh Q5",
+        "COMPOSE_PROJECT_NAME=erp-pilot-dr DR_DRILL_DRY_RUN=1 bash scripts/dr-drill.sh"
+      ]
+    }
+  ]
+}
