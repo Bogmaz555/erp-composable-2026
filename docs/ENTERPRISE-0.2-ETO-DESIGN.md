@@ -6,56 +6,58 @@
 | **Milestone** | Q1 — ETO Manufacturing Spine |
 | **Tag** | `enterprise-0.2-eto-spine` |
 | **Branch** | `enterprise-0.2-eto-spine` |
-| **Baseline** | `enterprise-0.1-platform` (Q0) / pilot-v1.1.0 |
+| **Baseline** | `enterprise-0.1-platform` (Q0) on top of `pilot-v1.1.0` |
 | **Author** | Principal Architect (Enterprise 2.0 automation) |
 | **Date** | 2026-08-02 |
 | **Status** | **Approved for IMPLEMENT** |
 | **Tenancy lock** | `DEDICATED_STACK` (STATUS; not SHARED_RLS) |
 | **Secrets** | Variant **B** (`APPROVED_BY_USER_A=false`) |
-| **Non-negotiables** | ADR-008 + `docs/ENTERPRISE-2.0-PLAN.md` |
-| **Depends on** | Q0 platform certification (JetStream mandatory, outbox lockedAt, processed_events, auth hard) |
+| **Non-negotiables** | ADR-008 + ADR-006 + `docs/ENTERPRISE-2.0-PLAN.md` |
 
 ---
 
 ## Overview
 
-Q0 certified the **platform** (messaging, outbox multi-replica, consumer idempotency, auth, tenancy ADR). **Q1 deepens the ETO manufacturing spine** without expanding finance/tax/Temporal (those are Q2), isolation/HA (Q3), or full UX/MDM (Q4).
+Q0 certified the **platform** (JetStream mandatory, outbox `lockedAt`, `processed_events`, auth iss/aud/azp, secrets B, DEDICATED_STACK ADR). **Q1 deepens the manufacturing ETO value path** without expanding into finance/tax full (Q2), isolation scale (Q3), UX/MDM (Q4), or ops GA (Q5).
 
-Pilot Faza 1 proved a **demo-grade** ETO chain: `plm.bom.released.v2` → PM material request → INV reservation → MES production → Finance WIP, with `bomComponentId` as correlation key (ADR-006). Residual gaps block enterprise manufacturing claims:
+| Gap after Pilot + Q0 | Enterprise 0.2 requirement |
+|----------------------|----------------------------|
+| PLM BOM release works; ECO is create/impact only — no approve → event | ECO lifecycle emits `plm.eco.approved.v1` via outbox; BOM depth + event-only write |
+| PM CCPM seed + toy EVM (`usedBufferDays * 1000`) | CCPM buffer journey real; EVM from WBS + cost signals (not demo formulas) |
+| MES has Operation/AsBuilt models; routing aggregate shallow | Routing ops lifecycle + as-built genealogy wired to production record |
+| INV LOT/SN + WMS models exist; receive → QUARANTINE only, weak LOT/SN | LOT/SN on receive; WMS pick path linked to reservation/`bomComponentId` |
+| PROC MRP netting HTTP-reads INV; receive is TX+outbox | MRP from events + local projections; PO → receive → INV event-only stock write |
+| HTTP demo write: `POST plm-integration/bom-released` still mutates PM | Remove sync HTTP **write** between services; NATS/outbox only |
+| Event docs/types partial for Active spine events | Schema contracts in shared-kernel + Event Registry aligned |
 
-| Gap after Pilot + Q0 | Enterprise Q1 requirement |
-|----------------------|---------------------------|
-| BOM release snapshot often missing `bomComponentId` in event docs / partial consumers | Full depth BOM + ECO path; event contracts with `bomComponentId` on every line |
-| ECO approved largely Planned / demo HTTP | ECO → supersede BOM → re-release event-only |
-| PM CCPM/EVM seeded mocks; critical chain partial | Real journey: WBS → critical chain → buffer → EVM from actuals |
-| MES routing/ops/genealogy incomplete for as-built | Routing ops complete; genealogy linked to LOT/SN + bomComponentId |
-| INV LOT/SN + WMS pick path thin | Lot/SN on reserve/issue/receive; WMS pick → stock-out events |
-| PROC MRP netting uses **sync HTTP reads** to INV/PLM | Event/projection-driven MRP + PO → receive → INV stock (no inter-service write HTTP) |
-| Legacy `*-integration` POST endpoints as write path | Remove sync HTTP **write** path between services; HTTP allowed for **gateway→service** and **read projections** only where documented |
-| Event registry incomplete / schema drift | Active event schema contracts (JSON Schema or zod) for spine events |
-
-**Goal:** Ship tag `enterprise-0.2-eto-spine` with live smoke + Playwright ETO e2e green. Domain depth is real (not theater). No Faza 29+. No finance full / KSeF / Temporal (Q2).
+**Goal:** Ship tag `enterprise-0.2-eto-spine` with live `smoke:pilot` + Playwright `e2e/pilot-eto-complete.spec.ts` green. No readiness theater. No Faza 29+. No domain scope creep beyond the manufacturing spine.
 
 ---
 
 ## Background & motivation
 
-### What Pilot + Q0 already proved (do not re-build)
+### What is already proven (do not re-build)
 
-- Platform: JetStream enterprise profile, outbox `lockedAt`, `processed_events`, auth iss/aud/azp, DEDICATED_STACK ADR-009.
-- ADR-006: `bomComponentId` as manufacturing correlation key.
-- Active spine events (partial): `plm.bom.released.v2`, `pm.material.requested.v1`, `inventory.reservation.created.v1` / `.released.v1`, `mes.production.recorded.v1`, `inv.stock.out.v1`, `proc.purchaseorder.created.v1` / `.approved.v1`, `proc.material.received.v1`.
-- Models exist: PLM BomVersion/BomComponent/ECO; PM Project/WBS/Task; MES WorkOrder/Operation/AsBuilt*; INV Lot/Reservation/Genealogy/WMS; PROC PO/MRP services.
-- G-lite saga compensation + reverse WIP (pilot); multi-replica outbox safe after Q0.
+- **Traceability key:** ADR-006 `bomComponentId` end-to-end on release/reserve/production paths.
+- **Active events:** `plm.bom.released.v2`, `pm.material.requested.v1`, `inventory.reservation.created.v1` / `released.v1`, `mes.production.recorded.v1`, `inv.stock.out.v1`, `proc.purchaseorder.*`, `proc.material.received.v1`, finance WIP record/reverse (G-lite).
+- **Platform (Q0):** JetStream enterprise profile, outbox multi-replica claim, consumer ledger, hard auth, Variant B, ADR-009.
+- **Models present:** PLM Item/BomVersion/BomComponent/ECO; PM Project/WBS/TaskDependency/ScheduleBaseline; MES WorkOrder/Operation/MaterialRequirement/AsBuilt*; INV Lot/Reservation/StockTransaction/ItemGenealogy/Warehouse/PickList; PROC Supplier/PurchaseOrder.
+- **E2E gate surface:** `e2e/pilot-eto-complete.spec.ts` (12 scenarios — auth + API UAT).
 
-### Residual that blocks enterprise manufacturing tag
+### Residual that blocks enterprise manufacturing spine
 
-1. **PLM depth:** ECO lifecycle incomplete; BOM multi-level explode not always in release payload; event doc v2 still omits `bomComponentId` while code/ADR require it.
-2. **PM journey:** CCPM seed/demo endpoints; EVM may use incomplete actuals; material request not always event-only from BOM consume.
-3. **MES:** Routing ops incomplete; genealogy not always written on production complete with LOT/SN.
-4. **INV:** LOT/SN optional on many paths; WMS pick not fully event-wired to stock-out.
-5. **PROC:** `mrp-netting.service.ts` and `long-lead-radar.service.ts` use **sync HTTP GET** to INV/PLM — read coupling; any remaining POST write to peer services must go.
-6. **Contracts:** Registry marks several events Planned; Active payloads lack machine-checkable schemas.
+| Area | Evidence in code | Impact |
+|------|------------------|--------|
+| PLM release TX | `release-bom-version.handler.ts`: status update then separate `outboxEvent.create` (not single `$transaction`) | Dual-write risk under crash |
+| ECO approve | Create + impact only; no APPROVED→IMPLEMENTED + outbox `plm.eco.approved.v1` | Change control not enterprise-grade |
+| HTTP write path | `pm-service` `POST plm-integration/bom-released` mutates WBS/materials | Bypasses outbox identity/headers; dual path |
+| EVM | `GET :id/evm` uses placeholder AC formula | Not a real EVM journey |
+| CCPM | Seed endpoints + fever from NCR/EAM; buffer updates partial | Journey incomplete for pilot UAT story |
+| MES genealogy | AsBuilt models; production complete path partial LOT/SN → genealogy | Spine incomplete for LOT/SN WMS claim |
+| INV receive | `proc.material.received.v1` bumps StockLevel QUARANTINE; often no Lot row / SN | Traceability break at goods receipt |
+| PROC MRP | `mrp-netting.service.ts` sync HTTP GET INV `/inventory` | Coupled read; fragile offline; not event-projected |
+| PROC ledger | No `ProcessedEvent` on proc schema | Idempotency gap on stock-out → PO create |
+| Contracts | Event md files lag shared-kernel types (e.g. `bomComponentId` in v2 doc) | Contract drift |
 
 ---
 
@@ -65,284 +67,363 @@ Pilot Faza 1 proved a **demo-grade** ETO chain: `plm.bom.released.v2` → PM mat
 
 | ID | Goal |
 |----|------|
-| **E1.1** | PLM BOM/ECO depth with **event-only** write path to downstream (release + ECO approved) |
-| **E1.2** | PM CCPM + EVM **real journey** (critical chain, buffers, EV from MES/cost events) |
-| **E1.3** | MES routing operations + genealogy (as-built + bomComponentId + LOT/SN refs) |
-| **E1.4** | INV LOT/SN + WMS traceability (reserve/issue/receive/pick → events + ItemGenealogy) |
-| **E1.5** | PROC MRP → PO → approve → receive fully event-driven to INV |
-| **E1.6** | Remove sync HTTP **write** path between domain services |
-| **E1.7** | Event schema contracts for **Active** manufacturing spine events |
+| **E1.1** | PLM BOM/ECO depth: multi-level release snapshot complete; ECO approve emits event-only; release TX+outbox atomic |
+| **E1.2** | PM CCPM + EVM real journey: buffer consumption from schedule slip / MES progress; EVM PV/EV/AC from project costs + % complete (no demo multipliers) |
+| **E1.3** | MES routing operations + genealogy: op start/complete; production record → as-built components with LOT/SN/`bomComponentId` |
+| **E1.4** | INV LOT/SN + WMS: goods receipt creates Lot (+ optional SN); pick/issue tied to reservation; genealogy chain consistent |
+| **E1.5** | PROC MRP PO receive: netting without inv write-coupling; durable PO create/approve/receive; stock via events only |
+| **E1.6** | Remove sync HTTP **write** paths between services (gateway→service OK; service→service mutation forbidden) |
+| **E1.7** | Event schema contracts for all **Active** manufacturing spine events (types + docs + registry) |
 
-### Non-goals (explicit)
+### Non-goals
 
-- Full Finance journal / AR-AP period close, KSeF prod, Quality NCR/CAPA full, Temporal workers — **Q2**
-- Tenancy SHARED_RLS, NetworkPolicy, NATS 3-node HA, k6 budgets — **Q3**
-- MDM SoR, DMS, full UI CRUD week, global search — **Q4**
-- Multi-region, AI ERP, mass-production MES — **2.1+**
-- Secrets Variant A / filter-repo without `APPROVED_BY_USER_A`
-- Readiness theater / Faza 29+
+- Full Temporal saga orchestration (Q2) — keep G-lite
+- Finance journal AR/AP period close, KSeF prod, Quality CAPA full, EAM IoT real adapter (Q2)
+- Tenancy SHARED_RLS, NetworkPolicy, NATS 3-node HA, k6 budgets (Q3)
+- MDM SoR, DMS full, global search, UI week-without-CLI (Q4)
+- SLO/DR pen-test ISO GA (Q5)
+- Mass-production MES, CPQ 150% BOM configurator UI, CAD import
+- Readiness theater / Faza 29+ / contract self-assert counts as gates
+- Secrets history rewrite; force-push master
 
 ---
 
 ## Current state vs target
 
-| Dimension | Pilot / after Q0 | Enterprise 0.2 (Q1) |
-|-----------|------------------|---------------------|
-| PLM BOM release | v2 snapshot; bomComponentId ADR partial | Full multi-level snapshot + bomComponentId required; ECO supersede → re-release |
-| PM | Demo seed CCPM; partial EVM | Project release → WBS explode from BOM → critical chain + buffer; EVM PV/EV/AC from real data |
-| MES | Production record + partial as-built | Routing ops start/complete; as-built components; genealogy events |
-| INV | Reservation + lot optional | LOT/SN required for tracked items; WMS pick → stock-out; genealogy API honest |
-| PROC | MRP with HTTP INV/PLM reads; PO events partial | Stock/BOM projections or events for MRP; receive → INV stock via event only |
-| Inter-service writes | Some integration POST + demos | **Forbidden**; only NATS/JetStream + outbox |
-| Event contracts | Markdown registry | Markdown + machine schema (zod/JSON Schema) + CI check for Active spine set |
-| Gates | smoke:pilot | + Playwright `e2e/pilot-eto-complete.spec.ts` under live |
+| Dimension | Pilot + Q0 | Enterprise 0.2 (Q1) |
+|-----------|------------|---------------------|
+| BOM release | Outbox v2 + double-bom explode | TX atomic; snapshot contract frozen; projectId/tenantId required on ETO path |
+| ECO | Create + impact JSON | Approve → `plm.eco.approved.v1` outbox; consumers freeze/supersede safely |
+| PM write from PLM | NATS + **HTTP demo POST** | NATS only; HTTP write removed or 410 Gone |
+| CCPM/EVM | Seed fever + toy EVM | Buffer math from schedule; EVM from baseline cost + progress + actual signals |
+| MES ops | Models + partial routing aggregate | Op lifecycle API; genealogy on production record |
+| INV receive | QUARANTINE qty only | Lot/SN + StockTransaction + optional putaway |
+| WMS | PickList models | Pick against reservation/`bomComponentId`; issue updates lot |
+| PROC MRP | HTTP GET INV onhand | Local stock projection from events **or** read-only query API documented as non-write; prefer projection |
+| Cross-service mutation | One known HTTP write + MRP read | **Zero** service→service HTTP writes |
+| Event contracts | Registry partial | Active spine events: shared-kernel TS + md + REGISTRY |
+| Gates | smoke:pilot (Q0) | smoke:pilot + Playwright ETO complete |
 
-### Target ETO spine (event-only writes)
+### Target architecture (ETO spine)
 
 ```mermaid
 flowchart LR
-  PLM[PLM BOM/ECO] -->|plm.bom.released.v2 / plm.eco.approved.v1| PM
-  PLM --> MES
-  PLM --> INV
-  PLM --> PROC
-  PM -->|pm.material.requested.v1 / pm.project.released.v1| INV
-  PM --> MES
-  INV -->|inventory.reservation.created.v1 / inv.stock.out.v1| MES
-  INV --> FIN[Finance WIP]
-  MES -->|mes.production.recorded.v1 / mes.workorder.completed.v1| INV
-  MES --> FIN
-  PROC -->|proc.purchaseorder.created.v1| APPR[Approve]
-  APPR -->|proc.purchaseorder.approved.v1| PM
-  APPR --> FIN
-  PROC -->|proc.material.received.v1| INV
-  INV -->|stock projection events| PROC
+  PLM[plm-service] -->|outbox plm.bom.released.v2| JS[JetStream]
+  PLM -->|outbox plm.eco.approved.v1| JS
+  JS --> PM[pm-service]
+  JS --> MES[mes-service]
+  JS --> INV[inv-service]
+  JS --> PROC[proc-service]
+  PM -->|outbox pm.material.requested.v1| JS
+  PM -->|outbox pm.project.released.v1| JS
+  INV -->|outbox inventory.reservation.* / inv.stock.out| JS
+  MES -->|outbox mes.production.recorded.v1| JS
+  PROC -->|outbox proc.purchaseorder.* / material.received| JS
+  JS --> FIN[finance WIP G-lite]
+  HTTPX[Service HTTP write] -.->|forbidden E1.6| X[removed]
 ```
-
-**Rule:** Domain service A must not `POST`/`PUT`/`PATCH` domain service B to mutate B’s state. Gateway → service remains HTTP. **Read-only** HTTP for operational projections is transitional only if listed in risks and removed or replaced by local projection by end of Q1 where on critical path (MRP).
-
----
-
-## Key Decisions
-
-### KD-E1.1 — BOM release payload must include `bomComponentId` per line (contract hard)
-
-Align event docs + producers with ADR-006:
-
-```json
-{
-  "bomVersionId": "uuid",
-  "itemId": "uuid",
-  "revision": "string",
-  "components": [
-    {
-      "bomComponentId": "uuid",
-      "childItemId": "uuid",
-      "childPartNumber": "string",
-      "quantity": "decimal-string",
-      "position": 10,
-      "level": 0,
-      "parentBomComponentId": null,
-      "makeBuy": "BUY"
-    }
-  ],
-  "releasedAt": "ISO-8601",
-  "releasedBy": "string",
-  "correlationId": "uuid"
-}
-```
-
-- Multi-level: flatten with `level` + optional `parentBomComponentId` (depth ≤ N, default 8).
-- Quantities: decimal string on wire for consistency with money discipline (component qty may remain number only if non-money — prefer string for schema stability).
-- Consumers reject release without `bomComponentId` under `ENTERPRISE=1` (fail closed log + DLQ, no silent ignore).
-
-### KD-E1.2 — ECO path is event-only
-
-1. ECO created/approved in PLM TX → outbox `plm.eco.approved.v1`.
-2. Approved ECO may supersede BOM version and emit new `plm.bom.released.v2` (or `plm.bom.changed.v1` if only delta — prefer full re-release for consumer simplicity).
-3. No HTTP call from PLM to PM/MES/INV/PROC for ECO application.
-
-### KD-E1.3 — PM CCPM/EVM real journey
-
-| Concept | Implementation |
-|---------|----------------|
-| Project release | `pm.project.released.v1` after WBS materialised from BOM (or CRM accept already present) |
-| Critical chain | Longest path on TaskDependency + resource contention flag (single resource type OK for Q1) |
-| Buffer | Project buffer as WBS element type `BUFFER`; feeding buffers optional v1 |
-| Material request | Outbox `pm.material.requested.v1` with bomComponentId (already Active) — no demo POST to INV |
-| EVM | PV from baseline schedule; EV from completed WBS weight × BAC; AC from Finance/MES cost events projection or local cost fields updated by **events** only |
-
-Remove or gate `seedCCPM` / mock-only paths under enterprise profile.
-
-### KD-E1.4 — MES routing + genealogy
-
-- WorkOrder has ordered Operations; start/complete ops emit or accumulate into `mes.production.recorded.v1` (keep Active event; add fields: operationId, lotIds[], serialNumbers[], bomComponentIds[]).
-- On complete: write AsBuiltComponent + outbox; INV genealogy consumer updates ItemGenealogy.
-- `mes.workorder.completed.v1` promoted Active when full WO complete.
-
-### KD-E1.5 — INV LOT/SN + WMS
-
-- Items with tracking flag (or makeBuy BUY with lot control default on enterprise) **require** lotId on issue/reserve for tracked materials.
-- WMS PickList confirm → StockTransaction + `inv.stock.out.v1` / reservation release as today.
-- Genealogy: parent SN/LOT ← child SN/LOT + bomComponentId.
-
-### KD-E1.6 — PROC MRP without write HTTP; minimize read HTTP
-
-| Interaction | Q1 target |
-|-------------|-----------|
-| Shortage | Consume `inv.stock.out.v1` / reservation fail events → PO create outbox |
-| MRP netting stock | Prefer local **StockProjection** table updated by INV events; interim: keep GET only if read-only and not on write path |
-| BOM for MRP | Consume `plm.bom.released.v2` into local BOM projection |
-| PO create/approve/receive | TX + outbox only |
-| Receive | `proc.material.received.v1` → INV stock in (consumer) |
-
-**Forbidden:** PROC POSTing into INV to create stock; INV POSTing into PROC to create PO (except existing event-driven reverse).
-
-### KD-E1.7 — Event schema contracts
-
-- Location: `docs/EVENTS/schemas/{event}.schema.json` **or** `apps/shared-kernel/src/events/schemas/*.ts` (zod) re-exported.
-- CI: script validates Active spine events listed in design DoD against samples + optionally runtime assert in producers under `ENTERPRISE=1`.
-- Version rule: breaking change → new version file (`.v3`); never silently change Active vN.
-
-### KD-E1.8 — Sync HTTP write path removal
-
-Inventory all `*-integration.controller` **mutation** endpoints used cross-service:
-
-- Keep only for **gateway/UI/demo** with explicit `X-Demo-Only` or disable when `ENTERPRISE=1`.
-- Production path: NATS JetStream durable consumers (Q0) only.
-- Analytics/readiness GETs may remain (read).
-
----
-
-## Alternatives
-
-| Alternative | Decision | Why |
-|-------------|----------|-----|
-| Keep integration HTTP writes + events dual path | **Reject** | Dual path → split-brain; violates ADR-002 / Q1 goal E1.6 |
-| Kafka / Temporal for spine orchestration in Q1 | **Reject** | Temporal is Q2; NATS+outbox sufficient for spine |
-| Only itemId correlation (drop bomComponentId) | **Reject** | ADR-006 accepted; ETO ambiguity |
-| Shared DB views across PLM/INV for MRP | **Reject** | ADR-003 database-per-service |
-| Full multi-level recursive BOM in one event unlimited depth | **Bound** | Cap depth; document phantom/sub-assembly policy |
-| Shared-kernel event bus library rewrite | **Defer** | Use existing outbox + JetStream kernel from Q0 |
-| GraphQL federation for manufacturing | **Out of scope** | REST gateway pure proxy remains |
 
 ---
 
 ## Workstream design
 
-### E1.1 — PLM BOM/ECO depth event-only write path
+### E1.1 — PLM BOM/ECO depth (event-only write path)
 
-**Scope**
+**Problem:** Release is non-atomic with outbox; ECO never becomes an enterprise event; consumers rely on incomplete optional `projectId`/`tenantId`.
 
-- `BomComponent` multi-level explode on release (recursive, depth cap).
-- Release command: single TX write BomVersion status RELEASED + OutboxEvent `plm.bom.released.v2` with full components[].
-- ECO: status machine DRAFT → IN_REVIEW → APPROVED → IMPLEMENTED; on APPROVED emit `plm.eco.approved.v1` and apply to BOM (new version + release event).
-- Deprecate dual HTTP demo that mutates PM state without event.
+**Decision KD-E1.1:**
 
-**Files (indicative):** `apps/plm-service/src/**`, `apps/plm-service/prisma/**`, `docs/EVENTS/plm.bom.released.v2.md`, `docs/EVENTS/plm.eco.approved.v1.md`.
+1. **Release command** wraps domain status change + `OutboxEvent` in **one** `$transaction`.
+2. **Payload contract** for `plm.bom.released.v2` (frozen for Q1):
+   - Required: `bomVersionId`, `itemId`, `revision`, `components[]` with **`bomComponentId`**, `childItemId`, `quantity`
+   - ETO path required: `tenantId`, `projectId` (assert when `ENTERPRISE=1` / pilot ETO flows)
+   - Optional: effectivity, double-bom fields (`bomLevel`, `parentBomComponentId`, `subBomVersionId`, `isSubAssembly`), `releasedBy`, `releasedAt`
+3. **ECO approve** command: `PENDING|UNDER_REVIEW` → `APPROVED` (+ optional `IMPLEMENTED` when superseding BOM):
+   - Emit `plm.eco.approved.v1` via outbox same TX
+   - Payload: `ecoId`, `ecoNumber`, `affectedBomVersionIds[]`, `impactSummary`, `approvedBy`, `approvedAt`, `tenantId`, optional `supersedingBomVersionId`
+4. **No HTTP** from PLM to PM/MES/INV/PROC for mutations.
 
-**Acceptance:** Release → PM/MES/INV/PROC consumers update without any PLM→peer HTTP write; contract tests green.
+**Alternatives rejected:**
 
-### E1.2 — PM CCPM EVM real journey
+| Alt | Why reject |
+|-----|------------|
+| Keep Nest EventBus local-only as primary | No durability; violates ADR-002 |
+| ECO as same subject as bom.released | Different semantics; consumers need explicit change control |
+| Sync PLM→PM HTTP explosion | Violates E1.6 |
 
-**Scope**
+**Acceptance:**
 
-- From BOM release: materialise/refresh WBS or material requirements; emit `pm.material.requested.v1`.
-- Critical chain computation in `schedule.service.ts` (harden); expose via API already present.
-- EVM endpoint uses Decimal/BAC from baseline + progress from MES/task complete events.
-- `pm.project.released.v1` Active when project baseline locked.
+- Kill process mid-release → either both BOM RELEASED + outbox PENDING or neither.
+- ECO approve → consumer can observe event (unit + live optional); registry Active.
+- `docs/EVENTS/plm.bom.released.v2.md` includes `bomComponentId`.
 
-**Acceptance:** Live project journey without `seedCCPM` under enterprise; SPI/CPI computed from non-mock data in smoke/e2e.
+---
 
-### E1.3 — MES routing operations genealogy
+### E1.2 — PM CCPM + EVM real journey
 
-**Scope**
+**Problem:** CCPM fever is partly real (NCR/EAM/apply-ncr-delay) but EVM is demo math; project release journey not consistently event-driven for MES WO creation.
 
-- Ensure Operation lifecycle and production recording write AsBuilt* + outbox.
-- Consume BOM release for MaterialRequirement.bomComponentId.
-- Emit completed WO event; genealogy fields on production.recorded.
+**Decision KD-E1.2:**
 
-**Acceptance:** Production complete creates genealogy links consumable by INV; e2e scenario asserts as-built.
+1. **CCPM journey (minimal real):**
+   - Project holds `totalChainDays`, `totalBufferDays`, `usedBufferDays`, `feverZone`, `ccpmBufferPct`.
+   - Buffer consumption updates from: (a) schedule slip vs baseline (`ScheduleBaseline` + `schedule.service`), (b) MES production late signal (optional consumer of production progress — keep light), (c) existing NCR/EAM handlers.
+   - Fever zones: GREEN &lt; 33% buffer used; YELLOW 33–66%; RED ≥ 66% (existing `apply-ncr-delay` ratios — keep consistent).
+2. **EVM journey (real enough for enterprise spine):**
+   - **PV** = `baselineCost` (or budget if baseline unset) — planned cost of work scheduled.
+   - **EV** = PV × physical % complete from WBS (`DONE|COMPLETED` count / total) — same structure, honest source.
+   - **AC** = sum of known actuals available without Q2 finance full: `actualLaborCost` + material commitment signals already on project (if none, AC = `actualLaborCost` only; **never** invent `usedBufferDays * 1000`).
+   - CPI = EV/AC; SPI = EV/PV with safe zero guards.
+3. **`pm.project.released.v1`:** ensure release command writes outbox TX; status RELEASED; MES continues to create WO on event (already).
+4. Keep seed endpoints **dev-only** or behind non-enterprise profile; not DoD for gates.
 
-### E1.4 — INV LOT/SN WMS traceability
+**Alternatives rejected:**
 
-**Scope**
+| Alt | Why reject |
+|-----|------------|
+| Full MS Project parity resource leveling | Scope creep; baseline + dependencies already partial |
+| Pull all AC from finance journals | Q2; use project-local actuals for Q1 |
+| Drop CCPM | Product differentiator for ETO machine builders |
 
-- Lot create/assign on receive and issue; SN where applicable (simple serial table or Lot.serialNumbers JSON — prefer explicit SerialNumber model if missing).
-- WMS pick confirm path evented.
-- Genealogy controller returns honest forward/backward for bomComponentId.
+**Acceptance:**
 
-**Acceptance:** Reserve/issue/receive with lot; genealogy non-empty after MES complete for tracked parts.
+- `GET /projects/:id/evm` returns non-toy AC derivation; unit tests lock formula.
+- Buffer fever updates when NCR delay applied (existing) + schedule slip helper tested.
+- Project release still drives MES WO via event only.
 
-### E1.5 — PROC MRP PO receive
+---
 
-**Scope**
+### E1.3 — MES routing operations + genealogy
 
-- MRP uses BOM projection + stock projection (events); create PO outbox.
-- Approve → `proc.purchaseorder.approved.v1`.
-- GR → `proc.material.received.v1` → INV increases stock/lot.
+**Problem:** Operation/AsBuilt models exist; production recorded event exists; genealogy and op lifecycle not consistently enforced on the ETO journey.
 
-**Acceptance:** Shortage → PO → receive → stock without PROC writing INV over HTTP.
+**Decision KD-E1.3:**
 
-### E1.6 — Remove sync HTTP write-path
+1. **Routing/ops:**
+   - On WO create from BOM: seed Operations from simple default routing if none (sequence 10, 20, …) **or** accept explicit routing payload — no new external service.
+   - API: start operation, complete operation (status transitions PENDING→IN_PROGRESS→COMPLETED); operator session optional.
+2. **Production record path:**
+   - Recording production / completing WO: write `ProductionRecord` + ensure `AsBuiltRecord`/`AsBuiltComponent` rows with `bomComponentId`, `lotId`, `serialNumber` when provided.
+   - Outbox `mes.production.recorded.v1` **same TX** (if not already).
+3. **Genealogy handoff:** payload includes enough for INV to write `ItemGenealogy` (workOrderId, bomComponentIds, lots/serials). Prefer extending existing consumer rather than dual write.
+4. **Idempotency:** production handlers use `withProcessedEventGuard` (Q0).
 
-**Scope**
+**Alternatives rejected:**
 
-- Grep audit: fetch/axios POST to peer service URLs in apps/*-service (exclude gateway, frontend, mcp, analytics readiness GETs).
-- Replace write demos with event publishers or delete under ENTERPRISE=1.
-- Document remaining **read** HTTP in TECHNICAL-DEBT if any must stay one milestone (prefer zero on critical path).
+| Alt | Why reject |
+|-----|------------|
+| Full APS/scheduling engine | Out of Q1 |
+| IoT machine data collection | Q2 EAM/IoT |
+| Separate genealogy service | Violates ADR-003 boundaries; INV+MES own as-built |
 
-**Acceptance:** `scripts` or unit audit: zero inter-service mutation HTTP on enterprise profile.
+**Acceptance:**
+
+- Op complete → visible status; production → as-built components queryable.
+- Live/smoke path non-worse; e2e auth scenarios still pass.
+
+---
+
+### E1.4 — INV LOT/SN + WMS traceability
+
+**Problem:** Goods receipt updates location qty without always creating `Lot`; WMS pick not forced onto reservation spine; genealogy chain gaps.
+
+**Decision KD-E1.4:**
+
+1. **On `proc.material.received.v1` (INV consumer):**
+   - Resolve Item by SKU; create/update StockLevel.
+   - Create **`Lot`** with `lotNumber` (from payload or generated `LOT-{poId short}-{ts}`); optional `serialNumber` when qty=1 and SN provided.
+   - Immutable `StockTransaction` type RECEIPT with lotId, reference PO, `bomComponentId` in notes or dedicated field if migrated.
+   - Prefer TX + ProcessedEvent guard.
+2. **Reservation / issue:**
+   - Keep `bomComponentId` on Reservation (ADR-006).
+   - WMS: pick lines can reference reservation or projectId; completing pick issues stock from lot (status PICKED/ISSUED).
+3. **Genealogy:** on production complete / reservation release, write `ItemGenealogy` parentSerialOrLot ← machine SN or WO; child lot/bomComponentId.
+4. **Events:** optional `inventory.lot.created.v1` if useful for analytics — **Active only if emitted**; else stay Planned. Do not force registry theater.
+
+**Alternatives rejected:**
+
+| Alt | Why reject |
+|-----|------------|
+| Serial mandatory on every receipt | Multi-qty lots common; SN optional |
+| External WMS product | In-module Warehouse/Bin/PickList already present |
+
+**Acceptance:**
+
+- Receive → Lot row exists; stock transaction audit present.
+- Genealogy chain API still returns forward/backward for seeded serials.
+
+---
+
+### E1.5 — PROC MRP / PO / receive
+
+**Problem:** MRP netting uses sync HTTP GET to INV; shortage path event-driven; receive already TX+outbox.
+
+**Decision KD-E1.5:**
+
+1. **MRP onhand source (KD-E1.5a):** Replace hard dependency on live INV HTTP for **write decisions** with:
+   - **Preferred:** local `StockProjection` table (sku → qty) updated by consumers of reservation/release/receive/stock-out events; MRP reads local only.
+   - **Acceptable fallback for Q1 if time-boxed:** keep HTTP **read** only for netting report (explicitly not a write path), document as residual; **must not** POST/PATCH to INV from PROC.
+2. **MRP run:** draft POs with `source=MRP`, `bomComponentId`/`projectId` when known; create via command + outbox `proc.purchaseorder.created.v1` in TX.
+3. **Approve / receive:** existing handlers hardened; ensure ProcessedEvent on INV stock-out consumer in PROC (schema add).
+4. **Long-lead radar:** PLM HTTP product list is **read** — allowed; no writes.
+
+**Alternatives rejected:**
+
+| Alt | Why reject |
+|-----|------------|
+| PROC owns inventory truth | Violates ADR-003 |
+| Shared DB join INV | Forbidden |
+| Full MRP II infinite horizon | Scope; netting + draft PO is enough for ETO spine |
+
+**Acceptance:**
+
+- PO create/approve/receive still emit Active events.
+- No PROC→INV HTTP POST/PATCH.
+- `ProcessedEvent` on proc for inv.stock.out consumer.
+
+---
+
+### E1.6 — Remove sync HTTP write-path between services
+
+**Problem:** `POST .../plm-integration/bom-released` on PM still mutates domain (WBS + material requests). Any similar demo hooks must die.
+
+**Decision KD-E1.6:**
+
+1. **Inventory of service→service HTTP writes** (mutations): remove or return **410** with message “use NATS event”.
+2. **Known item:** `apps/pm-service/src/plm-integration.controller.ts` `@Post('plm-integration/bom-released')` — remove handler or hard-disable under `ENTERPRISE=1`/`PILOT=1` (prefer remove + update tests to EventPattern only).
+3. **Allowed:**
+   - Browser/Gateway → service HTTP (normal API)
+   - Service → service **GET** for projections residual (E1.5) until projection lands — document as residual risk
+4. **CI guard (light):** grep-based check in gate or unit forbidding `fetch(.*SERVICE_URL` with method POST/PATCH/PUT in apps/*-service (optional script; not theater).
+
+**Alternatives rejected:**
+
+| Alt | Why reject |
+|-----|------------|
+| Keep HTTP for “simplicity” | Dual path; identity headers lost; ADR-002 |
+| mTLS internal REST mesh | Out of Q1 |
+
+**Acceptance:**
+
+- No integration `@Post` that applies ETO spine mutations from other BC.
+- BOM explosion tests use EventPattern/handler private method only.
+
+---
 
 ### E1.7 — Event schema contracts for Active events
 
-**Active spine set (minimum contracts):**
+**Problem:** Registry and md files drift from shared-kernel types; consumers use `any`.
 
-1. `plm.bom.released.v2`
-2. `plm.eco.approved.v1`
-3. `pm.material.requested.v1`
-4. `pm.project.released.v1`
-5. `inventory.reservation.created.v1`
-6. `inventory.reservation.released.v1`
-7. `inv.stock.out.v1`
-8. `mes.production.recorded.v1`
-9. `mes.workorder.completed.v1`
-10. `proc.purchaseorder.created.v1`
-11. `proc.purchaseorder.approved.v1`
-12. `proc.material.received.v1`
+**Decision KD-E1.7:**
 
-**Acceptance:** CI `pnpm run check:event-schemas` (new) passes; producers validate payload before outbox insert under enterprise.
+For each **Active** manufacturing-spine event, enforce trio:
+
+1. `apps/shared-kernel/src/events/*.ts` — exported interface
+2. `docs/EVENTS/{name}.md` — payload SSOT narrative
+3. `docs/EVENTS/REGISTRY.md` — Active line accurate
+
+**Active set (Q1 contract freeze):**
+
+| Event | Producer | Primary consumers |
+|-------|----------|-------------------|
+| `plm.bom.released.v2` | plm | pm, mes, inv, proc |
+| `plm.eco.approved.v1` | plm | pm, mes (optional freeze) — **promote Active** |
+| `pm.material.requested.v1` | pm | inv |
+| `pm.project.released.v1` | pm | mes — ensure Active if emitted |
+| `inventory.reservation.created.v1` | inv | mes/finance optional |
+| `inventory.reservation.released.v1` | inv | finance |
+| `mes.production.recorded.v1` | mes | inv, finance |
+| `inv.stock.out.v1` | inv | proc |
+| `proc.purchaseorder.created.v1` | proc | — |
+| `proc.purchaseorder.approved.v1` | proc | pm, finance |
+| `proc.material.received.v1` | proc | inv, quality |
+
+**Rules:**
+
+- Breaking field remove → new version (`.v2`/`.v3`), never silent break.
+- Additive optional fields OK on same version with docs update.
+- `bomComponentId` required on operational material path events where ADR-006 applies.
+
+**Alternatives rejected:**
+
+| Alt | Why reject |
+|-----|------------|
+| Pact broker full | TD residual; Q1 uses types + md + live smoke |
+| JSON Schema registry service | Overkill; TS interfaces + docs enough |
+
+**Acceptance:**
+
+- Typecheck consumers against shared-kernel interfaces (no payload `any` on spine handlers — stretch: at least new/edited handlers).
+- REGISTRY matches code emit sites for Q1 set.
+
+---
+
+## Key decisions summary
+
+| ID | Decision |
+|----|----------|
+| KD-E1.1 | PLM release+ECO approve atomic outbox; freeze bom.released.v2 + eco.approved.v1 contracts |
+| KD-E1.2 | Real EVM (PV/EV/AC no toy formula); CCPM fever consistent ratios; project release event path |
+| KD-E1.3 | MES op lifecycle + as-built genealogy on production TX |
+| KD-E1.4 | INV receive creates Lot/SN; WMS pick/issue on reservation spine |
+| KD-E1.5 | PROC MRP prefers local projection; zero HTTP writes to INV; ProcessedEvent on proc |
+| KD-E1.6 | Remove service→service HTTP write paths (PM bom-released POST) |
+| KD-E1.7 | Active spine events: types + md + REGISTRY freeze |
+| KD-E1.8 | Tenancy remains DEDICATED_STACK; secrets Variant B; JetStream mandatory enterprise |
+| KD-E1.9 | Gates = live smoke + Playwright ETO — never readiness file counts |
+| KD-E1.10 | Scope lock: manufacturing spine only; finance depth deferred Q2 |
+
+---
+
+## Alternatives (program-level)
+
+| Topic | Chosen | Rejected |
+|-------|--------|----------|
+| Integration style | Event + outbox only for writes | Sync HTTP write mesh |
+| MRP onhand | Event projection (preferred) | Shared DB; RPC writes |
+| EVM source | Project baseline + WBS % + local actuals | Full GL journal AC (Q2) |
+| ECO | Dedicated approved event | Overloaded bom.released |
+| Genealogy ownership | MES as-built + INV ItemGenealogy | New BC |
+| Orchestration | G-lite continue | Temporal workers (Q2) |
 
 ---
 
 ## Security
 
-| Topic | Q1 control |
-|-------|------------|
-| Auth | Unchanged Q0: gateway JWT iss/aud/azp; service mutation RBAC (engineer/planner roles) |
-| Identity propagation | NATS headers `x-user-id`, `x-roles`, `x-correlation-id` on release/production/receive (ADR-006) |
-| Tenancy | DEDICATED_STACK — no cross-tenant IDs; tenantId on events where multi-stack future-proofing exists |
-| Demo endpoints | Disabled or 404 when `ENTERPRISE=1` / `AUTH_ENFORCE` enterprise path |
-| Secrets | No new secrets; Variant B only |
-| Injection | Prisma parameterized; no raw SQL user input in MRP filters |
-| Audit | Outbox + ProcessedEvent provide durable trail for spine mutations |
+| Control | Q1 action |
+|---------|-----------|
+| Authn | Unchanged Q0 hard iss/aud/azp; AUTH always on enterprise |
+| Authz | Existing `ETO_MUTATION_ROLES` on PLM release, ECO approve, PM release, MES production, INV issue, PROC approve/receive |
+| Secrets | No new secrets; Variant B; ci-no-secrets |
+| Tenancy | JWT tenant only; DEDICATED_STACK |
+| Event identity | Propagate `x-user-id` / `x-roles` on release/production (ADR-006 TD-001) |
+| Abuse | Gateway rate-limit (Q0) unchanged |
+| Audit | Outbox + StockTransaction immutable log; ECO approve actor |
+
+Threat notes:
+
+- **HTTP write bypass** → identity/outbox skip → E1.6 removes.
+- **Double PO / double stock** → ProcessedEvent on proc + inv (Q0/Q1).
+- **Wrong BOM line consume** → bomComponentId required on operational payloads.
 
 ---
 
-## Risks
+## Risks & residuals
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|------------|--------|------------|
-| Event contract break for existing consumers | Med | High | Versioned schemas; dual-read temporary only if needed; prefer additive fields |
-| Multi-level BOM payload size | Med | Med | Depth cap; optional component pagination out of scope — use snapshot size limit + reject |
-| MRP without real-time stock if projections lag | Med | High | Prefer consume stock events with catch-up; gate live MRP on projection lag metrics |
-| EVM actuals incomplete without full finance | Med | Med | Use MES labor hours + reservation release cost fields; full journal Q2 |
-| Removing HTTP demos breaks UAT scripts | High | Med | Update e2e/smoke to event-driven triggers; keep gateway HTTP for user actions |
-| Serial number model missing | Low | Med | Add thin SN model in INV migration |
-| Scope creep into Q2 finance/Temporal | Med | High | Hard non-goals; gate only smoke:pilot + e2e ETO |
+| ID | Risk | Sev | Mitigation / residual |
+|----|------|-----|------------------------|
+| R-Q1-1 | Stock projection lag vs live INV HTTP | Med | Accept eventual consistency; document; optional refresh job |
+| R-Q1-2 | EVM AC incomplete without full finance | Med | Honest AC from available actuals; Q2 deepens |
+| R-Q1-3 | ECO consumer side-effects incomplete | Med | Approve event + docs; full supersede automation residual |
+| R-Q1-4 | Playwright e2e needs Keycloak + stack | Med | Same as pilot; gate already lists it |
+| R-Q1-5 | Multi-service migration churn | Med | Small ordered PRs; migrate-only under PILOT |
+| R-Q1-6 | Dual Nest+JS consumers residual on non-migrated subjects | Med | Prefer JS path when flag on (Q0 rule); no new dual subscribe |
+| R-Q1-7 | Domain scope creep pressure | High | Non-goals + KD-E1.10; reject Q2/Q4 features |
+| R-Q1-8 | PROC still HTTP-reads PLM for long-lead | Low | Read-only allowed residual |
 
 ---
 
-## Gates (Q1)
+## Testing & gates (Q1)
 
 From `docs/enterprise-2.0/milestones.json`:
 
@@ -353,187 +434,176 @@ REQUIRE_LIVE=1 REQUIRE_LIVE_STRICT=1 pnpm run smoke:pilot
 bash scripts/enterprise-2.0/gate-check.sh Q1
 ```
 
-Additional IMPLEMENT-era checks:
+IMPLEMENT-era additions (wire into unit/smoke where cheap):
 
-- Event schema CI for Active spine set.
-- Audit: no inter-service mutation HTTP under ENTERPRISE=1 (script or unit).
-- Live ETO: BOM release → reserve → produce → genealogy assertion (extend smoke if e2e insufficient).
+- PLM release TX: outbox present iff status RELEASED (unit).
+- ECO approve emits outbox row (unit).
+- PM EVM: AC not using buffer×1000 (unit).
+- INV receive creates Lot (unit/integration).
+- PM: HTTP bom-released absent or 410 (unit).
+- Event types compile for spine handlers.
 
-**Forbidden gate substitutes:** readiness JSON only, file-existence theater, Faza 29+.
+**Forbidden gate substitutes:** readiness JSON, contract self-assert counts, Faza 29+ theater.
 
 ---
 
 ## Rollout
 
-1. DESIGN (this doc) → STATUS `phase: IMPLEMENT`.
-2. Create/use branch `enterprise-0.2-eto-spine` from master (after Q0 merge).
-3. IMPLEMENT PRs in order (dependency graph below).
-4. GATE via `gate-check.sh Q1` (live stack).
-5. RELEASE: PR → master, tag `enterprise-0.2-eto-spine`, advance automation to Q2 DESIGN.
+1. DESIGN (this doc) → STATUS `IMPLEMENT`.
+2. IMPLEMENT on `enterprise-0.2-eto-spine` (from master / Q0 tag) following PR Plan order.
+3. GATE via `gate-check.sh Q1` (live stack + Playwright).
+4. RELEASE: PR → master, tag `enterprise-0.2-eto-spine`, advance automation to Q2 DESIGN.
 
-Compose/boot: keep `ENTERPRISE=1`, `NATS_JETSTREAM=true` from Q0.
+Compose/boot: inherit Q0 enterprise env (`ENTERPRISE=1`, `NATS_JETSTREAM=true`, JWT claims).
 
 ---
 
 ## PR Plan
 
-Ordered, mergeable slices. Each PR keeps platform non-negotiables; prefer green unit tests per service.
+Ordered, mergeable slices. Each PR must keep `smoke:pilot` non-worse; domain work only within ETO spine.
 
-### PR 1: Events — schema contracts foundation + Active spine schemas
+### PR 1: Contracts — Active spine event types + Event Registry + md sync
 
-- **Dependencies:** none (Q0 platform assumed)
+- **Dependencies:** none
 - **Files:**
-  - `apps/shared-kernel/src/events/schemas/**` (or `docs/EVENTS/schemas/**` + loader)
-  - `apps/shared-kernel/src/events/validate.ts`
-  - `scripts/check-event-schemas.ts` + `package.json` script `check:event-schemas`
-  - `docs/EVENTS/*.md` updates for bomComponentId on `plm.bom.released.v2`
-  - unit tests for validators
-- **Description:** Introduce machine-checkable schemas for minimum Active spine set (may stub optional fields). CI script fails on missing schema file for listed events. No behavior change required yet beyond shared-kernel export.
+  - `apps/shared-kernel/src/events/plm.events.ts` (+ eco types)
+  - `apps/shared-kernel/src/events/pm.events.ts`, `mes.events.ts`, `inv.events.ts`, `proc.events.ts` as needed
+  - `apps/shared-kernel/src/events/index.ts`
+  - `docs/EVENTS/*.md` for Active spine set
+  - `docs/EVENTS/REGISTRY.md`
+- **Description:** Freeze TS interfaces and docs for Active manufacturing events; add `PlmEcoApprovedV1Event`; fix `plm.bom.released.v2.md` to include `bomComponentId` and ETO fields. No behavior change required beyond types export.
 
-### PR 2: PLM — BOM multi-level release payload + bomComponentId hard contract
+### PR 2: Integration — remove service→service HTTP write paths
+
+- **Dependencies:** none (can parallel PR 1)
+- **Files:**
+  - `apps/pm-service/src/plm-integration.controller.ts` (remove `@Post('plm-integration/bom-released')`)
+  - `apps/pm-service/src/plm-integration.controller.spec.ts`
+  - any other integration `@Post` write shims found in mes/inv/proc spine
+  - optional `scripts/check-no-interservice-http-write.sh` + package.json script
+- **Description:** EventPattern-only mutations for PLM→PM; tests call private/process method or emit pattern. Document allowed GET residual for MRP until PR 7.
+
+### PR 3: PLM — atomic BOM release TX + payload assert
 
 - **Dependencies:** PR 1 recommended
 - **Files:**
-  - `apps/plm-service/src/commands/**`, `double-bom.service.ts`, release handlers
-  - `apps/plm-service/src/events/**`
-  - `docs/EVENTS/plm.bom.released.v2.md`
-  - plm unit/integration tests
-- **Description:** On BOM release, explode multi-level components into outbox payload with required `bomComponentId`, level, makeBuy. Validate with shared schema under ENTERPRISE=1. Update registry honesty.
+  - `apps/plm-service/src/commands/release-bom-version.handler.ts`
+  - `apps/plm-service/src/commands/*` tests
+  - double-bom snapshot path if needed for contract fields
+- **Description:** Single `$transaction` for status RELEASED + outbox `plm.bom.released.v2`; ensure components include `bomComponentId`; accept `projectId`/`tenantId` on command when provided.
 
-### PR 3: PLM — ECO approved event-only path + supersede/re-release
+### PR 4: PLM — ECO approve command + `plm.eco.approved.v1` outbox
 
-- **Dependencies:** PR 2
+- **Dependencies:** PR 1, PR 3 recommended
 - **Files:**
-  - `apps/plm-service/src/eco-impact.service.ts`, ECO commands/controllers
-  - outbox emission `plm.eco.approved.v1`
-  - `docs/EVENTS/plm.eco.approved.v1.md` + schema
+  - `apps/plm-service/src/commands/approve-eco.handler.ts` (new)
+  - `apps/plm-service/src/plm.controller.ts` (approve route + RBAC)
+  - prisma only if extra ECO fields needed (optional approvedBy)
+  - unit tests
+- **Description:** Transition ECO to APPROVED; outbox event same TX; impactSummary included. Optional light consumer in PM (fever or log) — not mandatory full supersede.
+
+### PR 5: PM — CCPM buffer journey + honest EVM
+
+- **Dependencies:** none (can parallel PLM after PR 2)
+- **Files:**
+  - `apps/pm-service/src/project.controller.ts` (`getEvm`)
+  - `apps/pm-service/src/schedule.service.ts` and/or new `evm.service.ts` / `ccpm.service.ts`
+  - `apps/pm-service/src/commands/*` if release needs TX outbox harden
+  - unit tests for EVM/CCPM formulas
+- **Description:** Replace toy AC; compute fever from buffer usage consistently; ensure project release emits `pm.project.released.v1` via outbox TX if gaps remain.
+
+### PR 6: MES — routing operations lifecycle + as-built genealogy on production
+
+- **Dependencies:** PR 1
+- **Files:**
+  - `apps/mes-service/src/commands/*` (production record, complete op)
+  - `apps/mes-service/src/routing.controller.ts` / `routing-aggregate.service.ts`
+  - `apps/mes-service/src/pm-integration.controller.ts` (only if event payload typing)
   - tests
-- **Description:** Complete ECO approval TX → outbox; apply BOM version change; emit bom released. No HTTP to peers.
+- **Description:** Op start/complete; production TX writes AsBuilt* + outbox `mes.production.recorded.v1` with bomComponentIds/lots when known.
 
-### PR 4: Messaging hygiene — disable inter-service HTTP write demos under enterprise
+### PR 7: INV — LOT/SN on receive + WMS pick/issue spine + genealogy
 
-- **Dependencies:** none (can parallel PR 1–3)
+- **Dependencies:** PR 1
 - **Files:**
-  - `apps/*/src/*integration*.ts` mutation endpoints
-  - `apps/inv-service/src/inv.controller.ts` demo BOM endpoints if mutate peers
-  - env guard helper in shared-kernel
-  - smoke/e2e updates to use events or gateway user APIs only
-- **Description:** When `ENTERPRISE=1`, return 404/403 on cross-service mutation demos. Document allowed gateway paths. Start audit list for residual read HTTP.
+  - `apps/inv-service/src/proc-integration.controller.ts` (or command handler extract)
+  - `apps/inv-service/src/wms.controller.ts` / commands
+  - `apps/inv-service/src/genealogy.controller.ts` if chain needs lot linkage
+  - `apps/inv-service/src/pm-integration.controller.ts` production consumer (genealogy)
+  - unit tests
+- **Description:** Material received → Lot + StockTransaction; pick/issue respects reservation/`bomComponentId`; genealogy writes on production/release.
 
-### PR 5: PM — BOM consume → material request + project released (event-only)
+### PR 8: PROC — MRP projection or documented read residual + ProcessedEvent + PO path harden
 
-- **Dependencies:** PR 2 (payload), PR 4 recommended
+- **Dependencies:** PR 1; PR 7 for end-to-end receive if testing full chain
 - **Files:**
-  - `apps/pm-service/src/plm-integration.controller.ts` (event path primary)
-  - PM outbox material requested / project released
-  - `docs/EVENTS/pm.project.released.v1.md` + schema
+  - `apps/proc-service/prisma/schema.prisma` + migration `ProcessedEvent`
+  - `apps/proc-service/src/mrp-netting.service.ts`
+  - `apps/proc-service/src/inv-integration.controller.ts` (idempotent guard)
+  - `apps/proc-service/src/commands/create-purchase-order.handler.ts`, `receive-material.handler.ts`
+  - `apps/proc-service/src/plm-mrp.controller.ts`, `mrp.controller.ts`
   - tests
-- **Description:** Ensure JetStream/event consumer builds WBS/material needs and emits `pm.material.requested.v1` with bomComponentId. Promote project released to Active.
+- **Description:** Prefer stock projection consumer; if deferred, confine INV access to GET only and comment residual R-Q1-1. Wire ProcessedEvent on stock-out→PO. No HTTP writes to INV.
 
-### PR 6: PM — CCPM critical chain + EVM real data path
+### PR 9: Spine wiring — consumers use contracts; JetStream path respect; e2e smoke polish
 
-- **Dependencies:** PR 5
+- **Dependencies:** PR 2–8
 - **Files:**
-  - `apps/pm-service/src/schedule.service.ts`
-  - `apps/pm-service/src/project.controller.ts` (CCPM/EVM endpoints)
-  - seedCCPM gate/disable under enterprise
-  - tests with fixture project (non-random mock seed for CI only)
-- **Description:** Critical chain + buffers from real WBS/dependencies; EVM PV/EV/AC from baseline + progress events/fields. Enterprise rejects mock-only seed as sole path.
+  - consumer controllers across pm/mes/inv/proc for typed payloads
+  - `e2e/pilot-eto-complete.spec.ts` only if scenario gaps for spine APIs (no theater expansion)
+  - optional `scripts/eto-chain-smoke.ts` alignment
+  - `docs/TECHNICAL-DEBT.md` honesty (HTTP write closed; domain residuals)
+- **Description:** End-to-end consistency; preferJetStreamConsumerPath respected; fix regressions from PR 2–8.
 
-### PR 7: MES — routing operations complete + production/genealogy events
+### PR 10: Quality — Q1 gate green + docs honesty
 
-- **Dependencies:** PR 2 (BOM), PR 1 (schemas)
+- **Dependencies:** PR 1–9 functionally
 - **Files:**
-  - `apps/mes-service/src/routing*.ts`, commands, production handlers
-  - AsBuilt models usage; outbox `mes.production.recorded.v1` / `mes.workorder.completed.v1`
-  - event docs + schemas
-  - tests
-- **Description:** Operation lifecycle; production record includes bomComponentId + lot/serial refs; as-built written; completed WO event Active.
-
-### PR 8: INV — LOT/SN enforcement + WMS pick event path + genealogy
-
-- **Dependencies:** PR 7 recommended for full e2e; can start after PR 1
-- **Files:**
-  - `apps/inv-service/prisma/**` (SerialNumber if needed)
-  - reservation/issue/receive/WMS handlers
-  - `genealogy.controller.ts`, jetstream consumers
-  - docs/EVENTS inv* updates
-  - tests
-- **Description:** Tracked items require lot; pick confirm emits stock-out; genealogy forward/backward honest; consume MES production for as-built links.
-
-### PR 9: PROC — MRP projections + PO/receive event-only to INV
-
-- **Dependencies:** PR 2 (BOM events), PR 8 (receive/stock events)
-- **Files:**
-  - `apps/proc-service/src/mrp-netting.service.ts`, `mrp-aggregate.service.ts`, `long-lead-radar.service.ts`
-  - local projection models/migrations if needed
-  - PO create/approve/receive outbox paths
-  - remove write HTTP; replace critical GET stock with projection where possible
-  - tests
-- **Description:** MRP driven by events/projections; PO lifecycle evented; GR → INV via `proc.material.received.v1` only.
-
-### PR 10: Consumers wiring — cross-service spine idempotent handlers
-
-- **Dependencies:** PR 5–9
-- **Files:**
-  - consumer handlers in PM/MES/INV/PROC/Finance (finance only existing WIP hooks, no Q2 expansion)
-  - `processed_events` guards (Q0) on new handlers
-  - contract test `test/eto-spine*` / smoke extensions
-- **Description:** Wire all Active spine consumers on JetStream durable path; idempotent; identity headers propagated.
-
-### PR 11: Quality — ETO e2e + gate honesty + TD update
-
-- **Dependencies:** PR 1–10 functionally
-- **Files:**
-  - `e2e/pilot-eto-complete.spec.ts` (extend manufacturing assertions if needed)
-  - `scripts/eto-chain-smoke.ts` / smoke:pilot hooks
-  - `docs/TECHNICAL-DEBT.md`, `docs/PROJECT-STATE.md`, `docs/EVENTS/REGISTRY.md`
-  - `package.json` scripts if needed
-- **Description:** Ensure Q1 gate_commands pass live; document residuals honestly (full Temporal → Q2). No theater.
+  - `docs/PROJECT-STATE.md` / `docs/TECHNICAL-DEBT.md` minimal honesty
+  - `docs/FAZA1-MANUFACTURING-CLOSURE.md` note enterprise supersedes pilot closure claims where relevant
+  - package.json only if gate script glue needed
+- **Description:** Ensure `gate-check.sh Q1` commands pass; no readiness theater; STATUS advanced by RELEASE automation.
 
 ### PR dependency graph
 
 ```mermaid
 flowchart TD
-  PR1[PR1 Event schemas]
-  PR2[PR2 PLM BOM release depth]
-  PR3[PR3 PLM ECO path]
-  PR4[PR4 Disable HTTP write demos]
-  PR5[PR5 PM material/project events]
-  PR6[PR6 PM CCPM EVM]
-  PR7[PR7 MES routing genealogy]
-  PR8[PR8 INV LOT SN WMS]
-  PR9[PR9 PROC MRP PO receive]
-  PR10[PR10 Consumer wiring]
-  PR11[PR11 E2E gates docs]
+  PR1[PR1 Event contracts]
+  PR2[PR2 Remove HTTP writes]
+  PR3[PR3 PLM release TX]
+  PR4[PR4 ECO approve event]
+  PR5[PR5 PM CCPM EVM]
+  PR6[PR6 MES ops genealogy]
+  PR7[PR7 INV LOT WMS]
+  PR8[PR8 PROC MRP PO]
+  PR9[PR9 Spine wiring]
+  PR10[PR10 Gates docs]
 
-  PR1 --> PR2
-  PR2 --> PR3
-  PR2 --> PR5
-  PR2 --> PR7
-  PR4 --> PR5
-  PR5 --> PR6
-  PR7 --> PR8
+  PR1 --> PR3
+  PR1 --> PR4
+  PR1 --> PR6
+  PR1 --> PR7
+  PR1 --> PR8
   PR2 --> PR9
+  PR3 --> PR4
+  PR3 --> PR9
+  PR4 --> PR9
+  PR5 --> PR9
+  PR6 --> PR9
+  PR7 --> PR8
+  PR7 --> PR9
   PR8 --> PR9
-  PR5 --> PR10
-  PR7 --> PR10
-  PR8 --> PR10
   PR9 --> PR10
-  PR3 --> PR10
-  PR10 --> PR11
-  PR6 --> PR11
-  PR1 --> PR11
 ```
 
 **Suggested parallel tracks:**
 
-- Track A: PR1 → PR2 → PR3
-- Track B: PR4 (hygiene)
-- Track C: PR5 → PR6 (after PR2)
-- Track D: PR7 → PR8
-- Track E: PR9 (after PR2+PR8)
-- Integrate: PR10 → PR11
+- Track A: PR1 → PR3 → PR4
+- Track B: PR2
+- Track C: PR5
+- Track D: PR1 → PR6
+- Track E: PR1 → PR7 → PR8
+- Integrate: PR9 → PR10
 
 ---
 
@@ -543,41 +613,43 @@ flowchart TD
 |-------|--------|
 | Maps 1:1 to Q1 workstreams | Yes (E1.1–E1.7) |
 | ADR-008 non-negotiables honored | Yes |
-| ADR-006 bomComponentId honored | Yes (KD-E1.1) |
-| PR Plan has `### PR N:` sections | Yes (1–11) |
-| No Q2 finance/Temporal/KSeF scope creep | Yes |
+| ADR-006 bomComponentId spine | Yes |
+| PR Plan has `### PR N:` sections | Yes (1–10) |
+| No Q2/Q3/Q4/Q5 scope creep | Yes (non-goals + KD-E1.10) |
 | No readiness theater / Faza 29+ | Yes |
-| Tenancy DEDICATED_STACK locked | Yes |
 | Secrets A not auto-executed | Yes |
-| Event-only write path stated | Yes (E1.6 / KD-E1.8) |
-| Honest residuals | Temporal/full finance → Q2; NATS HA → Q3 |
+| Tenancy DEDICATED_STACK locked | Yes |
+| Honest residuals (EVM AC, MRP projection) | Yes |
+| HTTP write removal explicit | Yes E1.6 / PR2 |
 
 ---
 
 ## Definition of done (milestone Q1)
 
-- [ ] All PRs 1–11 merged via RELEASE process
+- [ ] All PRs 1–10 merged to milestone branch / master via RELEASE process
 - [ ] `bash scripts/enterprise-2.0/gate-check.sh Q1` exit 0
+- [ ] Playwright `e2e/pilot-eto-complete.spec.ts` green under live auth stack
 - [ ] Tag `enterprise-0.2-eto-spine` pushed
 - [ ] STATUS advances to Q2 DESIGN
-- [ ] No secrets committed; no force-push master
-- [ ] No inter-service mutation HTTP on enterprise profile for spine
-- [ ] Active spine event schemas present and checked
+- [ ] No secrets committed; no force-push master; no inter-service HTTP writes on spine
 
 ---
 
 ## References
 
+- `docs/ADRs/ADR-008-Enterprise-2.0-Non-Negotiables.md`
+- `docs/ADRs/ADR-006-BomComponentId-Traceability-Spine.md`
 - `docs/ADRs/ADR-002-Event-Communication-NATS-Outbox.md`
 - `docs/ADRs/ADR-003-Database-per-Service-Strategy.md`
-- `docs/ADRs/ADR-006-BomComponentId-Traceability-Spine.md`
-- `docs/ADRs/ADR-008-Enterprise-2.0-Non-Negotiables.md`
 - `docs/ADRs/ADR-009-Tenancy-Dedicated-Stack.md`
 - `docs/ENTERPRISE-2.0-PLAN.md`
 - `docs/ENTERPRISE-2.0-STATUS.md`
-- `docs/ENTERPRISE-0.1-PLATFORM-DESIGN.md`
 - `docs/enterprise-2.0/milestones.json`
-- `docs/FAZA1-MANUFACTURING-CLOSURE.md`
+- `docs/ENTERPRISE-0.1-PLATFORM-DESIGN.md` (Q0)
 - `docs/EVENTS/REGISTRY.md`
+- `docs/MODULES/01-plm/BLUEPRINT.md` … `04-inv/BLUEPRINT.md`
+- `docs/FAZA1-MANUFACTURING-CLOSURE.md`
+- `docs/PILOT-V1-DESIGN.md`
 - `e2e/pilot-eto-complete.spec.ts`
-- `apps/plm-service`, `apps/pm-service`, `apps/mes-service`, `apps/inv-service`, `apps/proc-service`
+- `apps/shared-kernel/src/events/*`
+- `apps/shared-kernel/src/types/eto-saga.ts`
