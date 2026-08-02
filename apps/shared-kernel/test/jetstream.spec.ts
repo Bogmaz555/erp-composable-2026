@@ -2,6 +2,8 @@ import {
   ALL_STREAM_NAMES,
   BOOTSTRAP_DURABLE_CONSUMERS,
   FIN_WIP_FILTER_SUBJECTS,
+  assertEnterpriseMessaging,
+  isEnterpriseProfile,
   isJetStreamEnabled,
   nestEventPatternDisabled,
   parseTruthyEnv,
@@ -33,6 +35,43 @@ describe('JetStream kernel — flags', () => {
   it('resolveNatsUrl defaults', () => {
     expect(resolveNatsUrl({})).toBe('nats://127.0.0.1:4222');
     expect(resolveNatsUrl({ NATS_URL: 'nats://nats:4222' })).toBe('nats://nats:4222');
+  });
+
+  it('isEnterpriseProfile from ENTERPRISE or ERP_PROFILE=enterprise', () => {
+    expect(isEnterpriseProfile({})).toBe(false);
+    expect(isEnterpriseProfile({ ENTERPRISE: '1' })).toBe(true);
+    expect(isEnterpriseProfile({ ENTERPRISE: 'true' })).toBe(true);
+    expect(isEnterpriseProfile({ ERP_PROFILE: 'enterprise' })).toBe(true);
+    expect(isEnterpriseProfile({ ERP_PROFILE: 'ENTERPRISE' })).toBe(true);
+    expect(isEnterpriseProfile({ ERP_PROFILE: 'pilot' })).toBe(false);
+  });
+
+  it('assertEnterpriseMessaging no-ops when not enterprise', () => {
+    expect(() => assertEnterpriseMessaging({})).not.toThrow();
+    expect(() =>
+      assertEnterpriseMessaging({ NATS_JETSTREAM: 'false' }),
+    ).not.toThrow();
+  });
+
+  it('assertEnterpriseMessaging throws when enterprise without JetStream', () => {
+    expect(() => assertEnterpriseMessaging({ ENTERPRISE: '1' })).toThrow(
+      /NATS_JETSTREAM/,
+    );
+    expect(() =>
+      assertEnterpriseMessaging({ ERP_PROFILE: 'enterprise', NATS_JETSTREAM: '' }),
+    ).toThrow(/Enterprise profile requires NATS_JETSTREAM/);
+  });
+
+  it('assertEnterpriseMessaging ok when enterprise + JetStream', () => {
+    expect(() =>
+      assertEnterpriseMessaging({ ENTERPRISE: '1', NATS_JETSTREAM: 'true' }),
+    ).not.toThrow();
+    expect(() =>
+      assertEnterpriseMessaging({
+        ERP_PROFILE: 'enterprise',
+        NATS_JETSTREAM: '1',
+      }),
+    ).not.toThrow();
   });
 });
 

@@ -301,7 +301,17 @@
     "preboot:all": "bash scripts/ensure-databases.sh proc-service pm-service finance inv-service hr eam-service && bash scripts/ensure-finance-prod.sh build",
     "boot:all": "concurrently -c \"bgBlue.bold,bgMagenta.bold,bgYellow.bold,bgCyan.bold,bgGreen.bold,bgRed.bold,bgWhite.bold,bgBlack.bold,bgGreen,bgBlue,bgRed,bgYellow,bgMagenta\" -n \"GATEWAY,PM,PROC,CRM,INV,FRONT,QUALITY,EAM,PLM,MES,FIN,ANALYTICS,HR,TAX\" \"pnpm run start:gateway\" \"pnpm run start:pm\" \"pnpm run start:proc\" \"pnpm run start:crm\" \"pnpm run start:inv\" \"pnpm run start:frontend\" \"pnpm run start:quality\" \"pnpm run start:eam\" \"pnpm run start:plm\" \"pnpm run start:mes\" \"pnpm run start:fin:prod\" \"pnpm run start:analytics\" \"pnpm run start:hr\" \"pnpm run start:tax\"",
     "smoke:outbox-live-hard": "npx tsx scripts/smoke-outbox-live-hard.ts",
-    "smoke:pilot:strict": "REQUIRE_LIVE=1 REQUIRE_LIVE_STRICT=1 NATS_JETSTREAM=true bash -c \"pnpm run smoke:pilot && pnpm run smoke:outbox-live-hard\""
+    "smoke:pilot:strict": "REQUIRE_LIVE=1 REQUIRE_LIVE_STRICT=1 NATS_JETSTREAM=true bash -c \"pnpm run smoke:pilot && pnpm run smoke:outbox-live-hard\"",
+    "enterprise:prompt": "node scripts/enterprise-2.0/emit-next-prompt.mjs",
+    "enterprise:step": "bash scripts/enterprise-2.0/run-automation.sh step",
+    "enterprise:once": "bash scripts/enterprise-2.0/run-automation.sh once",
+    "enterprise:loop": "bash scripts/enterprise-2.0/run-automation.sh loop",
+    "enterprise:gate": "bash scripts/enterprise-2.0/run-automation.sh gate",
+    "enterprise:advance": "bash scripts/enterprise-2.0/run-automation.sh advance",
+    "enterprise:autonomous": "bash scripts/enterprise-2.0/autonomous-driver.sh once",
+    "enterprise:driver:loop": "bash scripts/enterprise-2.0/autonomous-driver.sh loop",
+    "enterprise:status": "bash scripts/enterprise-2.0/autonomous-driver.sh status",
+    "enterprise:install": "bash scripts/enterprise-2.0/install-automation.sh"
   },
   "prisma": {
     "seed": "npx tsx scripts/seed.ts"

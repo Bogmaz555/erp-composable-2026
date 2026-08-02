@@ -1,13 +1,19 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
+import { wasProcessed, markProcessed } from '@erp/shared-kernel';
 import { PrismaService } from '../prisma.service';
 import { ensureAccount } from '../finance-accounts';
+
+/** Durable consumer name for processed_events ledger (Enterprise Q0 / E0.3). */
+export const REVERSE_WIP_CONSUMER = 'finance.reverse-wip';
 
 export class ReverseWipCostCommand {
   constructor(
     public readonly projectId: string,
     public readonly tenantId: string,
     public readonly correlationId: string,
+    /** Optional JetStream/outbox msg id; defaults to correlationId for ledger key. */
+    public readonly eventId?: string,
   ) {}
 }
 
@@ -19,6 +25,9 @@ export class ReverseWipCostCommand {
  * - Real GL account 130-WIP via ensureAccount (not a mock account id)
  * - Single outer $transaction — journal + WIP + ProjectCost use same tx
  *   (GL written inline; no nested bus execute / nested PrismaClient transaction)
+ *
+ * Enterprise Q0 / E0.3:
+ * - processed_events ledger on (eventId|correlationId, finance.reverse-wip)
  */
 @CommandHandler(ReverseWipCostCommand)
 export class ReverseWipCostHandler implements ICommandHandler<ReverseWipCostCommand> {
@@ -37,6 +46,26 @@ export class ReverseWipCostHandler implements ICommandHandler<ReverseWipCostComm
       return { ok: false, reason: 'missing_ids' };
     }
 
+    const ledgerKey = {
+      eventId: (command.eventId || correlationId).trim(),
+      consumer: REVERSE_WIP_CONSUMER,
+    };
+
+    // Ledger short-circuit (in addition to business-key idempotency below)
+    try {
+      if (await wasProcessed(this.prisma as any, ledgerKey)) {
+        this.logger.log(
+          `[Finance WIP] processed_events hit eventId=${ledgerKey.eventId} — no-op`,
+        );
+        return { ok: true, idempotent: true, reason: 'processed_event' };
+      }
+    } catch (e) {
+      // Table may not exist mid-migration — continue with business idempotency
+      this.logger.debug(
+        `processed_events check skipped: ${(e as Error).message}`,
+      );
+    }
+
     // Resolve real GL account outside the mutation tx (upsert is idempotent)
     const wipGl = await ensureAccount(
       this.prisma,
@@ -45,7 +74,7 @@ export class ReverseWipCostHandler implements ICommandHandler<ReverseWipCostComm
       'ASSET',
     );
 
-    return await this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       // --- Idempotency: one REVERSAL per correlationId ---
       const existing = await tx.projectCost.findFirst({
         where: {
@@ -150,5 +179,16 @@ export class ReverseWipCostHandler implements ICommandHandler<ReverseWipCostComm
         accountCode: '130-WIP',
       };
     });
+
+    // Mark ledger after successful domain work (ignore unique race)
+    try {
+      await markProcessed(this.prisma as any, ledgerKey);
+    } catch (e) {
+      this.logger.debug(
+        `processed_events mark skipped: ${(e as Error).message}`,
+      );
+    }
+
+    return result;
   }
 }
