@@ -1,20 +1,21 @@
-<!-- generated 2026-08-02T12:26:09.231Z milestone=Q3 phase=GATE sha=1fb6731 -->
+<!-- generated 2026-08-02T12:28:20.127Z milestone=Q3 phase=RELEASE sha=3e0df92 -->
 <!-- Unattended: paste into Grok OR run /workflow enterprise-20-step|continuous -->
 
-# AGENT MISSION — Q3 GATE (autonomous)
+# AGENT MISSION — Q3 RELEASE (autonomous)
 
 Repo: /home/bogdan-mazur/PROGRAMY/ERP/erp-composable-2026
 Branch: `enterprise-0.4-isolation-scale`
+Tag: **enterprise-0.4-isolation-scale**
 
 ## Task
-1. Run: `bash scripts/enterprise-2.0/gate-check.sh Q3`
-2. Also run live commands if stack available:
-  - `pnpm run smoke:pilot`
-  - `bash scripts/enterprise-2.0/check-q3-scale.sh`
-3. If fail: fix (max 3 attempts), re-gate; if still fail STATUS state=BLOCKED with last_error
-4. If pass: STATUS phase=RELEASE, commit, push
+1. Ensure gates green
+2. `gh pr create --base master --head enterprise-0.4-isolation-scale` (or update existing)
+3. Merge when required CI green (admin OK if only optional red)
+4. Tag `enterprise-0.4-isolation-scale` on merge commit; push tag
+5. Advance STATUS to next milestone DESIGN (or DONE if Q5)
+6. Commit STATUS on master or automation branch; push
 
-Boot stack if needed: `bash scripts/boot-pilot-complete.sh` (or enterprise boot when exists).
+Milestone order: Q0→Q1→Q2→Q3→Q4→Q5→DONE
 
 START NOW.
 
