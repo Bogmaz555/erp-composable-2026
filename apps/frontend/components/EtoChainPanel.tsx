@@ -105,7 +105,7 @@ export default function EtoChainPanel() {
         <div className="flex items-center gap-2">
           <Factory className="w-5 h-5 text-orange-400" />
           <div>
-            <h3 className="text-sm font-semibold text-white">ETO Machine Build Chain</h3>
+            <h3 className="text-sm font-semibold text-white">Łańcuch Budowy Maszyny ETO</h3>
             <p className="text-[10px] text-gray-500">PLM BOM → INV → MES → Finance WIP</p>
           </div>
         </div>
@@ -137,7 +137,7 @@ export default function EtoChainPanel() {
           )}
           {(orchestrator?.pending ?? 0) > 0 && (
             <span className="px-2 py-1 rounded-lg text-[10px] border border-amber-500/30 text-amber-300">
-              orch {orchestrator!.pending} pending
+              orch {orchestrator!.pending} oczekujące
             </span>
           )}
           <button
@@ -147,7 +147,7 @@ export default function EtoChainPanel() {
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs bg-orange-600 hover:bg-orange-500 text-white font-semibold"
           >
             <Play className="w-3.5 h-3.5" />
-            Uruchom demo chain
+            Uruchom łańcuch demo
           </button>
         </div>
       </div>

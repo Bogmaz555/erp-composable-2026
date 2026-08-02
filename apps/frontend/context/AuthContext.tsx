@@ -18,6 +18,7 @@ export interface AuthContextValue {
   roles: ErpRole[];
   permissions: Permission[];
   authEnforced: boolean;
+  authenticated: boolean;
   setActiveRole: (role: ErpRole) => void;
   can: (action: string, resource?: string) => boolean;
   refresh: () => Promise<void>;
@@ -27,36 +28,67 @@ const AuthCtx = createContext<AuthContextValue | null>(null);
 const STORAGE_KEY = 'erp-dev-role';
 const TOKEN_KEY = 'erp-access-token';
 
+/** Unauthenticated UI shape — never privilege-elevate on soft-fail. */
+const UNAUTH_CTX: Partial<AuthContextValue> = {
+  userId: '',
+  email: '',
+  displayName: 'Unauthenticated',
+  roles: [],
+  permissions: [],
+  authEnforced: true,
+  authenticated: false,
+};
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [activeRole, setActiveRoleState] = useState<ErpRole>('ADMIN');
-  const [ctx, setCtx] = useState<Partial<AuthContextValue>>({
-    userId: 'dev-user',
-    email: 'dev@erp.local',
-    displayName: 'Developer',
-    roles: ['ADMIN'],
-    permissions: [],
-    authEnforced: false,
-  });
+  const [activeRole, setActiveRoleState] = useState<ErpRole>('VIEWER');
+  const [ctx, setCtx] = useState<Partial<AuthContextValue>>({ ...UNAUTH_CTX });
 
   const refresh = useCallback(async () => {
     const role = (typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null) as ErpRole | null;
     const token = typeof window !== 'undefined' ? localStorage.getItem(TOKEN_KEY) : null;
     const headers: Record<string, string> = {};
-    if (role) headers['X-Dev-Role'] = role;
     if (token) headers['Authorization'] = `Bearer ${token}`;
-    const res = await fetch('/api/analytics/auth/context', { headers });
-    if (!res.ok) return;
+
+    let res: Response;
+    try {
+      res = await fetch('/api/analytics/auth/context', { headers });
+    } catch {
+      // Network error — do not retain privileged defaults.
+      setCtx({ ...UNAUTH_CTX });
+      setActiveRoleState('VIEWER');
+      return;
+    }
+
+    if (res.status === 401 || res.status === 403) {
+      if (token && typeof window !== 'undefined') {
+        localStorage.removeItem(TOKEN_KEY);
+      }
+      setCtx({ ...UNAUTH_CTX, authEnforced: true, authenticated: false });
+      setActiveRoleState('VIEWER');
+      return;
+    }
+
+    if (!res.ok) {
+      setCtx({ ...UNAUTH_CTX });
+      setActiveRoleState('VIEWER');
+      return;
+    }
+
     const data = await res.json();
+    const roles: ErpRole[] = Array.isArray(data.roles) ? data.roles : [];
     setCtx({
-      userId: data.userId,
-      email: data.email,
-      displayName: data.displayName,
-      roles: data.roles,
-      permissions: data.permissions,
-      authEnforced: data.authEnforced,
+      userId: data.userId ?? '',
+      email: data.email ?? '',
+      displayName: data.displayName ?? data.email ?? data.userId ?? 'User',
+      roles,
+      permissions: data.permissions ?? [],
+      authEnforced: data.authEnforced ?? true,
+      authenticated: true,
     });
-    if (role && data.roles?.includes(role)) setActiveRoleState(role);
-    else setActiveRoleState(data.activeRole);
+    if (role && roles.includes(role)) setActiveRoleState(role);
+    else if (data.activeRole && roles.includes(data.activeRole)) setActiveRoleState(data.activeRole);
+    else if (roles.length > 0) setActiveRoleState(roles[0]);
+    else setActiveRoleState('VIEWER');
   }, []);
 
   useEffect(() => {
@@ -92,13 +124,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const value: AuthContextValue = {
-    userId: ctx.userId ?? 'dev-user',
-    email: ctx.email ?? 'dev@erp.local',
-    displayName: ctx.displayName ?? 'Developer',
+    userId: ctx.userId ?? '',
+    email: ctx.email ?? '',
+    displayName: ctx.displayName ?? 'Unauthenticated',
     activeRole,
-    roles: ctx.roles ?? [activeRole],
+    roles: ctx.roles ?? [],
     permissions: ctx.permissions ?? [],
-    authEnforced: ctx.authEnforced ?? false,
+    authEnforced: ctx.authEnforced ?? true,
+    authenticated: ctx.authenticated === true && !!(ctx.userId || (ctx.roles && ctx.roles.length)),
     setActiveRole,
     can,
     refresh,
@@ -113,10 +146,21 @@ export function useAuth() {
   return v;
 }
 
-/** Fetch z Bearer token (Keycloak / dev). */
-export function fetchWithAuth(input: RequestInfo | URL, init?: RequestInit) {
-  const headers = new Headers(init?.headers);
-  const token = typeof window !== 'undefined' ? localStorage.getItem(TOKEN_KEY) : null;
+/** Read stored Keycloak / dev bearer token (if any). */
+export function getAccessToken(): string | null {
+  return typeof window !== 'undefined' ? localStorage.getItem(TOKEN_KEY) : null;
+}
+
+/** Headers with Authorization: Bearer when token is present. */
+export function authHeaders(extra?: HeadersInit): Headers {
+  const headers = new Headers(extra);
+  const token = getAccessToken();
   if (token) headers.set('Authorization', `Bearer ${token}`);
+  return headers;
+}
+
+/** Fetch z Bearer token (Keycloak / dev). Required for former public analytics routes. */
+export function fetchWithAuth(input: RequestInfo | URL, init?: RequestInit) {
+  const headers = authHeaders(init?.headers);
   return fetch(input, { ...init, headers });
 }

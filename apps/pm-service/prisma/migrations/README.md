@@ -1,0 +1,55 @@
+# Prisma migrations (pm-service)
+
+## History
+
+| Folder | Role |
+|--------|------|
+| `20260801000000_baseline` | Full schema from `schema.prisma` (`migrate diff --from-empty`) |
+| `20260801120000_outbox_processing` | Additive outbox `PROCESSING` + attempts/lastError (idempotent) |
+| `20260801200000_decimal_money` | PR 11: `budget`/`targetRevenue`/`baselineCost`/`actualLaborCost` → DECIMAL |
+
+`migration_lock.toml` — `provider = "postgresql"`.
+
+## Deploy behavior
+
+`scripts/prisma-migrate-deploy.sh` detects the **baseline** and runs:
+
+```text
+prisma migrate deploy
+```
+
+only (no `db push`). Under `PILOT=1`, deploy is followed by a schema drift check.
+
+```bash
+PILOT=1 bash scripts/prisma-migrate-deploy.sh pm-service
+```
+
+## Existing DBs (prior `db push`)
+
+Do **not** re-run baseline SQL on databases that already have tables. After backup
+and parity check, mark history applied:
+
+```bash
+npx prisma@5.22.0 migrate resolve --applied 20260801000000_baseline \
+  --schema apps/pm-service/prisma/schema.prisma
+npx prisma@5.22.0 migrate resolve --applied 20260801120000_outbox_processing \
+  --schema apps/pm-service/prisma/schema.prisma
+# After deploy of decimal money (or resolve if already manually altered):
+npx prisma@5.22.0 migrate resolve --applied 20260801200000_decimal_money \
+  --schema apps/pm-service/prisma/schema.prisma
+```
+
+Full procedure: **[docs/PRISMA-MIGRATIONS.md](../../../../docs/PRISMA-MIGRATIONS.md)**.
+
+## Regenerating the baseline
+
+Only safe **before** the baseline is applied in any shared environment:
+
+```bash
+npx prisma@5.22.0 migrate diff \
+  --from-empty \
+  --to-schema-datamodel apps/pm-service/prisma/schema.prisma \
+  --script > apps/pm-service/prisma/migrations/20260801000000_baseline/migration.sql
+```
+
+After baseline is live, ship schema changes as **new** timestamped migrations.

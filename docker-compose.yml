@@ -1,8 +1,12 @@
 ##############################################################################
 # ERP Composable 2026 — Target Dev Infrastructure
 # Źródło: target_architecture.md § 12
-# Uruchomienie: docker compose up -d
-# Weryfikacja: docker compose ps
+# Infra only:    docker compose up -d
+# Pilot stack:   docker compose --profile pilot up -d --build
+#                (gateway, pm, inv, plm, mes, finance, proc, analytics, frontend
+#                 + nats, keycloak, postgres×needed; URLs = service DNS)
+# Weryfikacja:   docker compose --profile pilot ps
+# Images:        docker/Dockerfile.*  |  root Dockerfile (gateway EXPOSE 4005)
 ##############################################################################
 
 services:
@@ -272,12 +276,11 @@ services:
     profiles: ["temporal"]
     restart: unless-stopped
     environment:
-      DB: postgresql
+      DB: postgres12
       DB_PORT: 5432
       POSTGRES_USER: erp_user
       POSTGRES_PWD: erp_password
       POSTGRES_SEEDS: temporal-db
-      DYNAMIC_CONFIG_FILE_PATH: config/dynamicconfig/development-sql.yaml
     ports:
       - "7233:7233"
     depends_on:
@@ -452,10 +455,15 @@ services:
     image: nats:2.10-alpine
     container_name: erp-nats
     restart: unless-stopped
+    # Explicit conf so JetStream store_dir=/data and monitor :8222 are active.
+    # Image entrypoint already defaults to --config /etc/nats/nats-server.conf;
+    # keep command explicit for ops clarity (Pilot v1 / PR 13).
+    command: ["--config", "/etc/nats/nats-server.conf"]
     ports:
       - "4222:4222"
       - "8222:8222"
     volumes:
+      # Persistent JetStream file store (survives container restart)
       - nats_data:/data
       - ./infra/nats/nats.conf:/etc/nats/nats-server.conf:ro
     healthcheck:
@@ -519,6 +527,389 @@ services:
     networks:
       - erp-network
 
+  # Optional search stack: docker compose --profile search up meilisearch
+  # Set MEILI_MASTER_KEY in .env (see .env.erp.example). Empty = Meili open/dev mode only.
+  meilisearch:
+    image: getmeili/meilisearch:v1.9
+    container_name: erp-meilisearch
+    profiles: ["search"]
+    restart: unless-stopped
+    environment:
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:-}
+      MEILI_ENV: "development"
+    ports:
+      - "7700:7700"
+    volumes:
+      - meili_data:/meili_data
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--spider",  "http://localhost:7700/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - erp-network
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # PILOT APP STACK — docker compose --profile pilot up -d
+  # Min (OQ-6): gateway, pm, inv, plm, mes, finance, proc, analytics, frontend
+  #            + infra always-on: nats, keycloak, postgres×needed
+  # Upstreams use compose service DNS (not 127.0.0.1). Ports: no dual 4008/4009.
+  # Build images: docker build -f docker/Dockerfile.<svc> -t erp/<svc>:latest .
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  pm-service:
+    profiles: ["pilot"]
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.pm-service
+    image: erp/pm-service:latest
+    container_name: erp-pm-service
+    restart: unless-stopped
+    environment:
+      HOST: "0.0.0.0"
+      PORT: "4002"
+      PILOT: ${PILOT:-1}
+      AUTH_ENFORCE: ${AUTH_ENFORCE:-true}
+      NATS_URL: ${NATS_URL:-nats://nats:4222}
+      PM_DATABASE_URL: ${PM_DATABASE_URL:-postgresql://erp_user:erp_password@pm-db:5432/pm_db?schema=public}
+      FRONTEND_URL: ${FRONTEND_URL:-http://frontend:3000}
+    ports:
+      - "4002:4002"
+    depends_on:
+      pm-db:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:4002/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    networks:
+      - erp-network
+
+  inv-service:
+    profiles: ["pilot"]
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.inv-service
+    image: erp/inv-service:latest
+    container_name: erp-inv-service
+    restart: unless-stopped
+    environment:
+      HOST: "0.0.0.0"
+      PORT: "4003"
+      PILOT: ${PILOT:-1}
+      AUTH_ENFORCE: ${AUTH_ENFORCE:-true}
+      NATS_URL: ${NATS_URL:-nats://nats:4222}
+      INVENTORY_DATABASE_URL: ${INVENTORY_DATABASE_URL:-postgresql://erp_user:erp_password@inv-db:5432/inv_db?schema=public}
+      INV_DATABASE_URL: ${INV_DATABASE_URL:-postgresql://erp_user:erp_password@inv-db:5432/inv_db?schema=public}
+      FRONTEND_URL: ${FRONTEND_URL:-http://frontend:3000}
+    ports:
+      - "4003:4003"
+    depends_on:
+      inv-db:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:4003/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    networks:
+      - erp-network
+
+  proc-service:
+    profiles: ["pilot"]
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.proc-service
+    image: erp/proc-service:latest
+    container_name: erp-proc-service
+    restart: unless-stopped
+    environment:
+      HOST: "0.0.0.0"
+      PORT: "4004"
+      PILOT: ${PILOT:-1}
+      AUTH_ENFORCE: ${AUTH_ENFORCE:-true}
+      NATS_URL: ${NATS_URL:-nats://nats:4222}
+      PROC_DATABASE_URL: ${PROC_DATABASE_URL:-postgresql://erp_user:erp_password@proc-db:5432/proc_db?schema=public}
+      INV_SERVICE_URL: ${INV_SERVICE_URL:-http://inv-service:4003}
+      PLM_SERVICE_URL: ${PLM_SERVICE_URL:-http://plm-service:4007}
+      FRONTEND_URL: ${FRONTEND_URL:-http://frontend:3000}
+    ports:
+      - "4004:4004"
+    depends_on:
+      proc-db:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:4004/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    networks:
+      - erp-network
+
+  mes-service:
+    profiles: ["pilot"]
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.mes-service
+    image: erp/mes-service:latest
+    container_name: erp-mes-service
+    restart: unless-stopped
+    environment:
+      HOST: "0.0.0.0"
+      PORT: "4006"
+      PILOT: ${PILOT:-1}
+      AUTH_ENFORCE: ${AUTH_ENFORCE:-true}
+      NATS_URL: ${NATS_URL:-nats://nats:4222}
+      MES_DATABASE_URL: ${MES_DATABASE_URL:-postgresql://erp_user:erp_password@mfg-db:5432/mfg_db?schema=public}
+      FRONTEND_URL: ${FRONTEND_URL:-http://frontend:3000}
+    ports:
+      - "4006:4006"
+    depends_on:
+      mfg-db:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:4006/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    networks:
+      - erp-network
+
+  plm-service:
+    profiles: ["pilot"]
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.plm-service
+    image: erp/plm-service:latest
+    container_name: erp-plm-service
+    restart: unless-stopped
+    environment:
+      HOST: "0.0.0.0"
+      PORT: "4007"
+      PILOT: ${PILOT:-1}
+      AUTH_ENFORCE: ${AUTH_ENFORCE:-true}
+      NATS_URL: ${NATS_URL:-nats://nats:4222}
+      PLM_DATABASE_URL: ${PLM_DATABASE_URL:-postgresql://postgres:postgres@plm-db:5432/plm_db?schema=public}
+      FRONTEND_URL: ${FRONTEND_URL:-http://frontend:3000}
+    ports:
+      - "4007:4007"
+    depends_on:
+      plm-db:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:4007/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    networks:
+      - erp-network
+
+  finance:
+    profiles: ["pilot"]
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.finance
+    image: erp/finance:latest
+    container_name: erp-finance
+    restart: unless-stopped
+    environment:
+      HOST: "0.0.0.0"
+      PORT: "4010"
+      PILOT: ${PILOT:-1}
+      AUTH_ENFORCE: ${AUTH_ENFORCE:-true}
+      NATS_URL: ${NATS_URL:-nats://nats:4222}
+      # Compose fin-db POSTGRES_DB=fin_db (not finance_db local default)
+      FINANCE_DATABASE_URL: ${FINANCE_DATABASE_URL:-postgresql://erp_user:erp_password@fin-db:5432/fin_db?schema=public}
+      PM_SERVICE_URL: ${PM_SERVICE_URL:-http://pm-service:4002}
+      FRONTEND_URL: ${FRONTEND_URL:-http://frontend:3000}
+    ports:
+      - "4010:4010"
+    depends_on:
+      fin-db:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:4010/fin/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    networks:
+      - erp-network
+
+  analytics-service:
+    profiles: ["pilot"]
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.analytics-service
+    image: erp/analytics-service:latest
+    container_name: erp-analytics-service
+    restart: unless-stopped
+    environment:
+      HOST: "0.0.0.0"
+      PORT: "4011"
+      PILOT: ${PILOT:-1}
+      AUTH_ENFORCE: ${AUTH_ENFORCE:-true}
+      NATS_URL: ${NATS_URL:-nats://nats:4222}
+      ANALYTICS_DATABASE_URL: ${ANALYTICS_DATABASE_URL:-postgresql://erp_user:erp_password@analytics-db:5432/analytics_db?schema=public}
+      GATEWAY_URL: ${GATEWAY_URL:-http://api-gateway:4005}
+      FRONTEND_URL: ${FRONTEND_URL:-http://frontend:3000}
+    ports:
+      - "4011:4011"
+    depends_on:
+      analytics-db:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:4011/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    networks:
+      - erp-network
+
+  api-gateway:
+    profiles: ["pilot"]
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api-gateway
+    image: erp/api-gateway:latest
+    container_name: erp-api-gateway
+    restart: unless-stopped
+    environment:
+      HOST: "0.0.0.0"
+      PORT: "4005"
+      PILOT: ${PILOT:-1}
+      AUTH_ENFORCE: ${AUTH_ENFORCE:-true}
+      AUTH_DISABLE: ${AUTH_DISABLE:-false}
+      USE_KEYCLOAK_JWKS: ${USE_KEYCLOAK_JWKS:-true}
+      KEYCLOAK_JWKS_URI: ${KEYCLOAK_JWKS_URI:-http://keycloak:8080/realms/erp/protocol/openid-connect/certs}
+      NATS_URL: ${NATS_URL:-nats://nats:4222}
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:-}
+      MEILI_URL: ${MEILI_URL:-http://meilisearch:7700}
+      # Domain upstreams — compose service DNS (override for hybrid host runs)
+      CRM_SERVICE_URL: ${CRM_SERVICE_URL:-http://crm-service:4001}
+      PM_SERVICE_URL: ${PM_SERVICE_URL:-http://pm-service:4002}
+      INV_SERVICE_URL: ${INV_SERVICE_URL:-http://inv-service:4003}
+      PROC_SERVICE_URL: ${PROC_SERVICE_URL:-http://proc-service:4004}
+      MES_SERVICE_URL: ${MES_SERVICE_URL:-http://mes-service:4006}
+      PLM_SERVICE_URL: ${PLM_SERVICE_URL:-http://plm-service:4007}
+      QUALITY_SERVICE_URL: ${QUALITY_SERVICE_URL:-http://quality-service:4008}
+      EAM_SERVICE_URL: ${EAM_SERVICE_URL:-http://eam-service:4009}
+      FIN_SERVICE_URL: ${FIN_SERVICE_URL:-http://finance:4010}
+      ANALYTICS_SERVICE_URL: ${ANALYTICS_SERVICE_URL:-http://analytics-service:4011}
+      HR_SERVICE_URL: ${HR_SERVICE_URL:-http://hr:4012}
+      TAX_SERVICE_URL: ${TAX_SERVICE_URL:-http://tax-legal:4015}
+      SEARCH_SERVICE_URL: ${SEARCH_SERVICE_URL:-http://search-service:4018}
+      APPROVALS_SERVICE_URL: ${APPROVALS_SERVICE_URL:-http://approvals-service:4019}
+    ports:
+      - "4005:4005"
+    depends_on:
+      - pm-service
+      - inv-service
+      - proc-service
+      - mes-service
+      - plm-service
+      - finance
+      - analytics-service
+      - keycloak
+      - nats
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:4005/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - erp-network
+
+  frontend:
+    profiles: ["pilot"]
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend
+      args:
+        GATEWAY_INTERNAL_URL: ${GATEWAY_INTERNAL_URL:-http://api-gateway:4005}
+    image: erp/frontend:latest
+    container_name: erp-frontend
+    restart: unless-stopped
+    environment:
+      PORT: "3000"
+      GATEWAY_INTERNAL_URL: ${GATEWAY_INTERNAL_URL:-http://api-gateway:4005}
+    ports:
+      - "3001:3000"
+    depends_on:
+      - api-gateway
+    networks:
+      - erp-network
+
 # ═════════════════════════════════════════════════════════════════════════════
 # NAMED VOLUMES — Persistent storage per service
 # ═════════════════════════════════════════════════════════════════════════════
@@ -559,6 +950,8 @@ volumes:
   vault_data:
   vault_ha_data:
   vault_raft_data:
+    driver: local
+  meili_data:
     driver: local
 
 # ═════════════════════════════════════════════════════════════════════════════

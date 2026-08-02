@@ -21,8 +21,14 @@ spec:
           ports:
             - containerPort: 4011
           env:
+            - name: HOST
+              value: "0.0.0.0"
+            - name: PORT
+              value: "4011"
             - name: NATS_URL
               value: nats://nats:4222
+            - name: GATEWAY_URL
+              value: http://api-gateway:4005
           livenessProbe:
             httpGet:
               path: /health

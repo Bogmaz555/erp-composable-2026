@@ -4,24 +4,32 @@ import { CreateReservationHandler } from '../src/commands/create-reservation.han
 import { CreateReservationCommand } from '../src/commands/create-reservation.command';
 import { PrismaService } from '../src/prisma.service';
 
+function mockPrismaTx(store: Record<string, unknown>) {
+  return {
+    ...store,
+    $transaction: jest.fn(async (cb: (tx: typeof store) => Promise<unknown>) => cb(store)),
+  };
+}
+
 // Focused on ETO traceability: Reservation must carry bomComponentId
 describe('INV: CreateReservation bomComponentId traceability', () => {
   let handler: CreateReservationHandler;
   let prisma: PrismaService;
 
   beforeEach(async () => {
+    const store = {
+      reservation: { create: jest.fn().mockResolvedValue({ id: 'res-1', createdAt: new Date() }) },
+      stockTransaction: { create: jest.fn() },
+      stockLevel: { findFirst: jest.fn().mockResolvedValue({ id: 'sl-1', quantity: 50 }), update: jest.fn() },
+      outboxEvent: { create: jest.fn() },
+    };
     const moduleRef: TestingModule = await Test.createTestingModule({
       imports: [CqrsModule],
       providers: [
         CreateReservationHandler,
         {
           provide: PrismaService,
-          useValue: {
-            reservation: { create: jest.fn().mockResolvedValue({ id: 'res-1' }) },
-            stockTransaction: { create: jest.fn() },
-            stockLevel: { findFirst: jest.fn().mockResolvedValue({ id: 'sl-1', quantity: 50 }), update: jest.fn() },
-            outboxEvent: { create: jest.fn() },
-          },
+          useValue: mockPrismaTx(store),
         },
       ],
     }).compile();
@@ -31,10 +39,11 @@ describe('INV: CreateReservation bomComponentId traceability', () => {
   });
 
   it('should persist bomComponentId on reservation and transaction', async () => {
-    const cmd = new CreateReservationCommand('item-1', 3, 'proj-1', null, null, 'bom-comp-xyz', 't1', 'user-1');
+    const cmd = new CreateReservationCommand('item-1', 3, 'proj-1', undefined, undefined, 'bom-comp-xyz', 't1', 'user-1');
 
     await handler.execute(cmd);
 
+    expect((prisma as any).$transaction).toHaveBeenCalled();
     expect((prisma as any).reservation.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ bomComponentId: 'bom-comp-xyz' }),
@@ -48,7 +57,7 @@ describe('INV: CreateReservation bomComponentId traceability', () => {
       7,
       'proj-eto-77',
       'wo-123',
-      null,
+      undefined,
       'bom-comp-uuid-xyz',
       'tenant-1',
       'user-auth-42'  // comes from authenticated caller / NATS x-user-id in real flow
@@ -58,13 +67,15 @@ describe('INV: CreateReservation bomComponentId traceability', () => {
 
     expect((prisma as any).outboxEvent.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        eventType: 'inventory.reservation.created.v1',
-        payload: expect.objectContaining({
-          bomComponentId: 'bom-comp-uuid-xyz',
-          workOrderId: 'wo-123',
-          projectId: 'proj-eto-77',
-          createdBy: 'user-auth-42',
-          quantity: 7,
+        data: expect.objectContaining({
+          eventType: 'inventory.reservation.created.v1',
+          payload: expect.objectContaining({
+            bomComponentId: 'bom-comp-uuid-xyz',
+            workOrderId: 'wo-123',
+            projectId: 'proj-eto-77',
+            createdBy: 'user-auth-42',
+            quantity: 7,
+          }),
         }),
       })
     );

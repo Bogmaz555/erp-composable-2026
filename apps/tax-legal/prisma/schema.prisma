@@ -13,7 +13,7 @@ model TaxInvoice {
   tenantId            String   @default("default")
   projectId           String
   milestone           String
-  amount              Float
+  amount              Decimal
   currency            String   @default("PLN")
   buyerNip            String?
   ksefReferenceNumber String?
@@ -26,6 +26,7 @@ model TaxInvoice {
 
 enum OutboxStatus {
   PENDING
+  PROCESSING
   PROCESSED
   FAILED
 }
@@ -38,6 +39,8 @@ model OutboxEvent {
   eventType     String
   payload       Json
   status        OutboxStatus @default(PENDING)
+  attempts      Int          @default(0)
+  lastError     String?
   createdAt     DateTime     @default(now())
   processedAt   DateTime?
 }

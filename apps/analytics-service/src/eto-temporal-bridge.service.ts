@@ -3,6 +3,17 @@ import * as net from 'net';
 import { EtoNatsPublisherService } from './eto-nats-publisher.service';
 import { EtoWorkflowService } from './eto-workflow.service';
 
+/**
+ * Temporal bridge — **not** Pilot DoD (KD-4 / PR16).
+ *
+ * Pilot saga path is G-lite: EtoOrchestratorService + NATS/JetStream compensation
+ * (finance.wip.cost.reversed). This service only:
+ * - TCP-probes Temporal (optional infra)
+ * - Publishes workflow step subjects to NATS as a lite bridge for demos
+ *
+ * Presence of temporal-connected mode does **not** gate pilot readiness.
+ * TD-003 remains yellow-minimum under G-lite, not full Temporal orchestration.
+ */
 @Injectable()
 export class EtoTemporalBridgeService {
   private bridgeCycles = 0;
@@ -42,6 +53,9 @@ export class EtoTemporalBridgeService {
     const def = this.workflow.getDefinition();
     return {
       mode: this.temporalReachable ? 'temporal-connected' : 'lite-bridge',
+      /** Explicit non-DoD marker for pilot gates / readiness consumers */
+      pilotDoD: false,
+      note: 'Temporal is optional; Pilot DoD is G-lite orchestrator + reverse WIP (KD-4)',
       temporalReachable: this.temporalReachable,
       temporalHost: process.env.TEMPORAL_HOST || '127.0.0.1',
       temporalPort: parseInt(process.env.TEMPORAL_PORT || '7233', 10),
@@ -55,7 +69,7 @@ export class EtoTemporalBridgeService {
     };
   }
 
-  /** Publikuje kroki workflow na NATS — most Temporal-lite → event bus */
+  /** Publikuje kroki workflow na NATS — most Temporal-lite → event bus (demo only; not Pilot DoD) */
   async bridgeRun(correlationId: string, tenantId = 'default', projectId = 'proj-temporal-bridge') {
     const steps = this.workflow.getStepIds();
     let published = 0;
@@ -79,6 +93,7 @@ export class EtoTemporalBridgeService {
       stepsPublished: published,
       totalSteps: steps.length,
       mode: this.temporalReachable ? 'temporal-connected' : 'lite-bridge',
+      pilotDoD: false,
       bridgeCycles: this.bridgeCycles,
     };
   }

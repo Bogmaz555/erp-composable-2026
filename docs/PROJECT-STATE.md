@@ -1,355 +1,243 @@
 # ERP Composable 2026 — Stan Projektu (pełne podsumowanie)
 
-**Ostatnia aktualizacja:** 2026-06-08  
-**Bieżąca warstwa:** **FINAL** — Faza 28 K8sExtended TenantHardening KSeFProd (W142) ✅
+**Ostatnia aktualizacja:** 2026-08-01 (PR 21 — docs honesty)  
+**Bieżąca warstwa (honest):** **Pilot v1 hardening** (design PR 1–21) — **nie production**  
+**Design binding:** [`docs/PILOT-V1-DESIGN.md`](./PILOT-V1-DESIGN.md)  
+**Honest quality gate:** `pnpm run smoke:pilot` / `pnpm run pipeline:pilot`
+
+> ### ⚠️ Honesty banner
+>
+> **W142 / Faza 28 FINAL ≠ production-ready.**  
+> Layers W0–W142 and contract/regression “100%” counts are an **advanced POC / sales-demo platform surface** (readiness endpoints, file probes, theater contracts). They must **not** be cited as production or pilot acceptance.
+>
+> **Pilot v1** = single-tenant-per-deployment customer pilot: auth default ON, transactional outbox, JetStream **opt-in**, tenancy row filter, G-lite saga, compose pilot deploy, DR RPO 24h / RTO 2h, gate = live-oriented `smoke:pilot`.
+>
+> See: `docs/PILOT-V1-DESIGN.md`, `docs/PRODUCTION-READINESS.md`, `docs/TECHNICAL-DEBT.md`.
 
 ---
 
 ## 1. Czym jest ten projekt
 
-Composable ERP dla produkcji jednostkowej (ETO) — architektura mikroserwisowa, DDD, CQRS, NATS + Outbox, database-per-service. Poziom: **zaawansowany POC / demo sprzedażowe enterprise**.
+Composable ERP dla produkcji jednostkowej (ETO) — architektura mikroserwisowa, DDD, CQRS, NATS + Outbox, database-per-service.
+
+| Poziom | Opis |
+|--------|------|
+| **Historycznie (W142)** | Zaawansowany POC / demo sprzedażowe enterprise + readiness theater |
+| **Cel bieżący** | **Pilot v1** — twardy single-tenant pilot u jednego klienta |
+| **Nie jest** | Multi-tenant SaaS, ISO prod, mTLS mesh, full Temporal, production multi-env |
 
 ---
 
-## 2. Co jest zrobione (skrót faz)
+## 2. Pilot v1 — stan hardeningu (PR 1–21)
 
-| Faza / obszar | Status | Kluczowe osiągnięcia |
-|---------------|--------|----------------------|
-| **Faza 0** Governance | ✅ 100% | GOVERNANCE, ADR 001–007, Event Registry, blueprinty modułów |
-| **Faza 1** Manufacturing | ✅ ~90% pilotaż | Traceability spine (`bomComponentId`), PLM→PM→MES→INV, genealogy, Keycloak dev |
-| **Faza 2** Finance + Tax | ✅ ~85% | Milestone FAT/SAT, KSeF, WIP costing, HR labor → Finance |
-| **Faza 3** Procurement | ✅ ~72% | MRP/SHORTAGE → PO → approve → receive → INV |
-| **Faza 4** Quality + EAM | ✅ ~55% pilotaż | NCR, CAPA, breakdown events, IoT lite (W31) |
-| **Warstwy W0–W35** UX + ETO + observability | ✅ W35 | Patrz roadmap |
+Źródło prawdy: **`docs/PILOT-V1-DESIGN.md`**. Poniżej skrót po zamknięciu toru execute-plan.
 
-### Najmocniejsze fragmenty kodu
+| Track | PR | Status | Gate / notes |
+|-------|-----|--------|--------------|
+| Secrets purge, Meili env, gitignore `backups/` | 1 | ✅ | `ci-no-secrets` |
+| Auth surface, JWKS, 401 P0, **auth default ON** | 2 | ✅ | `smoke:pilot:auth` |
+| RBAC role matrix + ETO mutation guards | 3 | ✅ | VIEWER deny |
+| Outbox schema `PROCESSING` + attempts | 4 | ✅ | all producers |
+| GenericOutboxRelay v2 (+ INV converge) | 5 | ✅ | claim/FAILED |
+| Outbox **transactional** INV+PROC | 6 | ✅ | `smoke:pilot:outbox` |
+| Outbox TX PM+PLM | 7 | ✅ | |
+| Outbox TX FIN+MES | 8 | ✅ | |
+| Outbox TX quality/hr/tax/crm | 9 | ✅ | |
+| Prisma baselines core | 10 | ✅ | `PILOT=1` no push |
+| Money Decimal blocklist | 11 | ✅ | residual secondary |
+| Secondary Decimal (CRM/PLM) | 12 | 🟡 optional | KD-5 residual OK |
+| JetStream kernel + bootstrap | 13 | ✅ | **opt-in** `NATS_JETSTREAM` |
+| Relay JS publish + single consumer | 14 | ✅ | `smoke:pilot:js` |
+| Tenancy extension + worker ALS | 15 | ✅ | `smoke:pilot:tenant` |
+| G-lite reverse WIP + real correlationId | 16 | ✅ | `smoke:pilot:eto`; Temporal non-DoD |
+| Deploy env URLs, bind 0.0.0.0, pure proxy | 17 | ✅ | |
+| Multi-service Dockerfiles, compose pilot | 18 | ✅ | OQ-6 min set |
+| DR backup/restore + drill | 19 | ✅ | RPO 24h / RTO 2h |
+| **`smoke:pilot` suite entrypoints** | 20 | ✅ | honest gate |
+| Docs honesty pass | 21 | ✅ | this file + TD + PRODUCTION-READINESS |
+
+### Pilot defaults (env)
+
+```bash
+AUTH_ENFORCE=true          # default ON; forbid false in pilot CI
+AUTH_DISABLE=false
+USE_KEYCLOAK_JWKS=true
+PILOT=1
+NATS_JETSTREAM=true        # opt-in after streams bootstrap; single consumer path
+DEFAULT_TENANT_ID=acme     # single-tenant-per-deploy
+# *_SERVICE_URL=http://<svc>:<port>
+```
+
+### Co jest mocne (biznes + pilot)
+
+- Spine ETO: PLM → PM → INV → MES → Finance + G-lite compensation path
+- Transactional outbox + relay v2; JetStream optional durable path
+- CRM/CPQ milestone, PM CCPM, frontend glassmorphism (demo UX retained)
+- Auth default-on + RBAC on ETO mutations; tenant row filter defense-in-depth
+- Compose pilot primary hosting; DR drill scripts
+
+### Świadome residuale (nie Pilot DoD)
+
+- Temporal full workers, mTLS mesh, Vault prod HA, Pact broker
+- Readiness/contract theater noise (quarantined from pilot gate)
+- Secondary money Floats, partial domain depth, MES kiosk device token (OQ-2 D60)
+- Multi-customer SaaS tenancy
+
+---
+
+## 3. Co jest zrobione historycznie (Fazy 0–28 / W0–W142)
+
+Poniższe fazy i warstwy **pozostają w repo jako demo/platform surface**.  
+**Nie interpretuj „✅ FINAL” ani „130/130 @ 100%” jako production readiness.**
+
+| Faza / obszar | Status historyczny | Kluczowe osiągnięcia (demo) |
+|---------------|--------------------|-----------------------------|
+| **Faza 0** Governance | ✅ | GOVERNANCE, ADR 001–007, Event Registry, blueprinty |
+| **Faza 1** Manufacturing | ✅ ~90% pilotaż | Traceability spine, PLM→PM→MES→INV, Keycloak dev |
+| **Faza 2** Finance + Tax | ✅ ~85% | Milestone FAT/SAT, KSeF sandbox, WIP costing |
+| **Faza 3** Procurement | ✅ ~72% | MRP/SHORTAGE → PO → receive → INV |
+| **Faza 4** Quality + EAM | ✅ ~55% | NCR, CAPA, breakdown stub, IoT lite |
+| **W0–W35** UX + ETO + observability | ✅ | Roadmap warstw |
+| **Faza 5–28 / W47–W142** | ✅ **demo FINAL** | Readiness endpoints, K8s/Helm stubs, tenant hardening probe, KSeF prod *profile*, contract/regression **theater counts** |
+
+### Naprawy operacyjne (2026-06 — retained)
+
+- HR DB port, Finance build deprecations, Prisma CLI baselines (`docs/PRISMA-MIGRATIONS.md`)
+- Core services: full baselines; `PILOT=1` forbids push-only
+
+### Faza 28 — K8s Extended, Tenant Hardening & KSeF Prod (W139–W142) — **demo layer only**
+
+- **W139–W141** — extended K8s manifests, tenant hardening *probe*, KSeF production *profile*
+- **W142** — `pipeline:faza28-final` + historical contract/regression counts
+- **Honest reinterpretation (2026-08):** this closed the **sales-demo / platform readiness** track. Pilot acceptance moved to **`smoke:pilot`** (PR 20) after Pilot v1 hardening (PR 1–19).
+
+<details>
+<summary>Archiwalne warstwy W36–W141 (skrót — nie pilot gate)</summary>
+
+- W36–W46: audit, auth readiness, gateway readiness, ETO payload, production readiness panel, tax readiness, stack readiness
+- W47–W50: MES ETO spine, pact readiness lite, TD checks, pipeline final (demo)
+- W51–W94: domain depth, data trust, BI, CI auth theater, Grafana/Prometheus profiles
+- W95–W130: alerts, mTLS *stubs*, Vault *dev* stubs, SLO dashboards, observability profiles
+- W131–W138: K8s deploy manifests, visual regression, Helm, quality/EAM prod endpoints
+- W139–W141: k8s extended, tenant hardening readiness, KSeF prod profile
+
+Historical numbers such as “Contract 130/130 · Regression 125/125” refer to that theater suite, **not** Pilot DoD.
+
+</details>
+
+### Najmocniejsze fragmenty kodu (nadal aktualne)
+
 - CRM + CPQ (milestone billing FAT/SAT)
 - PM z CCPM (fever zones, bufory)
-- Pełny event spine ETO (7+ kroków saga, orchestrator, compensation, Temporal bridge)
-- Frontend glassmorphism + TanStack Query + moduły BI/KPI
-- Contract tests + pipeline autonomiczny (W2–W35)
-
-### Naprawy operacyjne (2026-06-06)
-- **HR DB** — `apps/hr/.env` port 5443 (było 5432/5440), `/api/hr/employees` OK
-- **Finance build** — `ignoreDeprecations: 6.0` → `nest-build-all` PASS
-- **Prisma CLI** — `ensure-databases.sh` + `prisma-migrate-deploy.sh` → `prisma@5.22.0`
-- **Regression** — 49 checks (+ HR employees, Tax health)
-
-### FINAL — Faza 5 Production Hardening (W47–W50) ✅
-- **W47** — MES ETO spine: `/health/eto`, `/platform/mes/readiness`
-- **W48** — TD-012 lite: `/platform/pact/readiness` (18 Active events)
-- **W49** — Production readiness **13 TD checks** @ 100%
-- **W50** — Final pipeline `pnpm run pipeline:final`
-- Contract tests: **30/30** | Regression: **63/63** @ 100%
-
-### Faza 6 — Domain Depth (W51–W54) ✅
-- **W51** PLM · **W52** MES · **W53** Finance · **W54** `pipeline:domain-final`
-- Contract **37/37** | Regression **66/66**
-
-### Faza 8 — Data Trust (W59–W62) ✅
-- Live cost-summary, import preview, data-integrity readiness
-
-### Faza 9 — Security & Import (W63–W66) ✅
-- **W63** — `/platform/auth-enforcement/readiness`
-- **W64** — Import staging (stage/commit/rollback)
-- **W65** — `/platform/validation/readiness`
-- **W66** — `pnpm run pipeline:faza9-final`
-- Contract **53/53** | Regression **73/73** @ 100%
-
-### Faza 10 — BI & Persistence (W67–W70) ✅
-- **W67** — `GET /bi/projects/:id/dashboard` + `/platform/bi-readiness/readiness`
-- **W68** — `/platform/ci-auth/readiness` (CI auth profile)
-- **W69** — Prisma `ImportStagingBatch` + `/platform/import-staging/readiness`
-- **W70** — `pnpm run pipeline:faza10-final`
-- Contract **58/58** | Regression **76/76** @ 100%
-
-### Faza 11 — Frontend BI & Projections (W71–W74) ✅
-- **W71** — Frontend PM BI panel + `/platform/frontend-bi/readiness`
-- **W72** — `CI_AUTH_ENFORCE=true` w GitHub Actions + `ci-contract-gate.sh`
-- **W73** — Prisma `BiProjectSnapshot` + `/platform/bi-projection/readiness`
-- **W74** — `pnpm run pipeline:faza11-final`
-- Contract **62/62** | Regression **78/78** @ 100%
-
-### Faza 12 — BI Scheduler & CI Auth (W75–W78) ✅
-- **W75** — BI refresh scheduler + `/platform/bi-scheduler/readiness`
-- **W76** — Playwright `e2e/pm-bi-panel.spec.ts` + `/platform/pm-e2e/readiness`
-- **W77** — `ci-auth-enforce-probe.ts` + `/platform/ci-auth-enforce/readiness`
-- **W78** — `pnpm run pipeline:faza12-final`
-- Contract **66/66** | Regression **81/81** @ 100%
-
-### Faza 13 — Retention & CI Live (W79–W82) ✅
-- **W79** — BI snapshot TTL retention + `/platform/bi-retention/readiness`
-- **W80** — Playwright CI probe + `/platform/playwright-ci/readiness`
-- **W81** — Auth enforce live CI job + `/platform/ci-auth-live/readiness`
-- **W82** — `pnpm run pipeline:faza13-final`
-- Contract **70/70** | Regression **84/84** @ 100%
-
-### Faza 14 — Metrics & CI Regression (W83–W86) ✅
-- **W83** — BI retention metrics (JSON + Prometheus) + `/platform/bi-metrics/readiness`
-- **W84** — Playwright stack boot CI + `/platform/playwright-stack/readiness`
-- **W85** — AUTH_ENFORCE regression probe + `/platform/ci-auth-regression/readiness`
-- **W86** — `pnpm run pipeline:faza14-final`
-- Contract **74/74** | Regression **87/87** @ 100%
-
-### Faza 15 — Grafana & CI Hardening (W87–W90) ✅
-- **W87** — Grafana dashboard `bi-snapshot-metrics.json` + `GET bi/metrics/grafana/dashboard` + `/platform/grafana-bi/readiness`
-- **W88** — Playwright PM BI required (no `continue-on-error`) + `/platform/playwright-required/readiness`
-- **W89** — Keycloak auth regression probe + `/platform/ci-auth-keycloak/readiness`
-- **W90** — `pnpm run pipeline:faza15-final`
-- Contract **78/78** | Regression **90/90** @ 100%
-
-### Faza 16 — Observability & CI Prod (W91–W94) ✅
-- **W91** — Prometheus + Grafana provisioning (`observability` profile) + `/platform/grafana-provision/readiness`
-- **W92** — Playwright module matrix (PM/Finance/INV) + `/platform/playwright-matrix/readiness`
-- **W93** — AUTH_ENFORCE prod profile + mandatory `auth-enforce-live` + `/platform/ci-auth-enforce-prod/readiness`
-- **W94** — `pnpm run pipeline:faza16-final`
-- Contract **82/82** | Regression **93/93** @ 100%
-
-### Faza 17 — Alerts, Matrix Ext & Vault (W95–W98) ✅
-- **W95** — BI retention alert rules + Alertmanager + `/platform/bi-alerts/readiness`
-- **W96** — Playwright matrix ext (PROC + Quality) — 5 module specs
-- **W97** — Vault + TLS dev (`prod-security` profile) + `/platform/vault-tls-prod/readiness`
-- **W98** — `pnpm run pipeline:faza17-final`
-- Contract **86/86** | Regression **95/95** @ 100%
-
-### Faza 18 — Notify, Matrix MES/EAM & mTLS (W99–W102) ✅
-- **W99** — Alertmanager Slack/email channels + `/platform/alert-notify/readiness`
-- **W100** — Playwright matrix +MES +EAM (7 module specs)
-- **W101** — Gateway mTLS sidecar `:4445` + `/platform/mtls-gateway/readiness`
-- **W102** — `pnpm run pipeline:faza18-final`
-- Contract **90/90** | Regression **97/97** @ 100%
-
-### Faza 19 — Escalation, Matrix CRM/Tax & mTLS Proxy (W103–W106) ✅
-- **W103** — PagerDuty/Opsgenie escalation + `/platform/alert-escalation/readiness`
-- **W104** — Playwright matrix +CRM +Tax (9 module specs)
-- **W105** — Full mTLS proxy `:4446` → `:4005` + `/platform/mtls-proxy/readiness`
-- **W106** — `pnpm run pipeline:faza19-final`
-- Contract **94/94** | Regression **99/99** @ 100%
-
-### Faza 20 — Oncall, Matrix 11-Mod & Client mTLS (W107–W110) ✅ FINAL
-- **W107** — Alertmanager on-call `time_intervals` + `/platform/alert-oncall/readiness`
-- **W108** — Playwright matrix +HR +PLM (**11 modules** — full UI coverage)
-- **W109** — Client-cert mTLS verify on gateway proxy + `/platform/mtls-client-verify/readiness`
-- **W110** — `pnpm run pipeline:faza20-final`
-- Contract **98/98** | Regression **101/101** @ 100%
-
-### Faza 21 — SLO Burn-Rate, Cross-Chain E2E & TLS Rotation (W111–W114) ✅ FINAL
-- **W111** — Prometheus multi-window SLO burn-rate alerts + `/platform/slo-burn-rate/readiness`
-- **W112** — Playwright cross-module chain PM→Finance→Tax + CI job `playwright-cross-chain`
-- **W113** — TLS cert rotation automation (`rotate-tls-certs.sh`, 90-day policy)
-- **W114** — `pnpm run pipeline:faza21-final`
-- Contract **102/102** | Regression **104/104** @ 100%
-
-### Faza 22 — SLO Dashboard, PROC→INV→Quality & Vault Secrets (W115–W118) ✅ FINAL
-- **W115** — Grafana SLO error budget dashboard + `/platform/grafana-slo-dashboard/readiness`
-- **W116** — Playwright cross-module chain PROC→INV→Quality + CI job `playwright-proc-inv-quality-chain`
-- **W117** — Vault KV secrets rotation (`rotate-vault-secrets.sh`, 90-day policy)
-- **W118** — `pnpm run pipeline:faza22-final`
-- Contract **106/106** | Regression **107/107** @ 100%
-
-### Faza 23 — SLO Alerting, MES→EAM→CRM & Vault KMS (W119–W122) ✅ FINAL
-- **W119** — Grafana SLO alerting → Alertmanager + `/platform/slo-alerting/readiness`
-- **W120** — Playwright cross-module chain MES→EAM→CRM + CI job `playwright-mes-eam-crm-chain`
-- **W121** — Vault KMS auto-unseal dev stub + `/platform/vault-kms-unseal/readiness`
-- **W122** — `pnpm run pipeline:faza23-final`
-- Contract **110/110** | Regression **110/110** @ 100%
-
-### Faza 24 — SLO Routing, HR→PLM→PM & Vault Audit (W123–W126) ✅ FINAL
-- **W123** — SLO critical → PagerDuty/Opsgenie + `/platform/slo-routing/readiness`
-- **W124** — Playwright HR→PLM→PM chain + CI job `playwright-hr-plm-pm-chain`
-- **W125** — Vault audit logging + `/platform/vault-audit/readiness`
-- **W126** — `pnpm run pipeline:faza24-final`
-- Contract **114/114** | Regression **113/113** @ 100%
-
-### Faza 25 — Prod Observability, Chain Matrix & Vault HA (W127–W130) ✅ FINAL
-- **W127** — `prod-observability` compose profile + `/platform/prod-observability/readiness`
-- **W128** — Playwright all cross-chains matrix + CI job `playwright-all-chains-matrix`
-- **W129** — Vault HA stub (`vault-ha` :8201) + `/platform/vault-ha/readiness`
-- **W130** — `pnpm run pipeline:faza25-final`
-- Contract **118/118** | Regression **116/116** @ 100%
-
-### Faza 26 — K8s Deploy, Visual Regression & Vault Raft (W131–W134) ✅ FINAL
-- **W131** — K8s manifests (`infra/k8s/deploy/`) + `/platform/k8s-deploy/readiness`
-- **W132** — Playwright visual baseline + CI job `playwright-visual-baseline`
-- **W133** — Vault Raft cluster (`vault-raft` :8202) + `/platform/vault-raft/readiness`
-- **W134** — `pnpm run pipeline:faza26-final`
-- Contract **122/122** | Regression **119/119** @ 100%
-
-### Faza 27 — Helm, Visual Diff Gate & Quality/EAM Production (W135–W138) ✅ FINAL
-- **W135** — Helm chart (`infra/helm/erp/`) + `/platform/helm-deploy/readiness`
-- **W136** — Playwright visual diff strict CI + `/platform/playwright-visual-diff/readiness`
-- **W137** — NCR/CAPA + EAM production endpoints + `/platform/quality-eam-prod/readiness`
-- **W138** — `pnpm run pipeline:faza27-final`
-- Contract **126/126** | Regression **122/122** @ 100%
-
-### Faza 28 — K8s Extended, Tenant Hardening & KSeF Prod (W139–W142) ✅ FINAL
-- **W139** — K8s extended manifests (PM/PLM/Finance/Quality/EAM/Proc) + `/platform/k8s-extended/readiness`
-- **W140** — Multi-tenant hardening (`X-Tenant-Id`, `/tenants/hardening/check`) + `/platform/tenant-hardening/readiness`
-- **W141** — KSeF production profile (`/ksef/production/profile`) + `/platform/ksef-prod/readiness`
-- **W142** — `pnpm run pipeline:faza28-final`
-- Contract **130/130** | Regression **125/125** @ 100%
-
-### Poprzednio (W46)
-- **W46** — TD-004: `traceability/e2e/view` — 5-stage spine PLM→FIN
-- UI: tab **E2E Spine** w `/inv` → Genealogia
-- Contract tests: **28/28** (21 suites)
-- Regression: **61/61** @ 100%
-
-### Poprzednio (W45)
-- **W45** — TD-005: `platform/tax/readiness` — KSeF + JPK aggregate probes
-- Production readiness: **9 TD checks** @ 100%
-- Contract tests: **27/27** (20 suites)
-- Regression: **60/60** @ 100%
-
-### Poprzednio (W44)
-- **W44** — TD-011 ext: `ensure-core-stack.sh`, `platform/stack/readiness`, boot-regression hardening
-- Regression: **59/59** @ 100% (54/54 required)
-- Contract tests: **26/26** (19 suites)
-
-### Poprzednio (W41–W43)
-- **W41** — Production Readiness UI panel na dashboardzie `/`
-- **W42** — TD-002: `platform/gateway/readiness`, proxy probes (FA, PM, INV, HR)
-- **W43** — TD-004b: `platform/eto-payload/readiness`, `assertEtoOperationalPayload` w MES
-- Production readiness rozszerzone: **8 TD checks** (score 75%, ready @ 6/8)
-- Contract tests: **25/25** (18 suites)
-- Regression: **55/58** (44/47 required @ 94%) — pełny stack z PM/PROC/INV/PLM
-
-### Poprzednio (W37–W40)
-- **W37** — TD-001: `platform/auth/readiness`, RBAC matrix API
-- **W38** — TD-011: `boot:smart`, FRONTEND_PORT auto, `platform/boot/readiness`
-- **W39** — TD-004 partial: `traceability/e2e/readiness`, genealogy chain aggregate
-- **W40** — `platform/production/readiness` — 6 TD checks @ 100%
-- Contract tests: **23/23** (16 suites)
-- Regression: **56/56** (51 required @ 100%)
-
-### Poprzednio (W36)
-- **W36** — TD-013: structured audit log, readiness/summary API, compliance filters, Data Hub UI
-- Contract tests: **19/19** (12 suites)
-- Regression: **52/52** (44 required @ 100%)
-
-### Poprzednio (W34–W35)
-- **W34** — OTel/outbox routing fix, observability readiness API, dynamic required
-- **W35** — Full stack regression (Jaeger + finance + observability)
-- Contract tests: **17/17**
-- Regression: **49/49** (44 required @ 100%) — HR + Tax w checkach
-
-### Poprzednio (W32–W33)
-- **W32** — TD-010: pnpm overrides NestJS 11.1.19, audit API, smoke
-- **W33** — Finance prod boot, dynamic finance required w regression
-- Contract tests: **16/16**
-- Regression: **46/46** (z finance prod)
-
-### Poprzednio (W29–W31)
-- **W29** — TD-003 saga readiness API + smoke
-- **W30** — Regression stabilność (FE auto-detect, optional UI/outbox)
-- **W31** — EAM IoT lite: BreakdownEvent persist, status/recent API, UI strip
-- Contract tests: **15/15**
-- Regression: **45/45** (34 required @ 100%)
-
-### Poprzednio (W26–W28)
-- **W26** — Jaeger profile, `/analytics/otel/status`, `boot:otel`
-- **W27** — Genealogia chain ETO + UI tab Chain
-- **W28** — Outbox DLQ dashboard aggregate
-- Contract tests: **13/13**
-
-### Poprzednio (W24–W25)
-- **Double BOM** — `subBomVersionId`, explosion przy release, `GET /bom-versions/:id/double-bom`
-- **Payload guard** — `assertEtoOperationalPayload` w PM/INV handlerach
-- **Long-Lead UI** — `MrpPanel.tsx` + `useLongLeadRadar()`
-- Contract tests: **12/12**
-
-### Poprzednio (W23 — APEX inkrementalnie)
-- **Long-Lead Radar** — PROC, `GET /proc/long-lead/radar`, PO `source: LONG_LEAD`
-- **Universal Journal lite** — Finance, `GET /fin/universal-journal`
-- **`assertEtoOperationalPayload`** — shared-kernel + test kontraktowy
-- Zasady: `.cursor/rules/erp-eto-incremental.mdc`
+- Event spine ETO + **G-lite** orchestrator + reverse WIP (hardened)
+- Frontend glassmorphism + TanStack Query
+- Shared-kernel: outbox relay v2, tenant-extension, ERP roles
 
 ---
 
-## 3. Architektura (nie zmieniamy bez ADR)
+## 4. Architektura (nie zmieniamy bez ADR)
 
 ```
-Frontend (Next.js) → API Gateway (:4005) → mikroserwisy (NestJS + Prisma)
+Frontend (Next.js) → API Gateway pure proxy (:4005) → mikroserwisy (NestJS + Prisma)
                               ↓
-                         NATS JetStream + Outbox relay
+              Outbox TX → Relay v2 → NATS core  (+ JetStream opt-in)
 ```
 
-**Serwisy:** plm, pm, mes, inv, proc, finance, crm, quality, eam, hr, tax-legal, analytics, api-gateway.
-
-**Frozen (chronione):** glassmorphism UI, CQRS w CRM/PM/MES, Outbox CRM, CPQ, CCPM fields.
+**Serwisy (pilot min OQ-6):** gateway, pm, inv, plm, mes, finance, proc, analytics, keycloak, nats, postgres×needed, frontend.  
+**Optional:** crm, hr, tax, quality, eam.  
+**Frozen (chronione UX/demo):** glassmorphism UI, CQRS w CRM/PM/MES, CPQ, CCPM fields.
 
 ---
 
-## 4. Otwarty dług techniczny (priorytet)
+## 5. Otwarty dług techniczny (priorytet)
 
 | ID | Problem | Status |
 |----|---------|--------|
-| TD-001 | Auth produkcyjny | 🟡 W37 — auth/readiness API, RBAC 7 ról |
-| TD-002 | Gateway proxy | 🟡 W42 — gateway/readiness API, proxy probes |
-| TD-003 | Saga orchestracja | 🟡 W29 — readiness API |
-| TD-004 | Głębokie modele domenowe | 🟡 W39–W49 — genealogy E2E + UI + MES spine |
-| TD-012 | Pact broker | 🟡 W48 — Event Registry readiness (broker odłożony) |
-| TD-006 | fix-*.js na root | ✅ Usunięte |
-| TD-010 | NestJS overrides | 🟡 W32 |
-| TD-011 | boot:all dev UX | 🟡 W38/W44 — boot:smart + stack/readiness + ensure-core-stack |
-| TD-013 | Audit log | 🟡 W36 |
+| TD-001 | Auth | ✅ Pilot — default ON + JWKS + 401 P0 |
+| TD-002 | Gateway | ✅ Pilot — pure proxy + SERVICE_URL |
+| TD-003 | Saga | 🟡 G-lite (PR16); Temporal non-DoD |
+| TD-004 | Modele domenowe | 🟡 praca produktowa |
+| TD-OUTBOX / TD-JS / TD-TENANT / TD-DR | Reliability track | ✅ / 🟡 JS opt-in — patrz TD |
+| TD-012 | Pact broker | ⛔ residual |
+| TD-THEATER | Readiness noise | 🟡 accepted outside pilot gate |
 
-Pełna lista: `docs/TECHNICAL-DEBT.md`
+Pełna lista: [`docs/TECHNICAL-DEBT.md`](./TECHNICAL-DEBT.md)
 
 ---
 
-## 5. Co przed nami (kolejność)
+## 6. Co przed nami
 
-### ✅ Faza 5 — Production Hardening — ZAMKNIĘTA (2026-06-07)
+### ✅ Pilot v1 hardening track (PR 1–21) — dokumentacja domknięta
 
-Patrz: `.agents/orchestrator/CHECKPOINTS/FAZA5-FINAL-CLOSURE.md`
+Patrz: `docs/PILOT-V1-DESIGN.md`, `docs/PRODUCTION-READINESS.md`
 
-### Odłożone (wymaga infry prod)
-- ⛔ Vault/TLS/mTLS — wymaga infry prod
-- TD-012 Pact — stopniowo przy nowych integracjach
-- Głębsze modele SAP-deep — praca domenowa (nie dług)
+### Operator / acceptance
 
-### Średni horyzont
-- Głębsze modele PLM/MES/INV (genealogia produkcyjna end-to-end)
-- Pełny regression live 37/37 stabilnie na CI
-- Production readiness (`docs/PRODUCTION-READINESS.md`)
-- TaxLegal KSeF produkcyjny (env-gated już jest)
+```bash
+docker compose --profile pilot up -d
+REQUIRE_LIVE=1 pnpm run smoke:pilot
+pnpm run pipeline:pilot
+```
+
+### Odłożone (poza Pilot DoD / prod infra)
+
+- ⛔ Vault/TLS/mTLS mesh production
+- ⛔ Full Temporal workers
+- ⛔ Pact broker, SaaS multi-tenant, ISO
+- Domain depth SAP-deep (produkt, nie dług czysto techniczny)
 
 ### Świadomie odłożone (APEX)
-MCP runtime, AI swarm, WebXR, osobny agent-orchestrator mikroserwis — mapa: `docs/APEX-VALUE-MAP.md`
+
+MCP runtime, AI swarm, WebXR, osobny agent-orchestrator — mapa: `docs/APEX-VALUE-MAP.md`
 
 ---
 
-## 6. Dokumentacja — co czytać
+## 7. Dokumentacja — co czytać
 
 | Plik | Po co |
 |------|-------|
-| **Ten plik** | Pełny obraz stanu |
-| `docs/FEATURE-EXPANSION-ROADMAP.md` | Historia warstw W0–W23 + plan W24+ |
+| **Ten plik** | Pełny obraz stanu + honesty |
+| **`docs/PILOT-V1-DESIGN.md`** | **Binding** Pilot v1 design (KD, OQ, PR map) |
+| `docs/PRODUCTION-READINESS.md` | Checklist + DR + smoke:pilot |
+| `docs/TECHNICAL-DEBT.md` | Backlog techniczny (pilot-aligned) |
+| `docs/FEATURE-EXPANSION-ROADMAP.md` | Historia warstw W0–W23+ |
 | `.agents/orchestrator/CURRENT-CONTEXT.md` | Krótki kontekst dla agentów |
 | `.agents/orchestrator/MASTER-PLAN.md` | Wizja strategiczna i fazy |
 | `docs/GOVERNANCE.md` | Zasady pracy |
 | `docs/EVENTS/REGISTRY.md` | Kontrakty zdarzeń |
-| `docs/TECHNICAL-DEBT.md` | Backlog techniczny |
-| `docs/APEX-VALUE-MAP.md` | Co wchłonęliśmy z analizy zewnętrznej |
+| `docs/APEX-VALUE-MAP.md` | Mapa APEX (odłożone) |
 
 ---
 
-## 7. Komendy operacyjne
+## 8. Komendy operacyjne
 
 ```bash
-pnpm run boot:smart               # zalecany start dev
-pnpm run build:all:nest
-pnpm run test:contracts           # 130/130
-pnpm run regression:report        # 125/125
-pnpm run pipeline:faza28-final
-kubectl apply -k infra/k8s/deploy/ --dry-run=client
-pnpm run smoke:faza28-k8s-tenant-ksef-final
+# --- Pilot v1 (preferowane) ---
+pnpm run boot:smart                 # dev
+docker compose --profile pilot up -d
+pnpm run smoke:pilot                # honest gate (structure + optional live)
+REQUIRE_LIVE=1 pnpm run smoke:pilot # fail-closed live
+pnpm run pipeline:pilot             # auth-env + inventory + suite + DR dry-run
+pnpm run smoke:pilot:auth
+pnpm run smoke:pilot:outbox
+pnpm run smoke:pilot:eto
+pnpm run smoke:pilot:tenant
+pnpm run smoke:pilot:js             # JetStream opt-in group
+
+# DR
+./scripts/backup-dbs.sh ./backups
+./scripts/dr-drill.sh               # default dry-run
+DR_DRILL_DRY_RUN=0 ./scripts/dr-drill.sh
+
+# --- Historyczne (demo / nie pilot DoD) ---
+pnpm run test:contracts             # theater counts — not pilot gate
+pnpm run regression:report
+pnpm run pipeline:faza28-final      # W142 demo final — ≠ production
 ```
 
 ---
 
-## 8. Struktura `.agents/` po cleanup (2026-06-06)
+## 9. Struktura `.agents/` po cleanup (2026-06-06)
 
 Usunięto: 80+ checkpointów SILENT, 59 mission briefów, logi pipeline, `fix-*.js`, folder analizy APEX (zmapowany w docs).
 

@@ -5,14 +5,16 @@ import { GetProjectTasksQuery } from './queries/get-project-tasks.query';
 import { RequestMaterialCommand } from './commands/request-material.handler';
 import { ReleaseProjectCommand } from './commands/release-project.handler';
 import { ReachProjectMilestoneCommand } from './commands/reach-project-milestone.command';
-import type { MilestoneType } from '@erp/shared-kernel';
+import { ETO_MUTATION_ROLES, type MilestoneType } from '@erp/shared-kernel';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
+import { RolesGuard } from './auth/roles.guard';
+import { Roles } from './auth/roles.decorator';
 import { PrismaService } from './prisma.service';
 import { ScheduleService } from './schedule.service';
 import { MspXmlService } from './msp-xml.service';
 
 // TD-001: Protected (key ETO operations: task creation, material requests, project release)
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('projects')
 export class ProjectController {
   constructor(
@@ -94,7 +96,8 @@ export class ProjectController {
       include: { wbsElements: true, tasks: true },
     });
     if (!project) return { error: 'Project not found' };
-    const pv = project.budget ?? 0;
+    // Decimal at rest (KD-5) → number for EVM math and JSON wire
+    const pv = Number(project.budget ?? 0);
     const wbs = project.wbsElements;
     const done = wbs.filter((w) => w.status === 'DONE' || w.status === 'COMPLETED').length;
     const pct = wbs.length ? done / wbs.length : (project.tasks.filter((t) => t.status === 'DONE').length / Math.max(project.tasks.length, 1));
@@ -116,6 +119,7 @@ export class ProjectController {
   }
 
   @Post(':id/tasks')
+  @Roles(...ETO_MUTATION_ROLES.PM_MATERIAL_REQUEST)
   async createTask(
     @Param('id') projectId: string,
     @Body() body: { title: string },
@@ -129,6 +133,7 @@ export class ProjectController {
   }
 
   @Post(':id/tasks/:taskId/materials')
+  @Roles(...ETO_MUTATION_ROLES.PM_MATERIAL_REQUEST)
   async requestMaterial(
     @Param('id') projectId: string,
     @Param('taskId') taskId: string,
@@ -138,6 +143,7 @@ export class ProjectController {
   }
 
   @Post(':id/release')
+  @Roles(...ETO_MUTATION_ROLES.PM_MATERIAL_REQUEST)
   async releaseProject(@Param('id') projectId: string) {
     return this.commandBus.execute(new ReleaseProjectCommand(projectId));
   }

@@ -66,7 +66,7 @@ sleep 1
 if [[ "$RESTORE_ENFORCE" == "true" ]]; then
   AUTH_ENFORCE=true USE_KEYCLOAK_JWKS=true nohup bash -c "cd apps/api-gateway && npm run start:dev" >> /tmp/erp-gw-restore.log 2>&1 &
 else
-  nohup bash -c "cd apps/api-gateway && npm run start:dev" >> /tmp/erp-gw-restore.log 2>&1 &
+  AUTH_ENFORCE=false nohup bash -c "cd apps/api-gateway && npm run start:dev" >> /tmp/erp-gw-restore.log 2>&1 &
 fi
 sleep 12
 log "auth-enforce e2e complete (fails=${fails})"

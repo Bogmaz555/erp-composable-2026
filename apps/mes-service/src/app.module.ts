@@ -25,6 +25,8 @@ import { RaiseAndonNcrHandler } from './commands/raise-andon-ncr.handler';
 import { MesOutboxRelayService } from './outbox-relay.service';
 import { ScheduleModule } from '@nestjs/schedule';
 
+import { KioskController } from './controllers/kiosk.controller';
+
 @Module({
   imports: [
     CqrsModule,
@@ -39,7 +41,7 @@ import { ScheduleModule } from '@nestjs/schedule';
       },
     ]),
   ],
-  controllers: [WorkOrdersController, OperationsController, PmIntegrationController, EamIntegrationController, HealthController, SagaCompensationController, RoutingController, MesAndonController, PassportIntegrationController],
+  controllers: [WorkOrdersController, OperationsController, PmIntegrationController, EamIntegrationController, HealthController, SagaCompensationController, RoutingController, MesAndonController, PassportIntegrationController, KioskController],
   providers: [
     PrismaService,
     RoutingAggregateService,

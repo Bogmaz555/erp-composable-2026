@@ -16,7 +16,10 @@ model Project {
   createdBy       String?
   
   // ETO / CCPM Fields
-  budget          Float?       @default(0)
+  budget          Decimal?     @default(0) // Legacy, keeping for backwards compatibility
+  targetRevenue   Decimal?     @default(0) // What the customer pays
+  baselineCost    Decimal?     @default(0) // What it costs us to build (BOM + internal markup)
+  actualLaborCost Decimal?     @default(0) // Kiosk MES real-time labor costs
   ccpmBufferPct   Float?       @default(0)
   feverZone       String?      @default("GREEN")
   totalChainDays  Int?         @default(0)
@@ -98,6 +101,7 @@ model Task {
 
 enum OutboxStatus {
   PENDING
+  PROCESSING
   PROCESSED
   FAILED
 }
@@ -110,6 +114,8 @@ model OutboxEvent {
   eventType     String
   payload       Json
   status        OutboxStatus @default(PENDING)
+  attempts      Int          @default(0)
+  lastError     String?
   createdAt     DateTime     @default(now())
   processedAt   DateTime?
   @@index([tenantId, status, createdAt])

@@ -21,7 +21,8 @@
     "@nestjs/platform-fastify": "^11.0.0",
     "@nestjs/schedule": "^6.1.1",
     "@prisma/client": "5.22.0",
-    "nats": "^2.29.3"
+    "nats": "^2.29.3",
+    "@erp/shared-kernel": "workspace:*"
   },
   "devDependencies": {
     "prisma": "^5.22.0",

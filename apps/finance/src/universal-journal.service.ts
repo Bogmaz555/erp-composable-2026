@@ -56,7 +56,7 @@ export class UniversalJournalService {
       _sum: { amount: true },
       _count: true,
     });
-    const total = rows.reduce((s, r) => s + (r._sum.amount ?? 0), 0);
-    return { tenantId, totalAmount: total, byModule: rows, entryCount: rows.reduce((s, r) => s + r._count, 0) };
+    const total = rows.reduce((s, r) => s + Number(r._sum.amount ?? 0), 0);
+    return { tenantId, totalAmount: total, byModule: rows.map(r => ({ ...r, _sum: { amount: Number(r._sum.amount) } })), entryCount: rows.reduce((s, r) => s + r._count, 0) };
   }
 }

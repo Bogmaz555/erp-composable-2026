@@ -14,11 +14,22 @@ model Employee {
   badgeId      String      @unique
   firstName    String
   lastName     String
-  hourlyRate   Float       @default(50.0)
+  hourlyRate   Decimal     @default(50.0)
   role         Role        @default(OPERATOR)
   isActive     Boolean     @default(true)
   createdAt    DateTime    @default(now())
   timeEntries  TimeEntry[]
+  certifications Certification[]
+}
+
+model Certification {
+  id         String   @id @default(uuid())
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id])
+  name       String
+  validUntil DateTime
+  issuedAt   DateTime @default(now())
+  @@index([employeeId])
 }
 
 model TimeEntry {
@@ -36,6 +47,7 @@ model TimeEntry {
 
 enum OutboxStatus {
   PENDING
+  PROCESSING
   PROCESSED
   FAILED
 }
@@ -48,6 +60,8 @@ model OutboxEvent {
   eventType     String
   payload       Json
   status        OutboxStatus @default(PENDING)
+  attempts      Int          @default(0)
+  lastError     String?
   createdAt     DateTime     @default(now())
   processedAt   DateTime?
 }

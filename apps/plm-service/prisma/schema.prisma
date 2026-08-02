@@ -26,7 +26,7 @@ model Item {
   revision        String?       // bieżąca rewizja kartoteki
   barcode         String?       // EAN/kod kreskowy
   leadTimeDays    Int?          // czas dostawy/wytworzenia (dni)
-  standardCost    Float?        // koszt standardowy
+  standardCost    Decimal?      // koszt standardowy (PR 12 secondary money)
   currency        String        @default("PLN")
   isActive        Boolean       @default(true)   // soft-delete / dezaktywacja
   createdBy       String?
@@ -137,6 +137,7 @@ enum EcoStatus {
 
 enum OutboxStatus {
   PENDING
+  PROCESSING
   PROCESSED
   FAILED
 }
@@ -148,6 +149,8 @@ model OutboxEvent {
   eventType     String
   payload       Json
   status        OutboxStatus @default(PENDING)
+  attempts      Int          @default(0)
+  lastError     String?
   createdAt     DateTime     @default(now())
   processedAt   DateTime?
 }

@@ -69,7 +69,7 @@ export class CiAuthReadinessService {
 
     const ciAuthEnforce =
       process.env.CI_AUTH_ENFORCE === 'true' || process.env.ERP_AUTH_ENFORCE === 'true';
-    const authEnforced = process.env.AUTH_ENFORCE === 'true';
+    const authEnforced = process.env.AUTH_ENFORCE !== 'false';
 
     const profileComplete =
       ciGateScript && bootAllAuthScript && authEnforceE2e && erpAuthProfileDoc && ciWorkflowAuthEnforce;

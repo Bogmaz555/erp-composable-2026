@@ -17,14 +17,19 @@ export class GetOpportunitiesHandler implements IQueryHandler<GetOpportunitiesQu
       },
     });
 
+    // Decimal money → number for HTTP/JSON (FE formatPrice / CPQ)
     return rows.map((o) => ({
       ...o,
+      value: Number(o.value ?? 0),
       customer: o.Customer,
       activities: o.Activity,
       documents: o.Document,
       bomItems: o.BOMItem?.map((b) => ({
         ...b,
-        catalogItem: b.CatalogItem,
+        price: Number(b.price ?? 0),
+        catalogItem: b.CatalogItem
+          ? { ...b.CatalogItem, basePrice: Number(b.CatalogItem.basePrice ?? 0) }
+          : b.CatalogItem,
       })),
       Customer: undefined,
       Activity: undefined,

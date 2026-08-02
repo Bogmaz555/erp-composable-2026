@@ -161,6 +161,7 @@ model PickLine {
 
 enum OutboxStatus {
   PENDING
+  PROCESSING
   PROCESSED
   FAILED
 }

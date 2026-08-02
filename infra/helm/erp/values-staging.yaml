@@ -4,6 +4,8 @@ global:
 apiGateway:
   replicaCount: 2
   authEnforce: true
+  useKeycloakJwks: true
+  pilot: "1"
 
 analyticsService:
   replicaCount: 2

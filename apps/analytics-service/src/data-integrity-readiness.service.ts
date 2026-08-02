@@ -47,7 +47,7 @@ export class DataIntegrityReadinessService {
         (cs.body as { source?: string }).source === 'live';
     }
 
-    const authEnforced = process.env.AUTH_ENFORCE === 'true';
+    const authEnforced = process.env.AUTH_ENFORCE !== 'false';
     const score = [noFinanceMocks, costSummaryLive || !sampleProjectId].filter(Boolean).length;
 
     return {

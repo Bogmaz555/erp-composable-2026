@@ -29,7 +29,7 @@ export class JpkV7Service {
 
     const vatRate = 0.23;
     const entries: JpkV7Entry[] = invoices.map((inv, i) => {
-      const netto = inv.amount;
+      const netto = Number(inv.amount);
       const vat = Math.round(netto * vatRate * 100) / 100;
       return {
         lp: i + 1,

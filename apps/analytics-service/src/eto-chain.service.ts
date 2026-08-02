@@ -103,6 +103,35 @@ export class EtoChainService implements OnModuleInit {
     const isCompensate = p?.compensate === true || p?.compensate === 'true';
     if (matched && !isCompensate && !saga.completedSteps.includes(matched)) {
       saga.completedSteps.push(matched);
+
+      // --- SAGA ORCHESTRATOR BRIDGE ---
+      // If this event completes a step, mark it as DONE and advance the chain.
+      if (this.prisma) {
+        this.prisma.etoOrchestrationJob.findFirst({
+          where: { correlationId, step: matched, status: { in: ['PENDING', 'IN_PROGRESS'] } }
+        }).then(job => {
+          if (job) {
+            this.prisma?.etoOrchestrationJob.update({
+              where: { id: job.id },
+              data: { status: 'DONE' }
+            }).then(() => {
+              // Unblock the next step in the workflow
+              return this.prisma?.etoOrchestrationJob.findFirst({
+                where: { correlationId, status: 'BLOCKED' },
+                orderBy: { nextRunAt: 'asc' }
+              });
+            }).then(nextJob => {
+              if (nextJob) {
+                return this.prisma?.etoOrchestrationJob.update({
+                  where: { id: nextJob.id },
+                  data: { status: 'PENDING', nextRunAt: new Date() }
+                });
+              }
+            }).catch(e => console.error(e));
+          }
+        }).catch(e => console.error(e));
+      }
+      // --------------------------------
     }
     saga.lastEventAt = new Date().toISOString();
     saga.percentComplete = Math.round((saga.completedSteps.length / ETO_SAGA_STEPS.length) * 100);

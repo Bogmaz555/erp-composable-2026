@@ -41,6 +41,8 @@ model Operation {
   startedAt     DateTime?
   completedAt   DateTime?
   createdAt     DateTime @default(now())
+  requiredCertifications String[] // JSON array or String[] supported by Postgres
+  operatorSessions OperatorSession[]
   @@index([tenantId, workOrderId, status])
 }
 
@@ -114,8 +116,22 @@ model AsBuiltComponent {
   consumedAt      DateTime?
 }
 
+model OperatorSession {
+  id          String    @id @default(uuid())
+  tenantId    String    @default("default")
+  operationId String
+  operation   Operation @relation(fields: [operationId], references: [id])
+  operatorId  String
+  startedAt   DateTime  @default(now())
+  endedAt     DateTime?
+  status      String    @default("ACTIVE") // ACTIVE, COMPLETED, PAUSED
+  @@index([tenantId, operationId])
+  @@index([operatorId])
+}
+
 enum OutboxStatus {
   PENDING
+  PROCESSING
   PROCESSED
   FAILED
 }
@@ -128,6 +144,8 @@ model OutboxEvent {
   eventType     String
   payload       Json
   status        OutboxStatus @default(PENDING)
+  attempts      Int          @default(0)
+  lastError     String?
   createdAt     DateTime     @default(now())
   processedAt   DateTime?
   @@index([tenantId, status])

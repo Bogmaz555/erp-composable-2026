@@ -11,9 +11,18 @@ export class CrmResourcesController {
     return this.prisma.isolatedClient;
   }
 
+  /** Decimal money → number for HTTP/JSON (FE formatPrice / arithmetic). */
+  private serializeCatalogItem<T extends { basePrice?: unknown }>(item: T) {
+    return {
+      ...item,
+      basePrice: item.basePrice == null ? item.basePrice : Number(item.basePrice),
+    };
+  }
+
   @Get('catalog')
   async listCatalog() {
-    return this.db().catalogItem.findMany({ orderBy: { updatedAt: 'desc' } });
+    const rows = await this.db().catalogItem.findMany({ orderBy: { updatedAt: 'desc' } });
+    return rows.map((r) => this.serializeCatalogItem(r));
   }
 
   @Post('catalog')
@@ -31,7 +40,7 @@ export class CrmResourcesController {
     const existing = await this.db().catalogItem.findUnique({ where: { sku: body.sku } });
     if (existing) throw new BadRequestException(`SKU ${body.sku} już istnieje`);
 
-    return this.db().catalogItem.create({
+    const created = await this.db().catalogItem.create({
       data: {
         id: randomUUID(),
         sku: body.sku.trim(),
@@ -43,6 +52,7 @@ export class CrmResourcesController {
         updatedAt: new Date(),
       },
     });
+    return this.serializeCatalogItem(created);
   }
 
   @Get('tasks')
@@ -118,25 +128,66 @@ export class CrmResourcesController {
 
     await this.db().bOMItem.deleteMany({ where: { opportunityId: body.opportunityId } });
 
+    let tkw = 0;
+    let targetRevenue = 0;
+    const itemsToCreate: any[] = [];
+
     if (body.items?.length) {
-      await this.db().bOMItem.createMany({
-        data: body.items.map((item) => ({
+      // Pobieramy katalog by zablokować marżę po stronie backendu
+      const catalogIds = body.items.map(i => i.catalogItemId);
+      const catalog = await this.db().catalogItem.findMany({
+        where: { id: { in: catalogIds } }
+      });
+      const catalogMap = new Map(catalog.map(c => [c.id, c]));
+
+      for (const item of body.items) {
+        const catItem = catalogMap.get(item.catalogItemId);
+        if (!catItem) continue;
+
+        // Decimal at rest → number for CPQ math (PR 12)
+        const unitBase = Number(catItem.basePrice);
+        const baseCost = unitBase * (item.quantity || 1);
+        tkw += baseCost;
+
+        // Twarde narzuty marżowe zdefiniowane po stronie backendu
+        let margin = 1.0;
+        if (catItem.type === 'HARDWARE') margin = 1.15;
+        if (catItem.type === 'SOFTWARE') margin = 1.35;
+        if (catItem.type === 'SERVICE') margin = 1.50;
+
+        targetRevenue += baseCost * margin;
+
+        itemsToCreate.push({
           id: randomUUID(),
           opportunityId: body.opportunityId,
           catalogItemId: item.catalogItemId,
           quantity: item.quantity || 1,
-          price: item.price || 0,
+          price: unitBase * margin, // cena dla klienta z wliczoną marżą
           updatedAt: new Date(),
-        })),
-      });
+        });
+      }
+
+      if (itemsToCreate.length > 0) {
+        await this.db().bOMItem.createMany({ data: itemsToCreate });
+      }
     }
 
-    const total = (body.items || []).reduce((sum, i) => sum + i.quantity * i.price, 0);
+    // Aktualizacja szansy o tkw (Baseline Cost) i value (Target Revenue)
     await this.db().opportunity.update({
       where: { id: body.opportunityId },
-      data: { value: total, updatedAt: new Date() },
+      data: { 
+        tkw, 
+        value: targetRevenue, 
+        updatedAt: new Date() 
+      },
     });
 
-    return { ok: true, opportunityId: body.opportunityId, itemCount: body.items?.length || 0, total };
+    return { 
+      ok: true, 
+      opportunityId: body.opportunityId, 
+      itemCount: itemsToCreate.length, 
+      tkw,
+      total: targetRevenue 
+    };
   }
 }

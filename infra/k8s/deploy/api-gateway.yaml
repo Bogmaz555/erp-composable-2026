@@ -21,17 +21,59 @@ spec:
           ports:
             - containerPort: 4005
           env:
+            - name: HOST
+              value: "0.0.0.0"
+            - name: PORT
+              value: "4005"
             - name: AUTH_ENFORCE
               value: "true"
+            - name: USE_KEYCLOAK_JWKS
+              value: "true"
+            - name: PILOT
+              value: "1"
+            - name: NATS_URL
+              value: nats://nats:4222
+            # Cluster DNS (Service name.namespace.svc / short name in same ns)
+            # Pattern: http://<service>:<port> — never 127.0.0.1 inside pods
+            - name: KEYCLOAK_JWKS_URI
+              value: http://keycloak:8080/realms/erp/protocol/openid-connect/certs
+            - name: CRM_SERVICE_URL
+              value: http://crm-service:4001
+            - name: PM_SERVICE_URL
+              value: http://pm-service:4002
+            - name: INV_SERVICE_URL
+              value: http://inv-service:4003
+            - name: PROC_SERVICE_URL
+              value: http://proc-service:4004
+            - name: MES_SERVICE_URL
+              value: http://mes-service:4006
+            - name: PLM_SERVICE_URL
+              value: http://plm-service:4007
+            - name: QUALITY_SERVICE_URL
+              value: http://quality-service:4008
+            - name: EAM_SERVICE_URL
+              value: http://eam-service:4009
+            - name: FIN_SERVICE_URL
+              value: http://finance-service:4010
+            - name: ANALYTICS_SERVICE_URL
+              value: http://analytics-service:4011
+            - name: HR_SERVICE_URL
+              value: http://hr:4012
+            - name: TAX_SERVICE_URL
+              value: http://tax-legal:4015
+            - name: SEARCH_SERVICE_URL
+              value: http://search-service:4018
+            - name: APPROVALS_SERVICE_URL
+              value: http://approvals-service:4019
           livenessProbe:
             httpGet:
-              path: /
+              path: /api/health
               port: 4005
             initialDelaySeconds: 15
             periodSeconds: 20
           readinessProbe:
             httpGet:
-              path: /
+              path: /api/health
               port: 4005
             initialDelaySeconds: 5
             periodSeconds: 10

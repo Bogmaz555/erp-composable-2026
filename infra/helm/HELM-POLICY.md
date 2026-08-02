@@ -24,3 +24,8 @@ bash scripts/ensure-helm-deploy-ready.sh
 ## CI Gate
 
 Set `CI_HELM_DEPLOY=true` to enforce probe `scripts/ci-helm-deploy-probe.ts`.
+
+## Service DNS
+
+Gateway upstreams (`apiGateway.serviceUrls.*` in `values.yaml`) must be cluster Service DNS
+(`http://pm-service:4002`), **not** `127.0.0.1`. Same keys as compose pilot / `.env.erp.example`.

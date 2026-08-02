@@ -1,12 +1,17 @@
-import { Controller, Get, Post, Param, Patch, Body, Logger, Req } from '@nestjs/common';
+import { Controller, Get, Post, Param, Patch, Body, Logger, Req, UseGuards } from '@nestjs/common';
 import type { TenantRequest } from './tenant.middleware';
 import { PrismaService } from './prisma.service';
 import { CommandBus } from '@nestjs/cqrs';
+import { ETO_MUTATION_ROLES } from '@erp/shared-kernel';
 import { ApprovePurchaseOrderCommand } from './commands/approve-purchase-order.handler';
 import { ReceiveMaterialCommand } from './commands/receive-material.handler';
 import { CreatePurchaseOrderCommand } from './commands/create-purchase-order.handler';
 import { UpdatePurchaseOrderEtaCommand } from './commands/update-po-eta.handler';
+import { JwtAuthGuard } from './auth/jwt-auth.guard';
+import { RolesGuard } from './auth/roles.guard';
+import { Roles } from './auth/roles.decorator';
 
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('orders')
 export class ProcurementController {
   private readonly logger = new Logger(ProcurementController.name);
@@ -16,21 +21,40 @@ export class ProcurementController {
     private readonly commandBus: CommandBus
   ) {}
 
+  /** Map Prisma Decimal money fields to plain numbers for HTTP/JSON (FE .toFixed). */
+  private serializeOrderMoney<T extends {
+    unitPrice?: unknown;
+    freightCost?: unknown;
+    customsDuty?: unknown;
+    landedUnitCost?: unknown;
+  }>(order: T) {
+    return {
+      ...order,
+      unitPrice: order.unitPrice == null ? order.unitPrice : Number(order.unitPrice),
+      freightCost: Number(order.freightCost ?? 0),
+      customsDuty: Number(order.customsDuty ?? 0),
+      landedUnitCost:
+        order.landedUnitCost == null ? order.landedUnitCost : Number(order.landedUnitCost),
+    };
+  }
+
   @Get()
   async getOrders(@Req() req: TenantRequest) {
     const tenantId = req.tenantId || 'default';
     try {
-      return await this.prisma.purchaseOrder.findMany({
+      const orders = await this.prisma.purchaseOrder.findMany({
         where: { tenantId },
         orderBy: { createdAt: 'desc' },
         include: { supplier: true },
       });
+      return orders.map((o) => this.serializeOrderMoney(o));
     } catch (e) {
       this.logger.warn(`getOrders fallback (tenant=${tenantId}): ${(e as Error).message}`);
-      return this.prisma.purchaseOrder.findMany({
+      const orders = await this.prisma.purchaseOrder.findMany({
         where: { tenantId },
         orderBy: { createdAt: 'desc' },
       });
+      return orders.map((o) => this.serializeOrderMoney(o));
     }
   }
 
@@ -75,11 +99,19 @@ export class ProcurementController {
       take: 50,
       include: { supplier: true },
     });
-    const totalLanded = orders.reduce((s, o) => s + (o.landedUnitCost ?? 0) * (o.receivedQty ?? o.amount), 0);
-    return { count: orders.length, totalLandedValue: Math.round(totalLanded * 100) / 100, orders };
+    const totalLanded = orders.reduce(
+      (s, o) => s + Number(o.landedUnitCost ?? 0) * (o.receivedQty ?? o.amount),
+      0,
+    );
+    return {
+      count: orders.length,
+      totalLandedValue: Math.round(totalLanded * 100) / 100,
+      orders: orders.map((o) => this.serializeOrderMoney(o)),
+    };
   }
 
   @Post()
+  @Roles(...ETO_MUTATION_ROLES.PROC_APPROVE, 'PLANNER')
   async createOrder(
     @Req() req: TenantRequest,
     @Body() body: {
@@ -104,6 +136,7 @@ export class ProcurementController {
   }
 
   @Patch(':id/approve')
+  @Roles(...ETO_MUTATION_ROLES.PROC_APPROVE)
   async approveOrder(
     @Param('id') id: string,
     @Body('approvedBy') approvedBy: string
@@ -112,6 +145,7 @@ export class ProcurementController {
   }
 
   @Patch(':id/reject')
+  @Roles(...ETO_MUTATION_ROLES.PROC_APPROVE)
   async rejectOrder(
     @Param('id') id: string,
     @Body('approvedBy') approvedBy: string

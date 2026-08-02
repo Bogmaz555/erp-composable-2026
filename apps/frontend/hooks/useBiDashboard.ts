@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { fetchWithAuth } from '../context/AuthContext';
 
 export interface BiDashboardData {
   projectId: string;
@@ -33,7 +34,7 @@ export function useBiDashboard(projectId: string | null) {
   return useQuery<BiDashboardData>({
     queryKey: ['bi-dashboard', projectId],
     queryFn: async () => {
-      const res = await fetch(`/api/analytics/bi/projects/${projectId}/dashboard`, {
+      const res = await fetchWithAuth(`/api/analytics/bi/projects/${projectId}/dashboard`, {
         cache: 'no-store',
       });
       if (!res.ok) throw new Error(`BI dashboard HTTP ${res.status}`);

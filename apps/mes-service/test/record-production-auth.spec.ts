@@ -1,8 +1,15 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { CqrsModule } from '@nestjs/cqrs';
+import { CommandBus, EventBus } from '@nestjs/cqrs';
 import { RecordProductionHandler } from '../src/commands/record-production.handler';
 import { RecordProductionCommand } from '../src/commands/record-production.command';
 import { PrismaService } from '../src/prisma.service';
+
+function mockPrismaTx(store: Record<string, unknown>) {
+  return {
+    ...store,
+    $transaction: jest.fn(async (cb: (tx: typeof store) => Promise<unknown>) => cb(store)),
+  };
+}
 
 // Test for production recording with authenticated user context (TD-001 + traceability)
 describe('MES: RecordProduction with Auth + bomComponentId', () => {
@@ -10,19 +17,27 @@ describe('MES: RecordProduction with Auth + bomComponentId', () => {
   let prisma: PrismaService;
 
   beforeEach(async () => {
+    const store = {
+      productionRecord: {
+        create: jest.fn().mockResolvedValue({ id: 'pr-auth', workOrderId: 'wo-xyz' }),
+      },
+      materialRequirement: {
+        findMany: jest.fn().mockResolvedValue([]),
+        update: jest.fn(),
+      },
+      asBuiltRecord: { create: jest.fn().mockResolvedValue({}) },
+      outboxEvent: { create: jest.fn().mockResolvedValue({}) },
+      workOrder: { findUnique: jest.fn().mockResolvedValue(null) },
+    };
     const moduleRef: TestingModule = await Test.createTestingModule({
-      imports: [CqrsModule],
       providers: [
         RecordProductionHandler,
         {
           provide: PrismaService,
-          useValue: {
-            productionRecord: { create: jest.fn() },
-            materialRequirement: { findMany: jest.fn().mockResolvedValue([]) },
-            asBuiltRecord: { create: jest.fn() },
-            outboxEvent: { create: jest.fn() },
-          },
+          useValue: mockPrismaTx(store),
         },
+        { provide: CommandBus, useValue: { execute: jest.fn().mockResolvedValue(undefined) } },
+        { provide: EventBus, useValue: { publish: jest.fn() } },
       ],
     }).compile();
 
@@ -37,6 +52,7 @@ describe('MES: RecordProduction with Auth + bomComponentId', () => {
     const result = await handler.execute(command);
 
     expect(result).toBeDefined();
+    expect((prisma as any).$transaction).toHaveBeenCalled();
     expect((prisma as any).productionRecord.create).toHaveBeenCalled();
   });
 });

@@ -26,9 +26,12 @@ export class ReceiveMaterialHandler implements ICommandHandler<ReceiveMaterialCo
 
     const newReceivedQty = (existing.receivedQty || 0) + command.receivedQuantity;
     const qty = command.receivedQuantity || existing.amount;
-    const unitPrice = command.unitPrice ?? existing.unitPrice ?? 0;
-    const freight = command.freightCost ?? existing.freightCost ?? 0;
-    const customs = command.customsDuty ?? existing.customsDuty ?? 0;
+    // Money columns are Decimal (KD-5); coerce for arithmetic / event payload numbers
+    const asNum = (v: unknown): number =>
+      v == null ? 0 : typeof v === 'number' ? v : Number(v);
+    const unitPrice = command.unitPrice ?? asNum(existing.unitPrice);
+    const freight = command.freightCost ?? asNum(existing.freightCost);
+    const customs = command.customsDuty ?? asNum(existing.customsDuty);
     const totalCost = unitPrice * qty + freight + customs;
     const landedUnitCost = qty > 0 ? Math.round((totalCost / qty) * 10000) / 10000 : 0;
     
@@ -39,42 +42,45 @@ export class ReceiveMaterialHandler implements ICommandHandler<ReceiveMaterialCo
       newStatus = 'PARTIALLY_DELIVERED';
     }
 
-    const order = await this.prisma.purchaseOrder.update({
-      where: { id: command.orderId },
-      data: {
-        status: newStatus,
-        receivedQty: newReceivedQty,
-        receivedAt: new Date(),
-        unitPrice,
-        freightCost: freight,
-        customsDuty: customs,
-        landedUnitCost,
-      },
-    });
-
-    await this.prisma.outboxEvent.create({
-      data: {
-        tenantId: order.tenantId,
-        aggregateId: order.id,
-        aggregateType: 'PurchaseOrder',
-        eventType: 'proc.material.received.v1',
-        payload: {
-          purchaseOrderId: order.id,
-          sku: order.sku,
-          quantity: qty,
+    // Domain update + outbox in one TX
+    return this.prisma.$transaction(async (tx) => {
+      const order = await tx.purchaseOrder.update({
+        where: { id: command.orderId },
+        data: {
+          status: newStatus,
+          receivedQty: newReceivedQty,
+          receivedAt: new Date(),
           unitPrice,
           freightCost: freight,
           customsDuty: customs,
           landedUnitCost,
-          projectId: order.projectId,
-          bomComponentId: order.bomComponentId,
-          receivedAt: new Date().toISOString(),
-          receivedBy: command.receivedBy || 'warehouse',
         },
-        status: OutboxStatus.PENDING,
-      },
-    }).catch(() => {});
+      });
 
-    return order;
+      await tx.outboxEvent.create({
+        data: {
+          tenantId: order.tenantId,
+          aggregateId: order.id,
+          aggregateType: 'PurchaseOrder',
+          eventType: 'proc.material.received.v1',
+          payload: {
+            purchaseOrderId: order.id,
+            sku: order.sku,
+            quantity: qty,
+            unitPrice,
+            freightCost: freight,
+            customsDuty: customs,
+            landedUnitCost,
+            projectId: order.projectId,
+            bomComponentId: order.bomComponentId,
+            receivedAt: new Date().toISOString(),
+            receivedBy: command.receivedBy || 'warehouse',
+          },
+          status: OutboxStatus.PENDING,
+        },
+      });
+
+      return order;
+    });
   }
 }

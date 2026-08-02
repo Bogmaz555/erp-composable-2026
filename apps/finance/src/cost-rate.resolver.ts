@@ -16,13 +16,13 @@ export async function resolveLaborRatePln(
           orderBy: { effectiveFrom: 'desc' },
         })
       : null;
-    if (projectRate) return projectRate.rateValue;
+    if (projectRate) return Number(projectRate.rateValue);
 
     const globalRate = await prisma.costRate.findFirst({
       where: { tenantId, projectId: null, costType: 'LABOR' },
       orderBy: { effectiveFrom: 'desc' },
     });
-    if (globalRate) return globalRate.rateValue;
+    if (globalRate) return Number(globalRate.rateValue);
   } catch {
     /* schema not migrated — fallback */
   }
@@ -43,7 +43,7 @@ export async function resolveOverheadPct(
       },
       orderBy: { projectId: 'desc' },
     });
-    if (row?.unit === 'PCT') return row.rateValue;
+    if (row?.unit === 'PCT') return Number(row.rateValue);
   } catch {
     /* fallback */
   }

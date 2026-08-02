@@ -7,11 +7,11 @@ import { Transport, MicroserviceOptions } from '@nestjs/microservices';
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
-    new FastifyAdapter()
+    new FastifyAdapter(),
   );
 
   app.enableCors({
-    origin: '*',
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
@@ -19,14 +19,15 @@ async function bootstrap() {
   app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.NATS,
     options: {
-      servers: ['nats://localhost:4222'],
+      servers: [process.env.NATS_URL || 'nats://localhost:4222'],
     },
   });
 
   await app.startAllMicroservices();
 
-  const port = 4010;
-  await app.listen(port, '0.0.0.0');
-  Logger.log(`Finance Service running on http://localhost:${port}`, 'Bootstrap');
+  const port = Number(process.env.PORT) || 4010;
+  const host = process.env.HOST || '0.0.0.0';
+  await app.listen(port, host);
+  Logger.log(`Finance Service running on http://${host}:${port}`, 'Bootstrap');
 }
 bootstrap();

@@ -93,14 +93,19 @@ export class FixedAssetsService {
     const results: Array<{ assetId: string; code: string; period: string; amount: number; netBookValue: number; glPosted: boolean }> = [];
 
     for (const asset of assets) {
-      const monthly = this.monthlyDepreciation(asset.acquisitionCost, asset.salvageValue, asset.usefulLifeMonths);
-      if (asset.netBookValue <= asset.salvageValue) {
+      const acquisitionCost = Number(asset.acquisitionCost);
+      const salvageValue = Number(asset.salvageValue);
+      const netBookValue = Number(asset.netBookValue);
+      const accumulatedDepreciation = Number(asset.accumulatedDepreciation);
+
+      const monthly = this.monthlyDepreciation(acquisitionCost, salvageValue, asset.usefulLifeMonths);
+      if (netBookValue <= salvageValue) {
         await this.prisma.fixedAsset.update({ where: { id: asset.id }, data: { status: 'FULLY_DEPRECIATED' } });
         continue;
       }
-      const depAmount = Math.min(monthly, asset.netBookValue - asset.salvageValue);
-      const newNbv = Math.round((asset.netBookValue - depAmount) * 100) / 100;
-      const newAcc = Math.round((asset.accumulatedDepreciation + depAmount) * 100) / 100;
+      const depAmount = Math.min(monthly, netBookValue - salvageValue);
+      const newNbv = Math.round((netBookValue - depAmount) * 100) / 100;
+      const newAcc = Math.round((accumulatedDepreciation + depAmount) * 100) / 100;
 
       const existing = await this.prisma.fixedAssetDepreciation.findFirst({
         where: { assetId: asset.id, period: p },
@@ -117,7 +122,7 @@ export class FixedAssetsService {
           accumulatedDepreciation: newAcc,
           netBookValue: newNbv,
           lastDepreciationAt: now,
-          status: newNbv <= asset.salvageValue ? 'FULLY_DEPRECIATED' : 'ACTIVE',
+          status: newNbv <= salvageValue ? 'FULLY_DEPRECIATED' : 'ACTIVE',
         },
       });
 

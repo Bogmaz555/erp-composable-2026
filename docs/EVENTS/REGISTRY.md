@@ -63,6 +63,10 @@ Ten dokument jest **Single Source of Truth** dla wszystkich zdarzeń w systemie.
 
 ### Finance
 - Finance consumes `proc.purchaseorder.approved.v1` — **Active** (MATERIAL commitment + 201-AP)
+- Finance consumes `mes.production.recorded.v1` — **Active** (LABOR/OVERHEAD → WIP)
+- Finance consumes `inventory.reservation.released.v1` — **Active** (MATERIAL → WIP)
+- `finance.wip.cost.recorded` — **Active** (ETO spine step; universal journal micro-cost)
+- `finance.wip.cost.reversed` — **Active** (Pilot G-lite compensation — see `finance.wip.cost.reversed.md`)
 - `finance.payment.milestone.reached.v1` — **Active** (Faza 2 — PM FAT/SAT → MilestoneBilling → TaxLegal)
 - `finance.revenue.recognized.v1` — **Active** (po KSeF — revenue recognition)
 - `finance.journal.entry.created.v1` — **Planned**

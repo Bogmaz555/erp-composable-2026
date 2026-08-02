@@ -1,0 +1,38 @@
+{
+  "monorepo": true,
+  "root": "apps/erp-composable-2026",
+  "sourceRoot": "apps/erp-composable-2026/src",
+  "compilerOptions": {
+    "webpack": true,
+    "tsConfigPath": "apps/erp-composable-2026/tsconfig.app.json"
+  },
+  "projects": {
+    "approvals-service": {
+      "type": "application",
+      "root": "apps/approvals-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/approvals-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/approvals-service/tsconfig.app.json"
+      }
+    },
+    "erp-composable-2026": {
+      "type": "application",
+      "root": "apps/erp-composable-2026",
+      "entryFile": "main",
+      "sourceRoot": "apps/erp-composable-2026/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/erp-composable-2026/tsconfig.app.json"
+      }
+    },
+    "search-service": {
+      "type": "application",
+      "root": "apps/search-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/search-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/search-service/tsconfig.app.json"
+      }
+    }
+  }
+}

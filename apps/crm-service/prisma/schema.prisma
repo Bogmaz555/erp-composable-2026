@@ -20,8 +20,8 @@ model Customer {
 model Opportunity {
   id                String            @id @default(uuid())
   title             String
-  value             Float             @default(0)
-  tkw               Float             @default(0)
+  value             Decimal           @default(0) // monetary (PR 12 secondary)
+  tkw               Float             @default(0) // residual cost rollup (not in secondary list)
   currency          Currency          @default(PLN)
   status            OpportunityStatus @default(NEW)
   customerId        String
@@ -30,7 +30,7 @@ model Opportunity {
   offerValidityDays Int               @default(14)
   warrantyTerms     String            @default("12 miesięcy")
   paymentMilestones Json?
-  marginCoefficient Float             @default(1.0)
+  marginCoefficient Float             @default(1.0) // coefficient, not currency
   linkedProjectId   String?
   createdAt         DateTime          @default(now())
   updatedAt         DateTime
@@ -55,7 +55,7 @@ model BOMItem {
   quantity      Int         @default(1)
   catalogItemId String
   opportunityId String
-  price         Float
+  price         Decimal // monetary (PR 12 secondary)
   createdAt     DateTime    @default(now())
   updatedAt     DateTime
   CatalogItem   CatalogItem @relation(fields: [catalogItemId], references: [id])
@@ -68,7 +68,7 @@ model CatalogItem {
   name      String
   category  String
   type      ItemType  @default(HARDWARE)
-  basePrice Float
+  basePrice Decimal // monetary (PR 12 secondary)
   currency  String    @default("PLN")
   createdAt DateTime  @default(now())
   updatedAt DateTime
@@ -92,6 +92,8 @@ model OutboxEvent {
   eventType     String
   payload       Json
   status        OutboxStatus @default(PENDING)
+  attempts      Int          @default(0)
+  lastError     String?
   createdAt     DateTime     @default(now())
   processedAt   DateTime?
 }
@@ -129,6 +131,7 @@ enum OpportunityStatus {
 
 enum OutboxStatus {
   PENDING
+  PROCESSING
   PROCESSED
   FAILED
 }

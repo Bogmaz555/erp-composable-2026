@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { fetchWithAuth } from '../context/AuthContext';
 
 export interface BomSummary {
   id: string;
@@ -23,7 +24,7 @@ export function usePLMBoms() {
   return useQuery<BomSummary[]>({
     queryKey: ['plm-boms'],
     queryFn: async () => {
-      const res = await fetch('/api/plm/boms');
+      const res = await fetchWithAuth('/api/plm/boms');
       if (!res.ok) throw new Error('Błąd pobierania BOM');
       return res.json();
     },
@@ -34,7 +35,7 @@ export function usePLMEcos() {
   return useQuery({
     queryKey: ['plm-ecos'],
     queryFn: async () => {
-      const res = await fetch('/api/plm/ecos');
+      const res = await fetchWithAuth('/api/plm/ecos');
       if (!res.ok) throw new Error('Błąd pobierania ECO');
       return res.json();
     },
@@ -45,7 +46,7 @@ export function useBomTree(bomVersionId: string | null) {
   return useQuery({
     queryKey: ['plm-bom-tree', bomVersionId],
     queryFn: async () => {
-      const res = await fetch(`/api/plm/bom-versions/${bomVersionId}/tree`);
+      const res = await fetchWithAuth(`/api/plm/bom-versions/${bomVersionId}/tree`);
       if (!res.ok) throw new Error('Błąd pobierania drzewa BOM');
       return res.json();
     },
@@ -57,7 +58,7 @@ export function useCreateBom() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (payload: { partNumber: string; description: string; revision: string }) => {
-      const res = await fetch('/api/plm/boms', {
+      const res = await fetchWithAuth('/api/plm/boms', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...payload, components: [] }),
@@ -73,7 +74,7 @@ export function useCreateEco() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (payload: { title: string; description: string }) => {
-      const res = await fetch('/api/plm/ecos', {
+      const res = await fetchWithAuth('/api/plm/ecos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -91,7 +92,7 @@ export function useAddBomComponent() {
     mutationFn: async ({ bomVersionId, childItemId, quantity, position }: {
       bomVersionId: string; childItemId: string; quantity: number; position?: number;
     }) => {
-      const res = await fetch(`/api/plm/bom-versions/${bomVersionId}/components`, {
+      const res = await fetchWithAuth(`/api/plm/bom-versions/${bomVersionId}/components`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ childItemId, quantity, position, scrapFactor: 0 }),
@@ -113,7 +114,7 @@ export function useEtoExplosion() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (payload: { bomVersionId: string; projectId?: string }) => {
-      const res = await fetch('/api/analytics/eto-chain/plm-explosion', {
+      const res = await fetchWithAuth('/api/analytics/eto-chain/plm-explosion', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -136,7 +137,7 @@ export function useReleaseBom() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (bomVersionId: string) => {
-      const res = await fetch(`/api/plm/bom-versions/${bomVersionId}/release`, {
+      const res = await fetchWithAuth(`/api/plm/bom-versions/${bomVersionId}/release`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ releasedBy: 'ui-user' }),

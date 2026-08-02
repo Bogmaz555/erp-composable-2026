@@ -6,35 +6,49 @@ export class CapaAggregateService {
   constructor(private readonly prisma: PrismaService) {}
 
   async aggregate() {
-    const [ncrs, capas, inspections] = await Promise.all([
-      this.prisma.nonConformanceReport.findMany(),
-      this.prisma.capaAction.findMany(),
-      this.prisma.inspection.findMany(),
-    ]);
-
     const ncrByStatus: Record<string, number> = {};
     const ncrBySeverity: Record<string, number> = {};
-    for (const n of ncrs) {
-      ncrByStatus[n.status] = (ncrByStatus[n.status] ?? 0) + 1;
-      ncrBySeverity[n.severity] = (ncrBySeverity[n.severity] ?? 0) + 1;
+    let ncrCount = 0;
+    let openNcr = 0;
+    let skipNcr = 0;
+    while (true) {
+      const batch = await this.prisma.nonConformanceReport.findMany({ skip: skipNcr, take: 500 });
+      if (batch.length === 0) break;
+      for (const n of batch) {
+        ncrByStatus[n.status] = (ncrByStatus[n.status] ?? 0) + 1;
+        ncrBySeverity[n.severity] = (ncrBySeverity[n.severity] ?? 0) + 1;
+        if (n.status === 'OPEN') openNcr++;
+      }
+      ncrCount += batch.length;
+      skipNcr += 500;
     }
 
     const capaByStatus: Record<string, number> = {};
-    for (const c of capas) {
-      capaByStatus[c.status] = (capaByStatus[c.status] ?? 0) + 1;
+    let capaCount = 0;
+    let openCapa = 0;
+    let skipCapa = 0;
+    while (true) {
+      const batch = await this.prisma.capaAction.findMany({ skip: skipCapa, take: 500 });
+      if (batch.length === 0) break;
+      for (const c of batch) {
+        capaByStatus[c.status] = (capaByStatus[c.status] ?? 0) + 1;
+        if (!['DONE', 'VERIFIED'].includes(c.status)) openCapa++;
+      }
+      capaCount += batch.length;
+      skipCapa += 500;
     }
 
-    const openNcr = ncrs.filter((n) => n.status === 'OPEN').length;
-    const openCapa = capas.filter((c) => !['DONE', 'VERIFIED'].includes(c.status)).length;
-    const capaCoverage = ncrs.length ? Math.round((capas.length / ncrs.length) * 100) : 0;
+    const inspectionCount = await this.prisma.inspection.count();
+
+    const capaCoveragePct = ncrCount ? Math.round((capaCount / ncrCount) * 100) : 0;
 
     return {
-      ncrCount: ncrs.length,
-      capaCount: capas.length,
-      inspectionCount: inspections.length,
+      ncrCount,
+      capaCount,
+      inspectionCount,
       openNcr,
       openCapa,
-      capaCoveragePct: capaCoverage,
+      capaCoveragePct,
       ncrByStatus,
       ncrBySeverity,
       capaByStatus,

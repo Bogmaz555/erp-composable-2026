@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
+import { authHeaders } from './AuthContext';
 
 export interface Tenant {
   id: string;
@@ -28,9 +29,8 @@ export function TenantProvider({ children }: { children: ReactNode }) {
 
   const refresh = useCallback(async () => {
     const stored = typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null;
-    const res = await fetch('/api/analytics/tenants', {
-      headers: stored ? { 'X-Tenant-Id': stored } : {},
-    });
+    const headers = authHeaders(stored ? { 'X-Tenant-Id': stored } : undefined);
+    const res = await fetch('/api/analytics/tenants', { headers });
     if (!res.ok) return;
     const data = await res.json();
     const list: Tenant[] = data.active ?? data.tenants ?? [];
@@ -65,10 +65,10 @@ export function useTenant() {
   return v;
 }
 
-/** Fetch z propagacją X-Tenant-Id */
+/** Fetch z Bearer + X-Tenant-Id (protected analytics / domain routes). */
 export function fetchWithTenant(input: RequestInfo | URL, init?: RequestInit) {
   const tenantId = typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY) ?? 'default' : 'default';
-  const headers = new Headers(init?.headers);
+  const headers = authHeaders(init?.headers);
   headers.set('X-Tenant-Id', tenantId);
   return fetch(input, { ...init, headers });
 }

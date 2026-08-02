@@ -27,10 +27,10 @@ model PurchaseOrder {
   sku            String
   itemId         String?
   amount         Int
-  unitPrice      Float?    // cena jednostkowa zakupu (waluta dostawcy)
-  freightCost    Float     @default(0) // koszt transportu
-  customsDuty    Float     @default(0) // cło / opłaty importowe
-  landedUnitCost Float?    // koszt jednostkowy po przyjęciu (landed cost)
+  unitPrice      Decimal?  // cena jednostkowa zakupu (waluta dostawcy)
+  freightCost    Decimal   @default(0) // koszt transportu
+  customsDuty    Decimal   @default(0) // cło / opłaty importowe
+  landedUnitCost Decimal?  // koszt jednostkowy po przyjęciu (landed cost)
   projectId      String?
   bomComponentId String?
   supplierId     String?
@@ -49,6 +49,7 @@ model PurchaseOrder {
 
 enum OutboxStatus {
   PENDING
+  PROCESSING
   PROCESSED
   FAILED
 }

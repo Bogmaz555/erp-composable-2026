@@ -30,8 +30,10 @@ export class CrmIntegrationController {
       return this.commandBus.execute(
         new CreateProjectFromOpportunityCommand(
           payload.id,
-          payload.name || 'New Project from Opportunity',
-          payload.totalBudget || 0
+          payload.title || 'New Project from Opportunity',
+          payload.value || 0,
+          payload.tkw || 0,
+          payload.BOMItem || []
         )
       );
     });

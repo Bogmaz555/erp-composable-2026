@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { fetchWithAuth } from '../context/AuthContext';
 
 export interface Payable {
   id: string;
@@ -24,7 +25,7 @@ export function usePayables() {
   return useQuery<Payable[]>({
     queryKey: ['fin-payables'],
     queryFn: async () => {
-      const res = await fetch('http://localhost:4005/api/fin/payables');
+      const res = await fetchWithAuth('http://localhost:4005/api/fin/payables');
       if (!res.ok) throw new Error('Nie udało się pobrać zobowiązań');
       return res.json();
     },
@@ -35,7 +36,7 @@ export function useReceivables() {
   return useQuery<Receivable[]>({
     queryKey: ['fin-receivables'],
     queryFn: async () => {
-      const res = await fetch('http://localhost:4005/api/fin/receivables');
+      const res = await fetchWithAuth('http://localhost:4005/api/fin/receivables');
       if (!res.ok) throw new Error('Nie udało się pobrać należności');
       return res.json();
     },
@@ -65,7 +66,7 @@ export function useWipAccounts() {
   return useQuery<WipAccountRow[]>({
     queryKey: ['fin-wip'],
     queryFn: async () => {
-      const res = await fetch('http://localhost:4005/api/fin/wip');
+      const res = await fetchWithAuth('http://localhost:4005/api/fin/wip');
       if (!res.ok) throw new Error('Nie udało się pobrać WIP');
       return res.json();
     },
@@ -77,7 +78,7 @@ export function useProjectMilestones() {
   return useQuery<ProjectMilestone[]>({
     queryKey: ['fin-milestones'],
     queryFn: async () => {
-      const res = await fetch('/api/fin/milestones');
+      const res = await fetchWithAuth('/api/fin/milestones');
       if (!res.ok) throw new Error('Nie udało się pobrać milestoneów');
       return res.json();
     },
@@ -119,7 +120,7 @@ export function useBudgetVariance() {
   return useQuery<{ rows: BudgetVarianceRow[]; generatedAt: string }>({
     queryKey: ['fin-budget-variance'],
     queryFn: async () => {
-      const res = await fetch('/api/fin/budget-variance');
+      const res = await fetchWithAuth('/api/fin/budget-variance');
       if (!res.ok) throw new Error('Błąd budżetu vs wykonanie');
       return res.json();
     },
@@ -131,7 +132,7 @@ export function useGlAccounts() {
   return useQuery<GlAccount[]>({
     queryKey: ['fin-accounts'],
     queryFn: async () => {
-      const res = await fetch('/api/fin/accounts');
+      const res = await fetchWithAuth('/api/fin/accounts');
       if (!res.ok) throw new Error('Błąd planu kont');
       return res.json();
     },
@@ -142,7 +143,7 @@ export function useJournalEntries() {
   return useQuery<JournalEntry[]>({
     queryKey: ['fin-journal'],
     queryFn: async () => {
-      const res = await fetch('/api/fin/journal');
+      const res = await fetchWithAuth('/api/fin/journal');
       if (!res.ok) throw new Error('Błąd dziennika');
       return res.json();
     },
@@ -167,7 +168,7 @@ export function useFixedAssets() {
   return useQuery<FixedAsset[]>({
     queryKey: ['fin-fixed-assets'],
     queryFn: async () => {
-      const res = await fetch('/api/fin/fixed-assets');
+      const res = await fetchWithAuth('/api/fin/fixed-assets');
       if (!res.ok) throw new Error('Błąd środków trwałych');
       return res.json();
     },
@@ -178,7 +179,7 @@ export function useRunDepreciation() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async () => {
-      const res = await fetch('/api/fin/fixed-assets/depreciate', {
+      const res = await fetchWithAuth('/api/fin/fixed-assets/depreciate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({}),
@@ -199,7 +200,7 @@ export function usePostJournalEntry() {
       type: 'DEBIT' | 'CREDIT';
       description?: string;
     }) => {
-      const res = await fetch('/api/fin/journal', {
+      const res = await fetchWithAuth('/api/fin/journal', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),

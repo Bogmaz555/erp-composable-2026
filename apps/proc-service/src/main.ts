@@ -13,13 +13,15 @@ async function bootstrap() {
   });
 
   app.enableCors({
-    origin: ['http://localhost:3000', 'http://localhost:3001', 'http://127.0.0.1:3001'],
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
 
   await app.startAllMicroservices();
-  await app.listen(process.env.PORT || 4004, '0.0.0.0');
-  console.log(`PROC-Service (Procurement) is running on port ${process.env.PORT || 4004} with NATS Listener`);
+  const port = Number(process.env.PORT) || 4004;
+  const host = process.env.HOST || '0.0.0.0';
+  await app.listen(port, host);
+  console.log(`PROC-Service (Procurement) listening on http://${host}:${port} with NATS`);
 }
 bootstrap();

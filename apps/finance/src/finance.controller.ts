@@ -1,8 +1,15 @@
-import { Controller, Get, Post, Body, Logger, Param } from '@nestjs/common';
+import { Controller, Get, Post, Body, Logger, Param, UseGuards } from '@nestjs/common';
 import { EventPattern, Payload, Ctx, NatsContext } from '@nestjs/microservices';
 import { CommandBus } from '@nestjs/cqrs';
 import type { MesProductionRecordedV1Event } from '@erp/shared-kernel';
+import { preferJetStreamConsumerPath } from '@erp/shared-kernel';
+import {
+  ETO_MUTATION_ROLES,
+  runWithTenantAsync,
+  type MesProductionRecordedV1Event,
+} from '@erp/shared-kernel';
 import { RecordTransactionCommand } from './commands/record-transaction.handler';
+import { ReverseWipCostCommand } from './commands/reverse-wip-cost.handler';
 import { PrismaService } from './prisma.service';
 import {
   computeLaborCostPln,
@@ -12,7 +19,11 @@ import { resolveLaborRatePln, resolveOverheadPct } from './cost-rate.resolver';
 import { ensureAccount } from './finance-accounts';
 import { EntryType } from '@prisma/client-finance';
 import { ProjectAccountingService } from './project-accounting.service';
+import { JwtAuthGuard } from './auth/jwt-auth.guard';
+import { RolesGuard } from './auth/roles.guard';
+import { Roles } from './auth/roles.decorator';
 
+// Guards only on HTTP mutations — do NOT apply at class level (NATS EventPattern + health).
 @Controller('fin')
 export class FinanceController {
   private readonly logger = new Logger(FinanceController.name);
@@ -85,12 +96,23 @@ export class FinanceController {
 
   // TD-001 + Faza 1: Finance WIP listener on reservation release (closing the ETO loop)
   // Now extracts claims when available (NATS header propagation) and enriches audit description
-  /** Labor + overhead costing on production complete (before/at reservation release) */
+  /**
+   * Labor + overhead costing on production complete (before/at reservation release).
+   * @param fromJetStream when true, skip Nest dual-path guard (called by fin-wip-worker).
+   */
   @EventPattern('mes.production.recorded.v1')
   async handleProductionRecorded(
     @Payload() data: MesProductionRecordedV1Event,
     @Ctx() context?: NatsContext,
+    fromJetStream = false,
   ) {
+    // Single consumer path: durable fin-wip-worker owns this subject when flag on
+    if (!fromJetStream && preferJetStreamConsumerPath()) {
+      this.logger.debug(
+        'NATS_JETSTREAM on — Nest mes.production.recorded.v1 skipped (fin-wip-worker)',
+      );
+      return;
+    }
     const hdrs = context?.getHeaders?.() || {};
     const userId = (hdrs?.['x-user-id'] as string) || data.operatorId || 'system';
     const laborHours = data.laborHours ?? 0;
@@ -163,8 +185,40 @@ export class FinanceController {
     }
   }
 
+  @EventPattern('finance.wip.cost.reversed')
+  async handleWipCostReversed(
+    @Payload() data: { projectId: string; tenantId: string; correlationId: string },
+    @Ctx() context?: NatsContext,
+    fromJetStream = false,
+  ) {
+    if (!fromJetStream && preferJetStreamConsumerPath()) {
+      this.logger.debug(
+        'NATS_JETSTREAM on — Nest finance.wip.cost.reversed skipped (fin-wip-worker)',
+      );
+      return;
+    }
+    if (!data.projectId || !data.correlationId) return;
+    this.logger.log(`[Finance WIP] Received finance.wip.cost.reversed for project ${data.projectId}`);
+    const tenantId = data.tenantId || process.env.DEFAULT_TENANT_ID || 'default';
+    await runWithTenantAsync(tenantId, async () => {
+      await this.commandBus.execute(
+        new ReverseWipCostCommand(data.projectId, tenantId, data.correlationId),
+      );
+    });
+  }
+
   @EventPattern('inventory.reservation.released.v1')
-  async handleReservationReleased(@Payload() data: { workOrderId: string, tenantId: string, releasedReservations: any[] }, @Ctx() context?: NatsContext) {
+  async handleReservationReleased(
+    @Payload() data: { workOrderId: string, tenantId: string, releasedReservations: any[] },
+    @Ctx() context?: NatsContext,
+    fromJetStream = false,
+  ) {
+    if (!fromJetStream && preferJetStreamConsumerPath()) {
+      this.logger.debug(
+        'NATS_JETSTREAM on — Nest inventory.reservation.released.v1 skipped (fin-wip-worker)',
+      );
+      return;
+    }
     const hdrs = context?.getHeaders?.() || {};
     const userId = (hdrs?.['x-user-id'] as string) || 'system';
     const roles = (hdrs?.['x-roles'] as string) || '';
@@ -286,7 +340,10 @@ export class FinanceController {
     });
   }
 
+  /** HTTP WIP / GL write — only mutation guarded (ETO matrix FIN_WIP_WRITE). */
   @Post('journal')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(...ETO_MUTATION_ROLES.FIN_WIP_WRITE)
   async postJournal(@Body() body: { accountCode: string; amount: number; type: 'DEBIT' | 'CREDIT'; description?: string; referenceId?: string }) {
     await this.seedDefaultAccounts();
     const account = await this.prisma.account.findUnique({ where: { code: body.accountCode } });
@@ -332,7 +389,7 @@ export class FinanceController {
       const budget = p.budget ?? p.totalBudget ?? 0;
       const fromCosts = costGroups.find((c) => c.projectId === p.id)?._sum.amount ?? 0;
       const fromWip = wipRows.find((w) => w.projectId === p.id);
-      const actual = fromCosts + (fromWip?.laborCost ?? 0) + (fromWip?.materialReserved ?? 0);
+      const actual = Number(fromCosts) + Number(fromWip?.laborCost ?? 0) + Number(fromWip?.materialReserved ?? 0);
       const variance = budget - actual;
       const percentUsed = budget > 0 ? Math.round((actual / budget) * 100) : 0;
       return {
@@ -352,8 +409,8 @@ export class FinanceController {
           projectId: w.projectId,
           projectName: w.projectId,
           budget: 0,
-          actualCost: Math.round(w.wipBalance),
-          variance: -Math.round(w.wipBalance),
+          actualCost: Math.round(Number(w.wipBalance)),
+          variance: -Math.round(Number(w.wipBalance)),
           percentUsed: 0,
           status: 'OK' as const,
         });

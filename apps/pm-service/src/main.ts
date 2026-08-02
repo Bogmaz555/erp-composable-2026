@@ -7,22 +7,25 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create<any>(
     AppModule,
-    (new FastifyAdapter() as any)
+    (new FastifyAdapter() as any),
   );
 
   app.connectMicroservice({
     transport: Transport.NATS,
     options: {
-      servers: ['nats://localhost:4222'],
+      servers: [process.env.NATS_URL || 'nats://localhost:4222'],
     },
   });
 
   app.enableCors({
-    origin: '*',
-    credentials: true,
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
   });
 
   await app.startAllMicroservices();
-  await app.listen(4002, '0.0.0.0');
+  const port = Number(process.env.PORT) || 4002;
+  const host = process.env.HOST || '0.0.0.0';
+  await app.listen(port, host);
+  console.log(`PM Service listening on http://${host}:${port}`);
 }
 bootstrap();

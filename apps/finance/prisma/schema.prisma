@@ -13,7 +13,7 @@ model Account {
   code        String   @unique
   name        String
   type        AccountType
-  balance     Float    @default(0.0)
+  balance     Decimal    @default(0.0)
   currency    String   @default("PLN")
   entries     JournalEntry[]
   createdAt   DateTime @default(now())
@@ -24,7 +24,7 @@ model JournalEntry {
   id          String   @id @default(uuid())
   tenantId    String   @default("default")
   accountId   String
-  amount      Float
+  amount      Decimal
   type        EntryType
   referenceId String?  // ID of the source event (e.g., invoice ID, PO ID, WO ID)
   source      String?  // The source module (e.g., 'PROCUREMENT', 'SALES', 'MANUFACTURING_WIP')
@@ -55,7 +55,7 @@ model UniversalJournalEntry {
   wbsElementId String?
   eventType    String
   sourceModule String
-  amount       Float
+  amount       Decimal
   currency     String   @default("PLN")
   referenceId  String?
   description  String?
@@ -71,7 +71,7 @@ model ProjectCost {
   projectId   String
   workOrderId String?
   costType    String   // MATERIAL | LABOR | OVERHEAD | SUBCONTRACT
-  amount      Float
+  amount      Decimal
   currency    String   @default("PLN")
   reference   String?
   bookedAt    DateTime @default(now())
@@ -83,9 +83,9 @@ model WipAccount {
   id          String   @id @default(uuid())
   tenantId    String   @default("default")
   projectId   String   @unique
-  wipBalance  Float    @default(0)
-  materialReserved Float @default(0)  // from INV reservations
-  laborCost   Float    @default(0)
+  wipBalance  Decimal    @default(0)
+  materialReserved Decimal @default(0)  // from INV reservations
+  laborCost   Decimal    @default(0)
   updatedAt   DateTime @updatedAt
 }
 
@@ -94,8 +94,8 @@ model MilestoneBilling {
   tenantId    String   @default("default")
   projectId   String
   milestone   String   // e.g. FAT, SAT, SHIPMENT, FINAL
-  amount      Float
-  percent     Float?
+  amount      Decimal
+  percent     Decimal?
   status      String   @default("PENDING") // PENDING | READY | INVOICED | PAID
   dueDate     DateTime?
   invoicedAt    DateTime?
@@ -109,7 +109,7 @@ model Payable {
   id        String    @id @default(uuid())
   tenantId  String    @default("default")
   vendor    String
-  amount    Float
+  amount    Decimal
   currency  String    @default("PLN")
   dueDate   DateTime?
   status    String    @default("PENDING") // PENDING | PAID | OVERDUE
@@ -122,7 +122,7 @@ model Receivable {
   id         String    @id @default(uuid())
   tenantId   String    @default("default")
   client     String
-  amount     Float
+  amount     Decimal
   currency   String    @default("PLN")
   dueDate    DateTime?
   status     String    @default("PENDING")
@@ -137,7 +137,7 @@ model RevenueRecognition {
   tenantId            String   @default("default")
   projectId           String
   milestone           String
-  amount              Float
+  amount              Decimal
   currency            String   @default("PLN")
   ksefReferenceNumber String?
   recognizedAt        DateTime @default(now())
@@ -150,7 +150,7 @@ model CostRate {
   tenantId     String   @default("default")
   projectId    String?
   costType     String   // LABOR | OVERHEAD | MATERIAL
-  rateValue    Float
+  rateValue    Decimal
   unit         String   @default("HOUR") // HOUR | PCT | PLN_PER_UNIT
   effectiveFrom DateTime @default(now())
   effectiveTo   DateTime?
@@ -164,12 +164,12 @@ model FixedAsset {
   code                   String   @unique
   name                   String
   category               String   @default("MACHINERY") // MACHINERY | VEHICLE | IT | BUILDING
-  acquisitionCost        Float
-  salvageValue           Float    @default(0)
+  acquisitionCost        Decimal
+  salvageValue           Decimal    @default(0)
   usefulLifeMonths       Int      @default(60)
   depreciationMethod     String   @default("STRAIGHT_LINE")
-  accumulatedDepreciation Float   @default(0)
-  netBookValue           Float
+  accumulatedDepreciation Decimal   @default(0)
+  netBookValue           Decimal
   status                 String   @default("ACTIVE") // ACTIVE | DISPOSED | FULLY_DEPRECIATED
   acquiredAt             DateTime @default(now())
   lastDepreciationAt     DateTime?
@@ -185,14 +185,15 @@ model FixedAssetDepreciation {
   assetId      String
   asset        FixedAsset @relation(fields: [assetId], references: [id])
   period       String     // YYYY-MM
-  amount       Float
-  netBookAfter Float
+  amount       Decimal
+  netBookAfter Decimal
   postedAt     DateTime   @default(now())
   @@index([tenantId, assetId, period])
 }
 
 enum OutboxStatus {
   PENDING
+  PROCESSING
   PROCESSED
   FAILED
 }
@@ -205,6 +206,8 @@ model OutboxEvent {
   eventType     String
   payload       Json
   status        OutboxStatus @default(PENDING)
+  attempts      Int          @default(0)
+  lastError     String?
   createdAt     DateTime     @default(now())
   processedAt   DateTime?
   @@index([tenantId, status, createdAt])

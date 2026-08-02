@@ -21,6 +21,10 @@ spec:
           ports:
             - containerPort: 4007
           env:
+            - name: HOST
+              value: "0.0.0.0"
+            - name: PORT
+              value: "4007"
             - name: NATS_URL
               value: nats://nats:4222
           livenessProbe:

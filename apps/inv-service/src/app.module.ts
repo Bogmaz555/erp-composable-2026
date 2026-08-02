@@ -24,6 +24,7 @@ import { HealthController } from './health.controller';
 import { WmsController } from './wms.controller';
 import { SagaCompensationController } from './saga-compensation.controller';
 import { QualityIntegrationController } from './quality-integration.controller';
+import { InvEtoJetStreamConsumer } from './jetstream-inv-eto.consumer';
 
 @Module({
   imports: [
@@ -53,6 +54,8 @@ import { QualityIntegrationController } from './quality-integration.controller';
   ],
   providers: [
     PrismaService,
+    // Also as provider so InvEtoJetStreamConsumer can inject it (Nest controllers are not DI-exportable by default)
+    PmIntegrationController,
     CreateItemHandler,
     AdjustStockHandler,
     GetInventoryHandler,
@@ -64,6 +67,7 @@ import { QualityIntegrationController } from './quality-integration.controller';
     GetGenealogyChainHandler,
     PlmBomReleasedListener,
     InvOutboxRelayService,
+    InvEtoJetStreamConsumer,
   ],
 })
 export class AppModule {}

@@ -5,7 +5,11 @@ import { ReserveMaterialCommand } from './commands/reserve-material.handler';
 import { CreateReservationCommand } from './commands/create-reservation.command';
 import { propagation, context as otelContext } from '@opentelemetry/api';
 import type { MaterialRequestedEvent } from '@erp/shared-kernel';
-import { assertEtoOperationalPayload } from '@erp/shared-kernel';
+import {
+  assertEtoOperationalPayload,
+  preferJetStreamConsumerPath,
+  runWithTenantAsync,
+} from '@erp/shared-kernel';
 import { PrismaService } from './prisma.service';
 
 @Controller()
@@ -18,7 +22,18 @@ export class PmIntegrationController {
   ) {}
 
   @EventPattern('pm.material.requested.v1')
-  async handleMaterialRequested(@Payload() payload: MaterialRequestedEvent, @Ctx() context: NatsContext) {
+  async handleMaterialRequested(
+    @Payload() payload: MaterialRequestedEvent,
+    @Ctx() context: NatsContext,
+    fromJetStream = false,
+  ) {
+    // Single consumer path: durable inv-eto-worker owns this subject when flag on
+    if (!fromJetStream && preferJetStreamConsumerPath()) {
+      this.logger.debug(
+        'NATS_JETSTREAM on — Nest pm.material.requested.v1 skipped (inv-eto-worker)',
+      );
+      return;
+    }
     this.logger.debug(`Received Material Requested Event for Item: ${payload.itemId}`);
 
     assertEtoOperationalPayload(
@@ -31,36 +46,52 @@ export class PmIntegrationController {
       'pm.material.requested.v1',
     );
 
-    const hdrs = context.getHeaders();
-    const traceparent = hdrs?.get('traceparent') as string;
-    
-    if (traceparent) {
-      const activeContext = propagation.extract(otelContext.active(), { traceparent });
-      otelContext.with(activeContext, async () => {
+    // Worker ALS: no HTTP REQUEST scope — bind tenant from event (or DEFAULT_TENANT_ID).
+    const tenantForWorker =
+      payload.tenantId || process.env.DEFAULT_TENANT_ID || 'default';
+
+    return runWithTenantAsync(tenantForWorker, async () => {
+      const hdrs = context.getHeaders();
+      const traceparent = hdrs?.get('traceparent') as string;
+
+      if (traceparent) {
+        const activeContext = propagation.extract(otelContext.active(), { traceparent });
+        await otelContext.with(activeContext, async () => {
+          await this.commandBus.execute(new ReserveMaterialCommand(
+            payload.projectId,
+            payload.wbsElementId,
+            payload.itemId,
+            payload.requestedQuantity,
+            payload.bomComponentId,
+            payload.tenantId
+          ));
+        });
+      } else {
         await this.commandBus.execute(new ReserveMaterialCommand(
           payload.projectId,
           payload.wbsElementId,
           payload.itemId,
-          payload.requestedQuantity,
-          payload.bomComponentId,
-          payload.tenantId
+          payload.requestedQuantity
         ));
-      });
-    } else {
-      await this.commandBus.execute(new ReserveMaterialCommand(
-        payload.projectId,
-        payload.wbsElementId,
-        payload.itemId,
-        payload.requestedQuantity
-      ));
-    }
+      }
+    });
   }
 
   // Production complete listener (Faza 1 ETO close-loop)
   // On mes.production.recorded.v1: release active reservations for the WO (by workOrderId or bomComponentIds),
   // create RELEASE StockTransaction records, mark genealogy progress.
   @EventPattern('mes.production.recorded.v1')
-  async handleProductionRecorded(@Payload() payload: any, @Ctx() context: NatsContext) {
+  async handleProductionRecorded(
+    @Payload() payload: any,
+    @Ctx() context: NatsContext,
+    fromJetStream = false,
+  ) {
+    if (!fromJetStream && preferJetStreamConsumerPath()) {
+      this.logger.debug(
+        'NATS_JETSTREAM on — Nest mes.production.recorded.v1 skipped (inv-eto-worker)',
+      );
+      return;
+    }
     this.logger.debug(`[INV] Received mes.production.recorded.v1 for WO ${payload.workOrderId}`);
 
     if (payload.projectId) {
@@ -103,82 +134,91 @@ export class PmIntegrationController {
       return;
     }
 
-    for (const res of reservations) {
-      // Mark as released (fulfilled by production)
-      await this.prisma.reservation.update({
-        where: { id: res.id },
-        data: {
-          status: 'RELEASED',
-          releasedAt: new Date(),
-        },
-      }).catch(() => {});
+    // Domain release + genealogy + outbox in one TX (no empty .catch on outbox)
+    await this.prisma.$transaction(async (tx) => {
+      for (const res of reservations) {
+        await tx.reservation.update({
+          where: { id: res.id },
+          data: {
+            status: 'RELEASED',
+            releasedAt: new Date(),
+          },
+        });
 
-      // Immutable audit: RELEASE transaction (in real flow this may also trigger ISSUE/CONSUMPTION)
-      await this.prisma.stockTransaction.create({
-        data: {
-          tenantId,
-          itemId: res.itemId,
-          lotId: res.lotId,
-          type: 'RELEASE',
-          quantity: res.quantity,
-          referenceType: 'WORK_ORDER',
-          referenceId: workOrderId,
-          notes: res.bomComponentId ? `Reservation released on production (bomComponent ${res.bomComponentId})` : 'Reservation released on production',
-          createdBy: userId,
-        },
-      }).catch(() => {});
-
-      // ETO genealogy link (as-built trace): machine serial or WO id as parent
-      const parentSerialOrLot =
-        (payload.machineSerial as string) || `WO-${workOrderId}`;
-      if (res.bomComponentId) {
-        await this.prisma.itemGenealogy.create({
+        await tx.stockTransaction.create({
           data: {
             tenantId,
-            parentSerialOrLot,
-            childItemId: res.itemId,
-            childLotId: res.lotId,
-            quantityUsed: res.quantity,
-            workOrderId,
-            bomComponentId: res.bomComponentId,
+            itemId: res.itemId,
+            lotId: res.lotId,
+            type: 'RELEASE',
+            quantity: res.quantity,
+            referenceType: 'WORK_ORDER',
+            referenceId: workOrderId,
+            notes: res.bomComponentId
+              ? `Reservation released on production (bomComponent ${res.bomComponentId})`
+              : 'Reservation released on production',
+            createdBy: userId,
           },
-        }).catch(() => {});
+        });
+
+        // ETO genealogy link (as-built trace): machine serial or WO id as parent
+        const parentSerialOrLot =
+          (payload.machineSerial as string) || `WO-${workOrderId}`;
+        if (res.bomComponentId) {
+          await tx.itemGenealogy.create({
+            data: {
+              tenantId,
+              parentSerialOrLot,
+              childItemId: res.itemId,
+              childLotId: res.lotId,
+              quantityUsed: res.quantity,
+              workOrderId,
+              bomComponentId: res.bomComponentId,
+            },
+          });
+        }
       }
 
-      // Optional: In full ETO, here we could also create the final ISSUE transaction if not already deducted.
-      // For now, the reservation creation already reduced available stock; RELEASE just frees the "plan" lock.
-    }
+      await tx.outboxEvent.create({
+        data: {
+          tenantId,
+          aggregateId: workOrderId,
+          aggregateType: 'WorkOrder',
+          eventType: 'inventory.reservation.released.v1',
+          payload: {
+            workOrderId,
+            tenantId,
+            releasedReservations: reservations.map(r => ({
+              reservationId: r.id,
+              bomComponentId: r.bomComponentId,
+              itemId: r.itemId,
+              quantity: r.quantity,
+              projectId: r.projectId,
+            })),
+            releasedAt: new Date().toISOString(),
+          },
+          status: 'PENDING',
+        },
+      });
+    });
 
     this.logger.log(`[INV] Released ${reservations.length} reservations for WO ${workOrderId} (production recorded)`);
-
-    // Publish canonical 'inventory.reservation.released.v1' via Outbox (for Finance WIP release, analytics, procurement)
-    await this.prisma.outboxEvent.create({
-      data: {
-        tenantId,
-        aggregateId: workOrderId,
-        aggregateType: 'WorkOrder',
-        eventType: 'inventory.reservation.released.v1',
-        payload: {
-          workOrderId,
-          tenantId,
-          releasedReservations: reservations.map(r => ({
-            reservationId: r.id,
-            bomComponentId: r.bomComponentId,
-            itemId: r.itemId,
-            quantity: r.quantity,
-            projectId: r.projectId,
-          })),
-          releasedAt: new Date().toISOString(),
-        },
-        status: 'PENDING',
-      },
-    }).catch(() => { /* non-fatal */ });
   }
 
   // Real NATS listener for PLM BOM release (production pattern)
   // Replaces / complements the injectable skeleton listener for full event-driven flow
   @EventPattern('plm.bom.released.v2')
-  async handlePlmBomReleased(@Payload() payload: any, @Ctx() context: NatsContext) {
+  async handlePlmBomReleased(
+    @Payload() payload: any,
+    @Ctx() context: NatsContext,
+    fromJetStream = false,
+  ) {
+    if (!fromJetStream && preferJetStreamConsumerPath()) {
+      this.logger.debug(
+        'NATS_JETSTREAM on — Nest plm.bom.released.v2 skipped (inv-eto-worker)',
+      );
+      return;
+    }
     this.logger.debug(`[INV] Received plm.bom.released.v2 for BOM ${payload.bomVersionId}`);
 
     // TD-001: Extract authenticated user claims from NATS headers (consistent with MES pattern)
