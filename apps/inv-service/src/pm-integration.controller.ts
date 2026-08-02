@@ -8,8 +8,8 @@ import type { MaterialRequestedEvent } from '@erp/shared-kernel';
 import {
   assertEtoOperationalPayload,
   preferJetStreamConsumerPath,
+  runWithTenantAsync,
 } from '@erp/shared-kernel';
-import { assertEtoOperationalPayload, runWithTenantAsync } from '@erp/shared-kernel';
 import { PrismaService } from './prisma.service';
 
 @Controller()
