@@ -1,38 +1,23 @@
-<!-- generated 2026-08-02T11:28:29.205Z milestone=Q1 phase=IMPLEMENT sha=2ad7f8f -->
+<!-- generated 2026-08-02T11:28:32.346Z milestone=Q0 phase=RELEASE sha=9ad2d87 -->
 <!-- Unattended: paste into Grok OR run /workflow enterprise-20-step|continuous -->
 
-# AGENT MISSION — Q1 IMPLEMENT (autonomous)
+# AGENT MISSION — Q0 RELEASE (autonomous)
 
 Repo: /home/bogdan-mazur/PROGRAMY/ERP/erp-composable-2026
-Design: `docs/ENTERPRISE-0.2-ETO-DESIGN.md` (must exist)
-Branch: `enterprise-0.2-eto-spine`
-
-## Identity
-Principal Engineer. Full autonomy. Implement PR Plan from design.
+Branch: `enterprise-0.1-platform`
+Tag: **enterprise-0.1-platform**
 
 ## Task
-1. Read docs/ENTERPRISE-0.2-ETO-DESIGN.md ## PR Plan
-2. Implement PRs in dependency order on branch `enterprise-0.2-eto-spine`
-3. Prefer: if design has PR Plan, you may use mental execute-plan loop (implement + self-review per PR)
-4. Live fixes allowed; no domain scope outside workstreams
-5. When implementation complete: set STATUS phase=GATE, commit, push
-6. Run: `bash scripts/enterprise-2.0/gate-check.sh Q1` if possible
+1. Ensure gates green
+2. `gh pr create --base master --head enterprise-0.1-platform` (or update existing)
+3. Merge when required CI green (admin OK if only optional red)
+4. Tag `enterprise-0.1-platform` on merge commit; push tag
+5. Advance STATUS to next milestone DESIGN (or DONE if Q5)
+6. Commit STATUS on master or automation branch; push
 
-### Workstreams
-- PLM BOM/ECO depth event-only write path
-- PM CCPM EVM real journey
-- MES routing operations genealogy
-- INV LOT/SN WMS traceability
-- PROC MRP PO receive
-- Remove sync HTTP write-path between services
-- Event schema contracts for Active events
+Milestone order: Q0→Q1→Q2→Q3→Q4→Q5→DONE
 
-### Gates that must pass next
-  - `pnpm run smoke:pilot`
-  - `REQUIRE_LIVE=1 REQUIRE_LIVE_STRICT=1 pnpm run smoke:pilot`
-  - `./node_modules/.bin/playwright test e2e/pilot-eto-complete.spec.ts`
-
-START NOW. Implement.
+START NOW.
 
 ## Autonomy contract (mandatory)
 - ZERO confirmation pauses. Execute fully.

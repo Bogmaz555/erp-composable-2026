@@ -1,16 +1,16 @@
 # Enterprise 2.0 — automation status
 
 ```
-updated: 2026-08-02T11:28:29.134Z
+updated: 2026-08-02T11:28:32.312Z
 program: enterprise-2.0
 baseline_tag: pilot-v1.1.0
 target_tag: enterprise-2.0.0
 tenancy: DEDICATED_STACK
 automation_mode: full
 branch: enterprise-0.2-eto-spine
-sha: 2ad7f8f
-milestone: Q1
-phase: IMPLEMENT
+sha: 9ad2d87
+milestone: Q0
+phase: RELEASE
 milestone_index: 0
 phase_index: 2
 state: READY
@@ -23,7 +23,7 @@ checklist: Q0: done
   Q5: pending
   automation_scaffold: true
 last_error: none
-next_action: Execute docs/enterprise-2.0/NEXT_AGENT_PROMPT.md (Q1/IMPLEMENT)
+next_action: RELEASE Q0: gh pr merge + tag enterprise-0.1-platform
 resume_prompt: |
   RESUME Enterprise 2.0. checkout current branch. Read docs/ENTERPRISE-2.0-STATUS.md.
   milestone=Q1 phase=IMPLEMENT. Continue autonomy. No confirmation pauses.
@@ -74,3 +74,5 @@ See `docs/enterprise-2.0/milestones.json` for milestone definitions and gates.
 | 2026-08-02T11:28:12.794Z | advance success: Q1/DESIGN gate passed Q0 |
 | 2026-08-02T11:28:29.134Z | advance success: Q1/IMPLEMENT Q0 RELEASE: PR #4 merged, tag enterprise-0.1-platform pushed |
 | 2026-08-02T11:28:30Z | Q0 RELEASE: PR #4 merged, tag enterprise-0.1-platform; advance Q1 DESIGN |
+
+| 2026-08-02T11:28:32.312Z | restored Q0/RELEASE after double-advance skip; GATE was green |
