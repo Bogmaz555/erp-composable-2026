@@ -314,7 +314,14 @@
     "enterprise:status": "bash scripts/enterprise-2.0/autonomous-driver.sh status",
     "enterprise:install": "bash scripts/enterprise-2.0/install-automation.sh",
     "load:eto": "k6 run scripts/load/eto-path.k6.js",
-    "check:q3-scale": "bash scripts/enterprise-2.0/check-q3-scale.sh"
+    "check:q3-scale": "bash scripts/enterprise-2.0/check-q3-scale.sh",
+    "enterprise21:prompt": "node scripts/enterprise-2.1/emit-next-prompt.mjs",
+    "enterprise21:step": "bash scripts/enterprise-2.1/run-automation.sh step",
+    "enterprise21:once": "bash scripts/enterprise-2.1/run-automation.sh once",
+    "enterprise21:loop": "bash scripts/enterprise-2.1/run-automation.sh loop",
+    "enterprise21:gate": "bash scripts/enterprise-2.1/run-automation.sh gate",
+    "enterprise21:advance": "bash scripts/enterprise-2.1/run-automation.sh advance",
+    "enterprise21:status": "bash scripts/enterprise-2.1/run-automation.sh status"
   },
   "prisma": {
     "seed": "npx tsx scripts/seed.ts"

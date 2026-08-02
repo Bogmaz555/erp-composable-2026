@@ -1,0 +1,131 @@
+{
+  "program": "enterprise-2.1",
+  "baseline_tag": "enterprise-2.0.0",
+  "target_tag": "enterprise-2.1.0",
+  "tenancy_default": "DEDICATED_STACK",
+  "milestones": [
+    {
+      "id": "P0",
+      "name": "Prod Bootstrap",
+      "tag": "enterprise-2.1.p0-bootstrap",
+      "branch": "enterprise-2.1-p0-bootstrap",
+      "design_doc": "docs/ENTERPRISE-2.1-P0-BOOTSTRAP-DESIGN.md",
+      "phases": ["DESIGN", "IMPLEMENT", "GATE", "RELEASE"],
+      "workstreams": [
+        "Staging + prod Helm/compose profiles",
+        "Secrets only env/Vault; ci-no-secrets",
+        "Health matrix script for core services",
+        "Stable finance/gateway boot under ENTERPRISE=1",
+        "NATS_JETSTREAM + enterprise flags in prod values"
+      ],
+      "gate_commands": [
+        "bash scripts/ci-no-secrets.sh",
+        "pnpm run smoke:pilot",
+        "bash scripts/enterprise-2.1/check-p0-bootstrap.sh"
+      ],
+      "do_not": ["domain feature expansion", "readiness theater", "Faza 29+"]
+    },
+    {
+      "id": "P1",
+      "name": "Observability and SLO",
+      "tag": "enterprise-2.1.p1-observability",
+      "branch": "enterprise-2.1-p1-observability",
+      "design_doc": "docs/ENTERPRISE-2.1-P1-OBS-DESIGN.md",
+      "depends_on": ["P0"],
+      "phases": ["DESIGN", "IMPLEMENT", "GATE", "RELEASE"],
+      "workstreams": [
+        "OTel/traces on gateway + PM INV FIN MES",
+        "Prometheus scrapes + Grafana SLO dashboards",
+        "Burn-rate / availability alerts",
+        "On-call runbook"
+      ],
+      "gate_commands": [
+        "pnpm run smoke:pilot",
+        "bash scripts/enterprise-2.1/check-p1-obs.sh"
+      ]
+    },
+    {
+      "id": "P2",
+      "name": "DR and Resilience",
+      "tag": "enterprise-2.1.p2-dr",
+      "branch": "enterprise-2.1-p2-dr",
+      "design_doc": "docs/ENTERPRISE-2.1-P2-DR-DESIGN.md",
+      "depends_on": ["P0"],
+      "phases": ["DESIGN", "IMPLEMENT", "GATE", "RELEASE"],
+      "workstreams": [
+        "Scheduled backups all core DBs",
+        "DR dry-run always green",
+        "Live DR evidence on erp-pilot-dr only",
+        "RPO/RTO measured write-up",
+        "JetStream HA live or signed residual"
+      ],
+      "gate_commands": [
+        "COMPOSE_PROJECT_NAME=erp-pilot-dr DR_DRILL_DRY_RUN=1 bash scripts/dr-drill.sh",
+        "pnpm run smoke:pilot",
+        "bash scripts/enterprise-2.1/check-p2-dr.sh"
+      ]
+    },
+    {
+      "id": "P3",
+      "name": "Domain Depth Money Saga",
+      "tag": "enterprise-2.1.p3-domain",
+      "branch": "enterprise-2.1-p3-domain",
+      "design_doc": "docs/ENTERPRISE-2.1-P3-DOMAIN-DESIGN.md",
+      "depends_on": ["P0"],
+      "phases": ["DESIGN", "IMPLEMENT", "GATE", "RELEASE"],
+      "workstreams": [
+        "Finance period + AR/AP ETO path hardened",
+        "KSeF staging + prod fail-closed proven",
+        "Temporal critical workflow or explicit G-lite residual",
+        "Multi-replica outbox smoke",
+        "Live hard saga compensation"
+      ],
+      "gate_commands": [
+        "REQUIRE_LIVE=1 REQUIRE_LIVE_STRICT=1 pnpm run smoke:pilot",
+        "REQUIRE_LIVE=1 REQUIRE_LIVE_STRICT=1 npx tsx scripts/smoke-saga-compensation.ts",
+        "bash scripts/enterprise-2.1/check-p3-domain.sh"
+      ]
+    },
+    {
+      "id": "P4",
+      "name": "UX DMS Production",
+      "tag": "enterprise-2.1.p4-ux-dms",
+      "branch": "enterprise-2.1-p4-ux-dms",
+      "design_doc": "docs/ENTERPRISE-2.1-P4-UX-DESIGN.md",
+      "depends_on": ["P3"],
+      "phases": ["DESIGN", "IMPLEMENT", "GATE", "RELEASE"],
+      "workstreams": [
+        "ETO week UAT without CLI",
+        "DMS object storage (S3/minio) + DB versions",
+        "Search authz + Meili prod profile",
+        "Webhook delivery retry + DLQ"
+      ],
+      "gate_commands": [
+        "./node_modules/.bin/playwright test e2e/pilot-eto-complete.spec.ts",
+        "pnpm run smoke:pilot",
+        "bash scripts/enterprise-2.1/check-p4-ux.sh"
+      ]
+    },
+    {
+      "id": "P5",
+      "name": "Compliance Cutover GA-lite",
+      "tag": "enterprise-2.1.0",
+      "branch": "enterprise-2.1.0-ga",
+      "design_doc": "docs/ENTERPRISE-2.1-P5-GA-DESIGN.md",
+      "depends_on": ["P1", "P2", "P4"],
+      "phases": ["DESIGN", "IMPLEMENT", "GATE", "RELEASE"],
+      "workstreams": [
+        "Pen-test findings triage",
+        "SBOM + CVE gate in CI",
+        "ISO 27001 evidence links",
+        "First-tenant cutover runbook",
+        "GA-lite sign-off checklist"
+      ],
+      "gate_commands": [
+        "pnpm run smoke:pilot",
+        "./node_modules/.bin/playwright test e2e/pilot-eto-complete.spec.ts",
+        "bash scripts/enterprise-2.1/check-p5-ga.sh"
+      ]
+    }
+  ]
+}

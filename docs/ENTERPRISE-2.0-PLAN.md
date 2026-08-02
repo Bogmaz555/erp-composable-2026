@@ -83,3 +83,9 @@ pnpm run enterprise:gate
 ## Out of scope until 2.1+
 
 Multi-region active-active, AI autonomous ERP, mass-production MES, marketplace plugins.
+
+---
+
+## Next program (2.1)
+
+After `enterprise-2.0.0` DONE, production hardening continues in **`docs/ENTERPRISE-2.1-PLAN.md`** (P0–P5 → `enterprise-2.1.0`). Do not reset this 2.0 STATUS machine.
