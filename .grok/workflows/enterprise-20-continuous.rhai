@@ -1,5 +1,5 @@
 let meta = #{
-    name: "enterprise-2.0-continuous",
+    name: "enterprise-20-continuous",
     description: "Multi-tick Enterprise 2.0 automation: repeatedly execute current phase until budget or DONE",
     phases: [
         #{ title: "Tick1", detail: "first full phase execution" },

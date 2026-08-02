@@ -1,5 +1,5 @@
 let meta = #{
-    name: "enterprise-2.0-step",
+    name: "enterprise-20-step",
     description: "One Enterprise 2.0 automation tick: emit STATUS handoff and execute current phase fully",
     phases: [
         #{ title: "ControlPlane", detail: "run automation step and load prompt" },

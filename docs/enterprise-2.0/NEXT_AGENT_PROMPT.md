@@ -1,5 +1,5 @@
-<!-- generated 2026-08-02T11:14:28.910Z milestone=Q0 phase=IMPLEMENT sha=dae31cd -->
-<!-- Unattended: paste into Grok OR run /workflow enterprise-2.0-step|continuous -->
+<!-- generated 2026-08-02T11:15:10.948Z milestone=Q0 phase=IMPLEMENT sha=20df4e2 -->
+<!-- Unattended: paste into Grok OR run /workflow enterprise-20-step|continuous -->
 
 # AGENT MISSION — Q0 IMPLEMENT (autonomous)
 

@@ -153,7 +153,7 @@ const contract = `
 `;
 
 const header = `<!-- generated ${new Date().toISOString()} milestone=${milestoneId} phase=${phase} sha=${sha} -->
-<!-- Unattended: paste into Grok OR run /workflow enterprise-2.0-step|continuous -->
+<!-- Unattended: paste into Grok OR run /workflow enterprise-20-step|continuous -->
 
 `;
 

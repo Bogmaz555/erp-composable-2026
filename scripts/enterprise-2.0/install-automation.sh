@@ -8,7 +8,7 @@ mkdir -p "$LOG_DIR" "$ROOT/docs/enterprise-2.0/state" \
   "${HOME}/.grok/workflows"
 
 # Project + user workflow copies
-for f in enterprise-2.0-step.rhai enterprise-2.0-continuous.rhai; do
+for f in enterprise-20-step.rhai enterprise-20-continuous.rhai; do
   if [[ -f "$ROOT/.grok/workflows/$f" ]]; then
     cp -f "$ROOT/.grok/workflows/$f" "${HOME}/.grok/workflows/$f"
     echo "installed workflow → ~/.grok/workflows/$f"
@@ -39,7 +39,7 @@ Commands:
   pnpm run enterprise:status      # status summary
 
 Grok continuous:
-  /workflow enterprise-2.0-continuous  (or open NEXT_AGENT_PROMPT.md)
+  /workflow enterprise-20-continuous  (or open NEXT_AGENT_PROMPT.md)
 
 Scheduler RESUME (every 2–6h):
   paste docs/enterprise-2.0/state/RESUME.txt or AGENT_CONTRACT resume block

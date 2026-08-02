@@ -40,7 +40,7 @@ pnpm run enterprise:install
 ### 1) Jednorazowo w tej sesji Grok
 
 ```text
-/workflow enterprise-2.0-continuous
+/workflow enterprise-20-continuous
 ```
 
 albo wklej `docs/enterprise-2.0/NEXT_AGENT_PROMPT.md` i pracuj autonomicznie.

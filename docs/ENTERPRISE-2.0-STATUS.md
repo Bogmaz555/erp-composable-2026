@@ -1,14 +1,14 @@
 # Enterprise 2.0 — automation status
 
 ```
-updated: 2026-08-02T11:14:28.937Z
+updated: 2026-08-02T11:15:10.918Z
 program: enterprise-2.0
 baseline_tag: pilot-v1.1.0
 target_tag: enterprise-2.0.0
 tenancy: DEDICATED_STACK
 automation_mode: full
-branch: enterprise-2.0-automation
-sha: dae31cd
+branch: enterprise-0.1-platform
+sha: 20df4e2
 milestone: Q0
 phase: IMPLEMENT
 milestone_index: 0
@@ -58,3 +58,4 @@ See `docs/enterprise-2.0/milestones.json` for milestone definitions and gates.
 | 2026-08-02T11:11:06.850Z | STATUS reset for full automation Q0 DESIGN |
 | 2026-08-02T11:14:28.873Z | advance success: Q0/IMPLEMENT Q0 design ENTERPRISE-0.1-PLATFORM-DESIGN.md complete |
 | 2026-08-02T11:14:28.937Z | Q0 DESIGN complete; phase IMPLEMENT |
+| 2026-08-02T11:15:10.918Z | working branch enterprise-0.1-platform for Q0 IMPLEMENT |
