@@ -1,38 +1,23 @@
-<!-- generated 2026-08-02T11:33:38.209Z milestone=Q1 phase=IMPLEMENT sha=993abc5 -->
+<!-- generated 2026-08-02T11:38:25.212Z milestone=Q1 phase=GATE sha=1e7ec1e -->
 <!-- Unattended: paste into Grok OR run /workflow enterprise-20-step|continuous -->
 
-# AGENT MISSION — Q1 IMPLEMENT (autonomous)
+# AGENT MISSION — Q1 GATE (autonomous)
 
 Repo: /home/bogdan-mazur/PROGRAMY/ERP/erp-composable-2026
-Design: `docs/ENTERPRISE-0.2-ETO-DESIGN.md` (must exist)
 Branch: `enterprise-0.2-eto-spine`
 
-## Identity
-Principal Engineer. Full autonomy. Implement PR Plan from design.
-
 ## Task
-1. Read docs/ENTERPRISE-0.2-ETO-DESIGN.md ## PR Plan
-2. Implement PRs in dependency order on branch `enterprise-0.2-eto-spine`
-3. Prefer: if design has PR Plan, you may use mental execute-plan loop (implement + self-review per PR)
-4. Live fixes allowed; no domain scope outside workstreams
-5. When implementation complete: set STATUS phase=GATE, commit, push
-6. Run: `bash scripts/enterprise-2.0/gate-check.sh Q1` if possible
-
-### Workstreams
-- PLM BOM/ECO depth event-only write path
-- PM CCPM EVM real journey
-- MES routing operations genealogy
-- INV LOT/SN WMS traceability
-- PROC MRP PO receive
-- Remove sync HTTP write-path between services
-- Event schema contracts for Active events
-
-### Gates that must pass next
+1. Run: `bash scripts/enterprise-2.0/gate-check.sh Q1`
+2. Also run live commands if stack available:
   - `pnpm run smoke:pilot`
   - `REQUIRE_LIVE=1 REQUIRE_LIVE_STRICT=1 pnpm run smoke:pilot`
   - `./node_modules/.bin/playwright test e2e/pilot-eto-complete.spec.ts`
+3. If fail: fix (max 3 attempts), re-gate; if still fail STATUS state=BLOCKED with last_error
+4. If pass: STATUS phase=RELEASE, commit, push
 
-START NOW. Implement.
+Boot stack if needed: `bash scripts/boot-pilot-complete.sh` (or enterprise boot when exists).
+
+START NOW.
 
 ## Autonomy contract (mandatory)
 - ZERO confirmation pauses. Execute fully.

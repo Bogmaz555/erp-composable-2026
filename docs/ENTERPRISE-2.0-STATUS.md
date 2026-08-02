@@ -1,16 +1,16 @@
 # Enterprise 2.0 — automation status
 
 ```
-updated: 2026-08-02T11:34:00.000Z
+updated: 2026-08-02T11:38:25.186Z
 program: enterprise-2.0
 baseline_tag: pilot-v1.1.0
 target_tag: enterprise-2.0.0
 tenancy: DEDICATED_STACK
 automation_mode: full
 branch: enterprise-0.2-eto-spine
-sha: 993abc5
+sha: 1e7ec1e
 milestone: Q1
-phase: IMPLEMENT
+phase: GATE
 milestone_index: 1
 phase_index: 1
 state: READY
@@ -23,8 +23,10 @@ checklist:
   Q5: pending
   automation_scaffold: true
 last_error: none
-next_action: Execute docs/enterprise-2.0/NEXT_AGENT_PROMPT.md (Q1/IMPLEMENT)
+next_action: Execute docs/enterprise-2.0/NEXT_AGENT_PROMPT.md (Q1/GATE)
 resume_prompt: |
+  RESUME Enterprise 2.0. checkout current branch. Read docs/ENTERPRISE-2.0-STATUS.md.
+  milestone=Q1 phase=GATE. Continue autonomy. No confirmation pauses.
   RESUME Enterprise 2.0 full automation. No confirmation pauses.
   Repo: /home/bogdan-mazur/PROGRAMY/ERP/erp-composable-2026
   git fetch && git checkout enterprise-0.2-eto-spine && git pull --ff-only || true
@@ -57,3 +59,5 @@ See `docs/enterprise-2.0/milestones.json` for milestone definitions and gates.
 | 2026-08-02T11:32:09.256Z | **Q1 DESIGN complete** → IMPLEMENT: `docs/ENTERPRISE-0.2-ETO-DESIGN.md` (PR Plan) |
 | 2026-08-02T11:33:07.136Z | advance misfire → GATE corrected back to IMPLEMENT (design only; implement PR plan next) |
 | 2026-08-02T11:34:00.000Z | Design doc hardened (code-grounded residuals + PR 1–10); STATUS Q1/IMPLEMENT READY |
+
+| 2026-08-02T11:38:25.186Z | advance success: Q1/GATE Q1 IMPLEMENT core PR1-8: contracts, PLM release/ECO, PM EVM/HTTP block, MES genealogy, INV lot receive, PROC ProcessedEvent |
