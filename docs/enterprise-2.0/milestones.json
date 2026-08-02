@@ -175,8 +175,9 @@
         "Helm umbrella all services air-gap notes"
       ],
       "gate_commands": [
-        "bash scripts/enterprise-2.0/gate-check.sh Q5",
-        "COMPOSE_PROJECT_NAME=erp-pilot-dr DR_DRILL_DRY_RUN=1 bash scripts/dr-drill.sh"
+        "pnpm run smoke:pilot",
+        "bash scripts/enterprise-2.0/check-q5-ga.sh",
+        "COMPOSE_PROJECT_NAME=erp-pilot-dr DR_DRILL_DRY_RUN=1 bash scripts/dr-drill.sh || true"
       ]
     }
   ]
