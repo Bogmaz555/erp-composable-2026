@@ -1,0 +1,37 @@
+{{- /* Enterprise Q3 — HPA + PDB for core services when autoscaling enabled */ -}}
+{{- if .Values.autoscaling.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "erp.name" . }}-api-gateway
+  labels:
+    app: api-gateway
+    enterprise.q3: scale
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "erp.name" . }}-api-gateway
+  minReplicas: {{ .Values.autoscaling.minReplicas | default 1 }}
+  maxReplicas: {{ .Values.autoscaling.maxReplicas | default 5 }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.autoscaling.targetCPUUtilizationPercentage | default 70 }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "erp.name" . }}-api-gateway
+  labels:
+    app: api-gateway
+    enterprise.q3: scale
+spec:
+  maxUnavailable: {{ .Values.podDisruptionBudget.maxUnavailable | default 1 }}
+  selector:
+    matchLabels:
+      app: api-gateway
+{{- end }}

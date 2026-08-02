@@ -20,3 +20,4 @@ export * from './jetstream';
 export * from './tenant-extension';
 export * from './processed-event';
 export * from './enterprise-http-guard';
+export * from './tenancy-model';

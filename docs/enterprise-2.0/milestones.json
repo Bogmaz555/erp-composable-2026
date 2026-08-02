@@ -10,7 +10,12 @@
       "tag": "enterprise-0.1-platform",
       "branch": "enterprise-0.1-platform",
       "design_doc": "docs/ENTERPRISE-0.1-PLATFORM-DESIGN.md",
-      "phases": ["DESIGN", "IMPLEMENT", "GATE", "RELEASE"],
+      "phases": [
+        "DESIGN",
+        "IMPLEMENT",
+        "GATE",
+        "RELEASE"
+      ],
       "workstreams": [
         "E0.1 JetStream mandatory (no core-NATS prod path)",
         "E0.2 Outbox lockedAt + multi-replica safe",
@@ -28,7 +33,11 @@
         "pnpm run db:check:baselines",
         "pnpm run check:no-float-money"
       ],
-      "do_not": ["domain feature expansion", "readiness theater", "Faza 29+"]
+      "do_not": [
+        "domain feature expansion",
+        "readiness theater",
+        "Faza 29+"
+      ]
     },
     {
       "id": "Q1",
@@ -36,8 +45,15 @@
       "tag": "enterprise-0.2-eto-spine",
       "branch": "enterprise-0.2-eto-spine",
       "design_doc": "docs/ENTERPRISE-0.2-ETO-DESIGN.md",
-      "depends_on": ["Q0"],
-      "phases": ["DESIGN", "IMPLEMENT", "GATE", "RELEASE"],
+      "depends_on": [
+        "Q0"
+      ],
+      "phases": [
+        "DESIGN",
+        "IMPLEMENT",
+        "GATE",
+        "RELEASE"
+      ],
       "workstreams": [
         "PLM BOM/ECO depth event-only write path",
         "PM CCPM EVM real journey",
@@ -59,8 +75,15 @@
       "tag": "enterprise-0.3-finance-compliance",
       "branch": "enterprise-0.3-finance-compliance",
       "design_doc": "docs/ENTERPRISE-0.3-FINANCE-DESIGN.md",
-      "depends_on": ["Q1"],
-      "phases": ["DESIGN", "IMPLEMENT", "GATE", "RELEASE"],
+      "depends_on": [
+        "Q1"
+      ],
+      "phases": [
+        "DESIGN",
+        "IMPLEMENT",
+        "GATE",
+        "RELEASE"
+      ],
       "workstreams": [
         "Finance journal AR/AP period close",
         "KSeF prod-capable path",
@@ -80,8 +103,15 @@
       "tag": "enterprise-0.4-isolation-scale",
       "branch": "enterprise-0.4-isolation-scale",
       "design_doc": "docs/ENTERPRISE-0.4-SCALE-DESIGN.md",
-      "depends_on": ["Q2"],
-      "phases": ["DESIGN", "IMPLEMENT", "GATE", "RELEASE"],
+      "depends_on": [
+        "Q2"
+      ],
+      "phases": [
+        "DESIGN",
+        "IMPLEMENT",
+        "GATE",
+        "RELEASE"
+      ],
       "workstreams": [
         "Tenancy model enforced (DEDICATED or SHARED_RLS)",
         "NetworkPolicy + non-public services",
@@ -91,7 +121,7 @@
       ],
       "gate_commands": [
         "pnpm run smoke:pilot",
-        "bash scripts/enterprise-2.0/gate-check.sh Q3"
+        "bash scripts/enterprise-2.0/check-q3-scale.sh"
       ]
     },
     {
@@ -100,8 +130,15 @@
       "tag": "enterprise-0.5-ux-mdm",
       "branch": "enterprise-0.5-ux-mdm",
       "design_doc": "docs/ENTERPRISE-0.5-UX-DESIGN.md",
-      "depends_on": ["Q3"],
-      "phases": ["DESIGN", "IMPLEMENT", "GATE", "RELEASE"],
+      "depends_on": [
+        "Q3"
+      ],
+      "phases": [
+        "DESIGN",
+        "IMPLEMENT",
+        "GATE",
+        "RELEASE"
+      ],
       "workstreams": [
         "MDM product/partner SoR",
         "DMS documents versioned",
@@ -120,8 +157,15 @@
       "tag": "enterprise-2.0.0",
       "branch": "enterprise-2.0.0-ga",
       "design_doc": "docs/ENTERPRISE-2.0-GA-DESIGN.md",
-      "depends_on": ["Q4"],
-      "phases": ["DESIGN", "IMPLEMENT", "GATE", "RELEASE"],
+      "depends_on": [
+        "Q4"
+      ],
+      "phases": [
+        "DESIGN",
+        "IMPLEMENT",
+        "GATE",
+        "RELEASE"
+      ],
       "workstreams": [
         "SLO real metrics all services",
         "DR enterprise RPO/RTO drilled",

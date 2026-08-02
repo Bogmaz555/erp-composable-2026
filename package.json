@@ -312,7 +312,9 @@
     "enterprise:autonomous": "bash scripts/enterprise-2.0/autonomous-driver.sh once",
     "enterprise:driver:loop": "bash scripts/enterprise-2.0/autonomous-driver.sh loop",
     "enterprise:status": "bash scripts/enterprise-2.0/autonomous-driver.sh status",
-    "enterprise:install": "bash scripts/enterprise-2.0/install-automation.sh"
+    "enterprise:install": "bash scripts/enterprise-2.0/install-automation.sh",
+    "load:eto": "k6 run scripts/load/eto-path.k6.js",
+    "check:q3-scale": "bash scripts/enterprise-2.0/check-q3-scale.sh"
   },
   "prisma": {
     "seed": "npx tsx scripts/seed.ts"

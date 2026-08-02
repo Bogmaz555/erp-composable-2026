@@ -18,3 +18,4 @@ coverage/
 cluster-keys.json
 *.key
 backups/
+.tmp/

@@ -1,17 +1,17 @@
-<!-- generated 2026-08-02T12:06:29.730Z milestone=Q2 phase=RELEASE sha=fdb7822 -->
+<!-- generated 2026-08-02T12:28:20.127Z milestone=Q3 phase=RELEASE sha=3e0df92 -->
 <!-- Unattended: paste into Grok OR run /workflow enterprise-20-step|continuous -->
 
-# AGENT MISSION — Q2 RELEASE (autonomous)
+# AGENT MISSION — Q3 RELEASE (autonomous)
 
 Repo: /home/bogdan-mazur/PROGRAMY/ERP/erp-composable-2026
-Branch: `enterprise-0.3-finance-compliance`
-Tag: **enterprise-0.3-finance-compliance**
+Branch: `enterprise-0.4-isolation-scale`
+Tag: **enterprise-0.4-isolation-scale**
 
 ## Task
 1. Ensure gates green
-2. `gh pr create --base master --head enterprise-0.3-finance-compliance` (or update existing)
+2. `gh pr create --base master --head enterprise-0.4-isolation-scale` (or update existing)
 3. Merge when required CI green (admin OK if only optional red)
-4. Tag `enterprise-0.3-finance-compliance` on merge commit; push tag
+4. Tag `enterprise-0.4-isolation-scale` on merge commit; push tag
 5. Advance STATUS to next milestone DESIGN (or DONE if Q5)
 6. Commit STATUS on master or automation branch; push
 

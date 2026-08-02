@@ -1,0 +1,40 @@
+# Allow external + in-cluster traffic only to api-gateway; gateway may reach backends
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: erp-allow-gateway-ingress
+  labels:
+    app.kubernetes.io/part-of: erp-composable
+    enterprise.q3: isolation
+spec:
+  podSelector:
+    matchLabels:
+      app: api-gateway
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - {} # external LB / ingress controller (tighten with ipBlock in prod)
+  egress:
+    - {} # gateway must reach services + JWKS; tighten per env
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: erp-allow-from-gateway-only
+  labels:
+    app.kubernetes.io/part-of: erp-composable
+    enterprise.q3: isolation
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app
+        operator: NotIn
+        values: ["api-gateway"]
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: api-gateway
