@@ -1,16 +1,16 @@
 # Enterprise 2.0 — automation status
 
 ```
-updated: 2026-08-02T12:28:20.093Z
+updated: 2026-08-02T13:15:08.112Z
 program: enterprise-2.0
 baseline_tag: pilot-v1.1.0
 target_tag: enterprise-2.0.0
 tenancy: DEDICATED_STACK
 automation_mode: full
-branch: enterprise-0.4-isolation-scale
-sha: 3e0df92
-milestone: Q3
-phase: RELEASE
+branch: enterprise-0.5-ux-mdm
+sha: 4a8413b
+milestone: Q4
+phase: GATE
 milestone_index: 2
 phase_index: 0
 state: READY
@@ -18,13 +18,17 @@ checklist: Q0: done
   Q0: done
   Q1: done
   Q2: done
-  Q3: pending
+  Q3: done
   Q4: pending
   Q5: pending
   automation_scaffold: true
 last_error: none
-next_action: Execute docs/enterprise-2.0/NEXT_AGENT_PROMPT.md (Q3/RELEASE)
+next_action: Execute docs/enterprise-2.0/NEXT_AGENT_PROMPT.md (Q4/GATE)
 resume_prompt: |
+  RESUME Enterprise 2.0. checkout current branch. Read docs/ENTERPRISE-2.0-STATUS.md.
+  milestone=Q4 phase=GATE. Continue autonomy. No confirmation pauses.
+  RESUME Enterprise 2.0. checkout current branch. Read docs/ENTERPRISE-2.0-STATUS.md.
+  milestone=Q4 phase=DESIGN. Continue autonomy. No confirmation pauses.
   RESUME Enterprise 2.0. checkout current branch. Read docs/ENTERPRISE-2.0-STATUS.md.
   milestone=Q3 phase=RELEASE. Continue autonomy. No confirmation pauses.
   RESUME Enterprise 2.0. checkout current branch. Read docs/ENTERPRISE-2.0-STATUS.md.
@@ -71,3 +75,7 @@ See `docs/enterprise-2.0/milestones.json` for milestone definitions and gates.
 | 2026-08-02T12:26:09.196Z | advance fail: Q3/GATE gate failed Q3 |
 | 2026-08-02T12:27:36.779Z | re-gate Q3 after recursion fix |
 | 2026-08-02T12:28:20.093Z | advance success: Q3/RELEASE gate passed Q3 |
+| 2026-08-02T12:28:39.145Z | advance success: Q4/DESIGN Q3 RELEASE PR#8 tag enterprise-0.4-isolation-scale |
+| 2026-08-02T12:28:39.179Z | Q3 RELEASE complete; Q4 DESIGN next (UX MDM DMS) |
+| 2026-08-02T13:15:08.088Z | Q4 DESIGN ENTERPRISE-0.5-UX-DESIGN.md written |
+| 2026-08-02T13:15:08.112Z | advance success: Q4/GATE Q4 IMPLEMENT PR1-6 core delivered |
