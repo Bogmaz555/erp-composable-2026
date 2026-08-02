@@ -1,19 +1,19 @@
 # Enterprise 2.0 — automation status
 
 ```
-updated: 2026-08-02T11:25:29.032Z
+updated: 2026-08-02T11:27:53.214Z
 program: enterprise-2.0
 baseline_tag: pilot-v1.1.0
 target_tag: enterprise-2.0.0
 tenancy: DEDICATED_STACK
 automation_mode: full
 branch: enterprise-0.1-platform
-sha: f70042f
+sha: fac21c5
 milestone: Q0
-phase: GATE
+phase: RELEASE
 milestone_index: 0
 phase_index: 2
-state: BLOCKED
+state: READY
 checklist:
   Q0: pending
   Q1: pending
@@ -22,9 +22,11 @@ checklist:
   Q4: pending
   Q5: pending
   automation_scaffold: true
-last_error: gate failed Q0
-next_action: Execute docs/enterprise-2.0/NEXT_AGENT_PROMPT.md (Q0/GATE)
+last_error: none
+next_action: Execute docs/enterprise-2.0/NEXT_AGENT_PROMPT.md (Q0/RELEASE)
 resume_prompt: |
+  RESUME Enterprise 2.0. checkout current branch. Read docs/ENTERPRISE-2.0-STATUS.md.
+  milestone=Q0 phase=RELEASE. Continue autonomy. No confirmation pauses.
   RESUME Enterprise 2.0. checkout current branch. Read docs/ENTERPRISE-2.0-STATUS.md.
   milestone=Q0 phase=GATE. Continue autonomy. No confirmation pauses.
   RESUME Enterprise 2.0. checkout current branch. Read docs/ENTERPRISE-2.0-STATUS.md.
@@ -63,3 +65,5 @@ See `docs/enterprise-2.0/milestones.json` for milestone definitions and gates.
 | 2026-08-02T11:23:40.665Z | Q0 IMPLEMENT PR1-3 done (lockedAt reclaim green; tests 29/29) |
 | 2026-08-02T11:24:16.737Z | advance fail: Q0/GATE gate failed Q0 |
 | 2026-08-02T11:25:29.032Z | advance fail: Q0/GATE gate failed Q0 |
+| 2026-08-02T11:27:13.793Z | cleared BLOCKED after prisma generate + inv restart; outbox-live-hard green |
+| 2026-08-02T11:27:53.214Z | advance success: Q0/RELEASE Q0 GATE passed: gate-check.sh exit 0 (outbox hard + saga + smoke live) |
