@@ -1,20 +1,21 @@
-<!-- generated 2026-08-02T12:05:45.985Z milestone=Q2 phase=GATE sha=0daa02c -->
+<!-- generated 2026-08-02T12:06:29.730Z milestone=Q2 phase=RELEASE sha=fdb7822 -->
 <!-- Unattended: paste into Grok OR run /workflow enterprise-20-step|continuous -->
 
-# AGENT MISSION — Q2 GATE (autonomous)
+# AGENT MISSION — Q2 RELEASE (autonomous)
 
 Repo: /home/bogdan-mazur/PROGRAMY/ERP/erp-composable-2026
 Branch: `enterprise-0.3-finance-compliance`
+Tag: **enterprise-0.3-finance-compliance**
 
 ## Task
-1. Run: `bash scripts/enterprise-2.0/gate-check.sh Q2`
-2. Also run live commands if stack available:
-  - `REQUIRE_LIVE=1 REQUIRE_LIVE_STRICT=1 pnpm run smoke:pilot`
-  - `REQUIRE_LIVE=1 REQUIRE_LIVE_STRICT=1 npx tsx scripts/smoke-saga-compensation.ts`
-3. If fail: fix (max 3 attempts), re-gate; if still fail STATUS state=BLOCKED with last_error
-4. If pass: STATUS phase=RELEASE, commit, push
+1. Ensure gates green
+2. `gh pr create --base master --head enterprise-0.3-finance-compliance` (or update existing)
+3. Merge when required CI green (admin OK if only optional red)
+4. Tag `enterprise-0.3-finance-compliance` on merge commit; push tag
+5. Advance STATUS to next milestone DESIGN (or DONE if Q5)
+6. Commit STATUS on master or automation branch; push
 
-Boot stack if needed: `bash scripts/boot-pilot-complete.sh` (or enterprise boot when exists).
+Milestone order: Q0→Q1→Q2→Q3→Q4→Q5→DONE
 
 START NOW.
 
