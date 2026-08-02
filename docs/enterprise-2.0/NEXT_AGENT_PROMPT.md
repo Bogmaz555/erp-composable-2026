@@ -1,23 +1,37 @@
-<!-- generated 2026-08-02T13:19:04.880Z milestone=Q4 phase=RELEASE sha=713f98c -->
+<!-- generated 2026-08-02T13:19:14.076Z milestone=Q5 phase=DESIGN sha=bea709a -->
 <!-- Unattended: paste into Grok OR run /workflow enterprise-20-step|continuous -->
 
-# AGENT MISSION — Q4 RELEASE (autonomous)
+# AGENT MISSION — Q5 DESIGN (autonomous)
 
 Repo: /home/bogdan-mazur/PROGRAMY/ERP/erp-composable-2026
-Branch: `enterprise-0.5-ux-mdm`
-Tag: **enterprise-0.5-ux-mdm**
+Baseline: pilot-v1.1.0 → current master
+Branch: `enterprise-2.0.0-ga` (create from master if missing)
+Tenancy lock: **DEDICATED_STACK**
+
+## Identity
+Principal Architect. Full autonomy. No "should I continue?" questions.
 
 ## Task
-1. Ensure gates green
-2. `gh pr create --base master --head enterprise-0.5-ux-mdm` (or update existing)
-3. Merge when required CI green (admin OK if only optional red)
-4. Tag `enterprise-0.5-ux-mdm` on merge commit; push tag
-5. Advance STATUS to next milestone DESIGN (or DONE if Q5)
-6. Commit STATUS on master or automation branch; push
+Produce design document at **`docs/ENTERPRISE-2.0-GA-DESIGN.md`** for milestone **Q5: Ops Certification GA**.
 
-Milestone order: Q0→Q1→Q2→Q3→Q4→Q5→DONE
+### Workstreams
+- SLO real metrics all services
+- DR enterprise RPO/RTO drilled
+- Pen-test pack + SBOM
+- ISO 27001 control map
+- Helm umbrella all services air-gap notes
 
-START NOW.
+### Rules
+- Include Key Decisions, Alternatives, Security, risks, **## PR Plan** with `### PR N: Title`, Dependencies, Files, Description
+- No readiness theater / Faza 29+
+- Non-negotiables: ADR-008 + docs/ENTERPRISE-2.0-PLAN.md
+- After design file written: update docs/ENTERPRISE-2.0-STATUS.md phase=IMPLEMENT, commit, push branch `enterprise-2.0-automation` or `enterprise-2.0.0-ga`
+- Prefer also running: `/design` equivalent quality (self-review once)
+
+### Forbidden
+- domain scope creep
+
+START NOW. Write the design file.
 
 ## Autonomy contract (mandatory)
 - ZERO confirmation pauses. Execute fully.
