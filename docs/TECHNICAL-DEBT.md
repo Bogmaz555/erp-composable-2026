@@ -26,7 +26,7 @@
 | ID | Problem | Wpływ | Status | Notatki |
 |----|---------|-------|--------|---------|
 | TD-OUTBOX | Outbox dual-write / invalid status / dual relay | Krytyczny reliability | ✅ **Pilot** | Schema `PROCESSING`+attempts (PR 4); relay v2 (PR 5); **TX writes** core producers (PR 6–9). Gate: `smoke:pilot:outbox` |
-| TD-JS | JetStream unused / dual consumer risk | Wysoki | 🟡 **opt-in** | Kernel + bootstrap + single consumer path (PR 13–14). Flag `NATS_JETSTREAM`. Gate: `smoke:pilot:js` (skip `SKIP_JS=1`) |
+| TD-JS | JetStream unused / dual consumer risk | Wysoki | 🟢 **enterprise** | Q0: `ENTERPRISE=1` requires JetStream (`assertEnterpriseMessaging`). Opt-in remains for local non-enterprise. |
 | TD-TENANT | Tenancy no-op / cross-tenant leak | Wysoki | ✅ **Pilot** | Shared `tenant-extension` + worker ALS (PR 15). Single-tenant-per-deploy + row filter. Gate: `smoke:pilot:tenant` |
 | TD-MONEY | Monetary Float drift | Średni-wysoki | 🟡 | Pilot-critical Decimal blocklist (PR 11); secondary residual (PR 12 / KD-5) |
 | TD-MIG | Prisma push-only / no baselines | Wysoki | ✅ **core** | Baselines + `PILOT=1` forbids push (`docs/PRISMA-MIGRATIONS.md`, PR 10) |

@@ -6,7 +6,7 @@
 1. `DEFAULT_TENANT_ID` (default `default`) is required in pilot/prod profiles.
 2. JWT claim `tenantId` (OQ-1) is the only trusted tenant source at gateway.
 3. Multi-tenant SaaS / CRM tenant columns are **out of scope** for 1.1.0.
-4. Compose pilot / k8s deploy: **single replica** for outbox relay services (INV, PROC, FIN, PM, PLM, MES, quality, etc.) unless `lockedAt` is implemented.
+4. Compose/k8s: multi-replica outbox relays **allowed** when `lockedAt` claim + consumer `processed_events` are present (Enterprise Q0). Single replica still recommended for pilot-only stacks without those guarantees.
 
 ## Enforcement
 - Gateway injects `x-tenant-id` from JWT only.

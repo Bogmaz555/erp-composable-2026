@@ -1,185 +1,409 @@
 # Enterprise 0.1 — Platform Certification Design (Q0)
 
 | Field | Value |
-|-------|-------|
-| **Document** | Enterprise Q0 Platform Certification |
-| **Repo** | `/home/bogdan-mazur/PROGRAMY/ERP/erp-composable-2026` |
+|-------|--------|
+| **Document** | `docs/ENTERPRISE-0.1-PLATFORM-DESIGN.md` |
+| **Milestone** | Q0 — Platform Certification |
+| **Tag** | `enterprise-0.1-platform` |
+| **Branch** | `enterprise-0.1-platform` |
 | **Baseline** | `pilot-v1.1.0` (Pilot COMPLETE) |
-| **Target tag** | `enterprise-0.1-platform` |
-| **Branch** | `enterprise-0.1-platform` (from `enterprise-2.0-automation` / master after scaffold merge) |
-| **Status** | **Ready for IMPLEMENT** |
+| **Author** | Principal Architect (Enterprise 2.0 automation) |
 | **Date** | 2026-08-02 |
-| **Tenancy lock** | **DEDICATED_STACK** (STATUS; not SHARED_RLS) |
-| **Non-negotiables** | ADR-008, `docs/ENTERPRISE-2.0-PLAN.md` |
+| **Status** | **Approved for IMPLEMENT** |
+| **Tenancy lock** | `DEDICATED_STACK` (STATUS; not SHARED_RLS) |
+| **Secrets** | Variant **B** (`APPROVED_BY_USER_A=false`) |
+| **Non-negotiables** | ADR-008 + `docs/ENTERPRISE-2.0-PLAN.md` |
 
 ---
 
 ## Overview
 
-Pilot v1.1.0 proved an honest single-tenant ETO path with live gates (`smoke:pilot` strict, outbox live hard, saga compensation, e2e pilot-eto). Enterprise Q0 does **not** expand domain features. It certifies the **platform spine** so later milestones (ETO depth, finance/compliance, scale, UX, GA) stand on non-waivable guarantees:
+Pilot v1 COMPLETE delivered a single-tenant-per-deployment pilot with transactional outbox, JetStream **opt-in**, auth default ON, and honest live gates (`smoke:pilot`). **Q0 does not expand domain features.** It certifies the platform so that enterprise tags cannot silently degrade to demo shortcuts:
 
-1. JetStream is the only production event transport for enterprise profiles  
-2. Outbox multi-replica claim safety (`lockedAt` / reclaim by lock time)  
-3. Idempotent consumers for money / stock / saga paths  
-4. Secrets Variant B (no tree secrets; history rewrite only if `APPROVED_BY_USER_A`)  
-5. Auth hard: iss (+ aud when set), azp/client allowlist, rate limits  
-6. Tenancy model ADR + enforcement sketch for DEDICATED_STACK  
+| Gap after Pilot | Enterprise requirement |
+|-----------------|------------------------|
+| `NATS_JETSTREAM` opt-in; core NATS still default | JetStream **mandatory** on enterprise profiles |
+| Outbox reclaim uses `createdAt`; single-replica contract | `lockedAt` + multi-replica-safe claim |
+| Idempotency ad-hoc (e.g. reverse WIP only) | Durable `processed_events` on money/stock/saga consumers |
+| Variant B documented | Enforce + rotate ops path; block Variant A without approval |
+| `iss` defaulted; `aud` optional; no `azp`; JWKS rateLimit only | Hard `iss`/`aud`/`azp` + gateway HTTP rate-limit |
+| Single-tenant contract | ADR + enforcement sketch for DEDICATED_STACK |
 
-**Out of scope (Q0):** domain feature expansion, Faza 29+, readiness theater, multi-region, SHARED_RLS implementation (unless STATUS flipped by human).
-
----
-
-## Background & current state (honest)
-
-| Area | Pilot residual | Enterprise Q0 goal |
-|------|----------------|--------------------|
-| JetStream | Opt-in `NATS_JETSTREAM`; default core NATS; dual-path guards only on fin-wip / inv-eto samples | Enterprise compose/profile **requires** JS; fail boot if core-only in enterprise; audit all Nest `@EventPattern` for dual-path |
-| Outbox | `GenericOutboxRelay` v2: claim PENDING→PROCESSING, JetStream msgID; **reclaim uses `createdAt`** (class residual) | Add `lockedAt` (or `processingStartedAt`); reclaim only on lock age; optional `SKIP LOCKED` |
-| Consumers | Finance reverse WIP partial idempotency; no shared `processed_events` table | Shared kernel `processed_events` + helper for money/stock/saga handlers |
-| Secrets | `ci-no-secrets`; Variant B default | Enterprise profile refuses known secret env in image; document A path behind STATUS flag |
-| Auth | PILOT forbids AUTH_DISABLE; dual issuer localhost/127.0.0.1; aud optional | Enterprise: require iss list; aud required when `JWT_AUDIENCE` set; azp allowlist; gateway rate-limit |
-| Tenancy | Single-tenant-per-deployment contract | ADR-009 + runtime assert `DEDICATED_STACK`; no silent multi-tenant shared DB |
-
-Key code anchors:
-
-- `apps/shared-kernel/src/outbox-relay.ts` — GenericOutboxRelay v2 residual note on `lockedAt`  
-- `apps/shared-kernel/src/jetstream/*` — flags, publish, consumer path  
-- `apps/api-gateway/src/auth/verify-token.ts` — iss/aud  
-- `apps/api-gateway/src/auth/auth-env.ts` — PILOT/enforce  
-- `scripts/enterprise-2.0/gate-check.sh` — Q0 gate runner  
+**Goal:** Ship tag `enterprise-0.1-platform` with gates green under **live** chaos (outbox hard, saga compensation, no-secrets, baselines, decimal money). No readiness theater. No Faza 29+.
 
 ---
 
-## Goals / Non-Goals
+## Background & motivation
 
-### Goals
+### What Pilot already proved (do not re-build)
 
-- Enterprise profile env + compose snippet where `NATS_JETSTREAM=true` is mandatory and boot fails closed if mis-set  
-- Outbox schema + relay: `lockedAt` set on claim; reclaim filters on `lockedAt`  
-- `processed_events` (or equivalent) in shared pattern + wire critical consumers  
-- Auth enterprise hard path + basic rate limit on gateway  
-- ADR-009 Tenancy DEDICATED_STACK + enforcement sketch (env + middleware assert)  
-- Live gates green under enterprise flags  
+- Auth default ON; JWKS pilot; pure proxy gateway; public surface shrink (PR 1–3, 17).
+- Outbox schema `PROCESSING` + attempts; GenericOutboxRelay v2; TX writes core producers (PR 4–9).
+- JetStream kernel, stream bootstrap, single-consumer path for fin-wip + inv-eto when flag on (PR 13–14).
+- Tenant extension + worker ALS; single-tenant contract (PR 15).
+- G-lite saga + reverse WIP harden (PR 16).
+- Decimal blocklist + baselines + DR drill + smoke:pilot (PR 10–11, 19–20).
+- Secrets working tree clean; Variant B policy (PR 1, `docs/SECURITY-SECRETS-VARIANT-B.md`).
 
-### Non-Goals
+### Residual that blocks enterprise certification
 
-- Full multi-tenant SHARED_RLS  
-- Temporal adoption (Q2)  
-- Domain depth (Q1+)  
-- History filter-repo without approval  
-- Replacing Keycloak  
+From `GenericOutboxRelay` residual note and TD registry:
+
+1. **TD-JS residual:** Flag default **off** → enterprise path can still run core NATS only.
+2. **Outbox multi-replica:** No `lockedAt`/`processingStartedAt` → reclaim can double-deliver under multi-instance relay (`docs/SINGLE-TENANT-CONTRACT.md` still requires single replica).
+3. **Consumer idempotency:** JetStream `msgID` de-dupe window is short (2m); no durable consumer-side ledger → double delivery after reclaim/replay is unsafe for money/stock.
+4. **Auth residual:** `JWT_AUDIENCE` optional; no authorized-party (`azp`) pin; no gateway request rate-limit beyond jwks-rsa client rateLimit.
+5. **Tenancy residual:** Product contract is pilot single-tenant; enterprise needs ADR + STATUS-locked DEDICATED_STACK enforcement sketch (no SHARED_RLS code path until STATUS changes).
 
 ---
 
-## Key Decisions
+## Goals & non-goals
 
-### KD-1 — JetStream mandatory on enterprise path
+### Goals (Q0 workstreams)
 
-**Decision:** Enterprise runtime profile sets `NATS_JETSTREAM=true` and `ENTERPRISE=1` (or `ERP_PROFILE=enterprise`). Shared-kernel boot helper `assertEnterpriseMessaging()` throws if flag off under enterprise.  
-**Alternative rejected:** Keep opt-in forever — fails ADR-008.  
-**Consequence:** Local dev can remain pilot/core; CI enterprise job must set flags.
+| ID | Goal |
+|----|------|
+| **E0.1** | JetStream mandatory on enterprise profile; fail-closed if core-NATS-only in prod/enterprise |
+| **E0.2** | Outbox `lockedAt` (or equivalent) + claim algorithm multi-replica safe |
+| **E0.3** | Idempotent consumers via `processed_events` (durable event ledger) |
+| **E0.4** | Secrets Variant B operationalized; Variant A hard-blocked without `APPROVED_BY_USER_A` |
+| **E0.5** | Auth: hard `iss` + `aud` + `azp`; gateway rate-limit on auth boundary |
+| **E0.6** | Tenancy ADR + enforcement sketch for DEDICATED_STACK |
 
-### KD-2 — Outbox `lockedAt` + multi-replica reclaim
+### Non-goals
 
-**Decision:** Add nullable `DateTime? lockedAt` on `OutboxEvent` for all producer services (migration per service). On claim: set `lockedAt = now()`. Reclaim: `PROCESSING AND lockedAt < now - reclaimMinutes` (not `createdAt`). Prefer conditional update with version or status guard (existing). Document that consumers remain at-least-once.  
-**Alternative rejected:** `SKIP LOCKED` only without timestamp — insufficient for crash reclaim.  
-**Residual accepted:** Full FOR UPDATE SKIP LOCKED optional follow-up if Prisma/raw SQL needed per DB.
+- Domain feature expansion (ETO depth, finance full, KSeF prod, Temporal workers) — **Q1+**
+- SHARED_RLS multi-tenant product — only if STATUS `tenancy: SHARED_RLS`
+- Git history rewrite (Variant A / filter-repo) — only if `APPROVED_BY_USER_A=true`
+- Force-push master; readiness theater; Faza 29+ pipelines
+- NATS 3-node HA cluster (Q3); NetworkPolicy mesh (Q3)
 
-### KD-3 — Idempotent consumers via `processed_events`
+---
 
-**Decision:** Introduce shared helper + table pattern:
+## Current state vs target
 
-```text
-processed_events(id PK, consumer_name, event_id UNIQUE(consumer_name,event_id), processed_at)
+| Dimension | Pilot v1.1.0 | Enterprise 0.1 (Q0) |
+|-----------|--------------|---------------------|
+| JetStream | Opt-in `NATS_JETSTREAM` | **Mandatory** when `ENTERPRISE=1` / `PILOT=1` enterprise profile; compose + boot scripts default on |
+| Outbox claim | Conditional PENDING→PROCESSING; reclaim by `createdAt` | `lockedAt` set on claim; reclaim only expired locks; safe multi-replica |
+| Consumers | Partial idempotency (reverse WIP) | `ProcessedEvent` table + helper; money/stock/saga handlers |
+| Secrets | Tree clean + Variant B doc | CI + runbook; no filter-repo; rotation checklist |
+| Auth | iss default Keycloak; aud optional | Required iss; required aud; required azp allowlist; HTTP rate-limit |
+| Tenancy | Single-tenant contract | ADR-009 + STATUS lock + deploy sketch (one stack per org) |
+| Replica policy | Single outbox relay replica | Multi-replica **allowed** after E0.2+E0.3 |
+| Gates | smoke:pilot (+ optional JS) | Q0 gate_commands live strict + outbox hard + saga + ci-no-secrets |
+
+### Target architecture (messaging + claim)
+
+```mermaid
+flowchart TB
+  SVC[Domain service TX] --> OB[(OutboxEvent + lockedAt)]
+  OB --> REL[GenericOutboxRelay multi-replica]
+  REL -->|publishWithAck msgID=id| JS[JetStream streams]
+  JS --> DUR[Durable pull consumers]
+  DUR --> LEDGER[(processed_events)]
+  LEDGER --> H[Handler business logic]
+  GW[Gateway] -->|iss aud azp + rate-limit| AUTH[JWKS verify]
+  AUTH --> PROXY[Pure proxy]
+  STACK[DEDICATED_STACK] -.-> SVC
+  STACK -.-> GW
 ```
 
-Start with finance WIP reverse, inv reservation/release, saga compensation handlers. Insert-before-side-effect or unique constraint catch.  
-**Alternative rejected:** Rely only on JetStream msgID de-dupe — does not cover Nest residual paths or multi-handler same msgID semantics.
+---
 
-### KD-4 — Secrets Variant B
+## Workstream design
 
-**Decision:** Default = no secrets in tree + CI; no history rewrite. Variant A only if STATUS `APPROVED_BY_USER_A: true`. Enterprise docs link to runbook; no automated filter-repo.  
-**Alternative rejected:** Silent history rewrite in automation.
+### E0.1 — JetStream mandatory (no core-NATS prod path)
 
-### KD-5 — Auth hard + rate limit
+**Problem:** `isJetStreamEnabled()` defaults false. Enterprise can boot with Nest core NATS only → at-most-once, no durable consumer, dual-path ambiguity.
 
-**Decision:**
+**Decision KD-E0.1:**  
+Introduce **profile resolver** in shared-kernel:
 
-- Under `ENTERPRISE=1` / `ERP_PROFILE=enterprise`: forbid AUTH_DISABLE / AUTH_ENFORCE=false (extend pilot checks).  
-- Require non-empty issuer config (KEYCLOAK_ISSUER or JWT_ISSUER).  
-- If `JWT_AUDIENCE` set, verify aud.  
-- Optional `JWT_AZP_ALLOWLIST` (comma clients); if set, require azp/azp-like claim.  
-- Gateway: simple token-bucket / sliding window per IP on `/api/*` (env-tuned; default on in enterprise).  
+| Env | Behavior |
+|-----|----------|
+| `ENTERPRISE=1` or `ENTERPRISE_PROFILE=true` | JetStream **required**; process fail-fast at bootstrap if flag off or streams missing |
+| `PILOT=1` (enterprise boot scripts) | Same as enterprise for messaging (align with `boot-pilot-complete` / compose pilot) |
+| Dev local without flags | Core NATS still allowed (developer convenience) |
 
-### KD-6 — Tenancy DEDICATED_STACK
+Implementation sketch:
 
-**Decision:** ADR-009 states dedicated stack per tenant org. Runtime: `TENANCY_MODEL=DEDICATED_STACK` required under enterprise; log+fail if SHARED_RLS without STATUS human flip. Enforcement sketch: gateway injects single configured tenant; services reject mismatched `tenantId` claim vs `ERP_TENANT_ID`. Full RLS deferred to Q3 if ever chosen.
+1. `requireJetStreamForEnterprise(env)` — throws/logs fatal if enterprise profile && !isJetStreamEnabled.
+2. Compose pilot / enterprise env files: `NATS_JETSTREAM=true`, `ENTERPRISE=1`.
+3. Gate: existing `smoke:pilot:js` becomes **non-skippable** under enterprise (`SKIP_JS` ignored when `ENTERPRISE=1`).
+4. Document: dual Nest+JS subscribe remains **forbidden** (already `preferJetStreamConsumerPath` / `nestEventPatternDisabled`).
+
+**Alternatives rejected:**
+
+| Alt | Why reject |
+|-----|------------|
+| Keep opt-in forever | Violates ADR-008 #2 |
+| Remove core NATS code entirely | Breaks local unit tests without NATS JS; keep as non-enterprise fallback |
+| Kafka migration | Out of scope; ADR-002 stands |
+
+**Acceptance:**
+
+- With `ENTERPRISE=1` and `NATS_JETSTREAM` unset/false → service or gate fails closed.
+- Live ETO path uses durable consumers; `REQUIRE_LIVE` smoke green with JS on.
 
 ---
 
-## Architecture (target Q0)
+### E0.2 — Outbox `lockedAt` + multi-replica safe
 
-```text
-[Clients] → [api-gateway: JWT iss/aud/azp + rate-limit + tenant inject]
-                ↓ HTTP
-        [domain services] ──TX──► outbox_event (lockedAt on claim)
-                │
-                ▼ GenericOutboxRelay
-        [NATS JetStream only] ──msgID=outbox.id──► durable consumers
-                │
-                ▼ processed_events unique(consumer, event_id)
-        [handlers money/stock/saga]
+**Problem:** Claim is optimistic PENDING→PROCESSING but reclaim uses `createdAt`, so a long-running publish can be reclaimed by another replica → double publish (mitigated only by JetStream msgID window + single-replica ops rule).
+
+**Decision KD-E0.2:**
+
+Add to all producer `OutboxEvent` models (migration per service):
+
+```prisma
+lockedAt   DateTime?
+lockedBy   String?   // optional: hostname:pid or relay instance id
 ```
 
-Enterprise compose profile:
+**Claim algorithm (v3):**
 
-- `NATS_JETSTREAM=true`  
-- `ENTERPRISE=1`  
-- Keycloak JWKS required  
-- No `AUTH_ENFORCE=false`  
+1. **Reclaim:** `PROCESSING` AND (`lockedAt` IS NULL OR `lockedAt < now - RECLAIM_MS`) → set `status=PENDING`, clear lock (or directly re-claim).
+2. **Claim batch:** Select PENDING ordered by createdAt LIMIT N **FOR UPDATE SKIP LOCKED** where supported; else conditional `updateMany` with `status=PENDING` guard **and** set `lockedAt=now()`, `lockedBy=instanceId`, `status=PROCESSING`.
+3. **Publish** await ack (JetStream).
+4. **Complete:** `PROCESSED` + `processedAt`; clear lock.
+5. **Failure:** attempts++; if max → FAILED else PENDING + clear lock (or keep lock until reclaim).
+
+**Postgres note:** Prisma does not expose SKIP LOCKED natively on all paths — prefer:
+
+- `UPDATE ... SET status='PROCESSING', lockedAt=now() WHERE id=$1 AND status='PENDING' RETURNING *` via `$executeRaw` / `$queryRaw` in shared-kernel helper, **or**
+- keep updateMany-per-id with version/lock guard (good enough if lockedAt reclaim is correct).
+
+**Alternatives rejected:**
+
+| Alt | Why reject |
+|-----|------------|
+| Only set `OUTBOX_RECLAIM_MINUTES=0` | Hides stuck messages; not multi-replica safe |
+| External lease store (Redis) | Extra dep; Postgres is already source of truth |
+| Single-replica forever | Blocks enterprise scale; Q0 must unlock multi-replica |
+
+**Acceptance:**
+
+- Two relay processes on same DB: no double PROCESSED without idempotent consumer protection; live `smoke-outbox-live-hard` green.
+- Update `docs/SINGLE-TENANT-CONTRACT.md`: multi-replica OK when lockedAt + processed_events present.
 
 ---
 
-## Workstreams → implementation map
+### E0.3 — Idempotent consumers `processed_events`
 
-| ID | Workstream | Primary surfaces |
-|----|------------|------------------|
-| E0.1 | JetStream mandatory | `shared-kernel/jetstream`, service `main.ts` boot, compose enterprise, consumer dual-path audit |
-| E0.2 | Outbox lockedAt | Prisma migrations all producers, `GenericOutboxRelay` claim/reclaim |
-| E0.3 | processed_events | shared-kernel helper + finance/inv/saga consumers |
-| E0.4 | Secrets B | docs + enterprise CI job `ci-no-secrets`; no filter-repo |
-| E0.5 | Auth hard | `verify-token`, `auth-env`, rate-limit middleware |
-| E0.6 | Tenancy ADR | ADR-009 + env assert + gateway/service sketch |
+**Problem:** At-least-once delivery (JS redelivery, outbox double-publish outside de-dupe window) can double-apply money/stock/saga side effects.
+
+**Decision KD-E0.3:**
+
+Shared pattern (per consumer service DB — ADR-003 database-per-service):
+
+```prisma
+model ProcessedEvent {
+  eventId     String   @id  // Nats-Msg-Id / outbox id / envelope eventId
+  consumer    String   // durable or handler name
+  processedAt DateTime @default(now())
+  // optional: subject, tenantId for ops
+  @@index([consumer, processedAt])
+}
+```
+
+**Helper** in shared-kernel: `withProcessedEventGuard(prisma, { eventId, consumer }, fn)`:
+
+1. If row exists → return `{ idempotent: true }` (skip business body).
+2. Else run `fn` inside TX; insert ProcessedEvent same TX (unique violation → treat as idempotent).
+
+**Mandatory adoption (Q0):**
+
+| Service | Handlers |
+|---------|----------|
+| finance | WIP record/reverse, production→journal paths |
+| inv-service | reservation / ETO inv consumers |
+| pm / plm / mes | any mutation-on-event in pilot spine |
+| analytics | saga compensation triggers if they mutate state |
+
+**Envelope rule:** Publishers already set JetStream `msgID = outbox.id`. Consumers must prefer `msgID` / `Nats-Msg-Id` / payload `eventId` / outbox id — never regenerate.
+
+**Alternatives rejected:**
+
+| Alt | Why reject |
+|-----|------------|
+| Rely only on JetStream duplicate_window | 2 minutes insufficient for crash recovery |
+| Global shared processed_events DB | Violates ADR-003 |
+| Business-key only (projectId+type) | Incomplete; keep as secondary where already present (reverse WIP) |
+
+**Acceptance:**
+
+- Re-deliver same msgID → no second journal line / stock mutation.
+- Unit tests on helper + at least one live path under outbox hard smoke.
+
+---
+
+### E0.4 — Secrets Variant B
+
+**Problem:** Variant B is documented; automation must not run filter-repo; rotations must be explicit ops.
+
+**Decision KD-E0.4:**
+
+1. **Default remains Variant B** while `APPROVED_BY_USER_A=false` in STATUS.
+2. CI: `scripts/ci-no-secrets.sh` already in Q0 gates — keep fail-closed.
+3. Add guard script or gate step: **refuse** any automation that invokes `git filter-repo` / history rewrite unless STATUS approval flag true.
+4. Ops checklist (doc only in Q0 if not already): rotate DB, Keycloak admin, Meili, any JWT HS256 secrets before customer data.
+5. Never commit `.env`, keys, `cluster-keys.json`, real `backups/` payloads.
+
+**Alternatives rejected:**
+
+| Alt | Why reject |
+|-----|------------|
+| Auto Variant A | Requires human approval; force-push risk |
+| Ignore history | Accept residual; private repo + rotation is the B contract |
+
+**Acceptance:**
+
+- `ci-no-secrets` green on branch.
+- No filter-repo in Q0 PR Plan.
+
+---
+
+### E0.5 — Auth hard iss / aud / azp + rate-limit
+
+**Problem:** `verify-token.ts` allows optional audience; no `azp` pin; rateLimit only on JWKS HTTP client (not caller abuse).
+
+**Decision KD-E0.5:**
+
+When `ENTERPRISE=1` or `PILOT=1` (same fail-fast family as `assertPilotAuthEnv`):
+
+| Claim / control | Rule |
+|-----------------|------|
+| **iss** | Required; exact allowlist from `KEYCLOAK_ISSUER` / `JWT_ISSUER` (no silent multi-default in enterprise — pin one primary + optional explicit `JWT_ISSUER_EXTRA`) |
+| **aud** | Required; `JWT_AUDIENCE` must be set (e.g. `account` or dedicated client audience) |
+| **azp** | Required when present in token; must be in `JWT_AZP_ALLOWLIST` (comma-separated client ids, e.g. `erp-frontend,erp-gateway`) |
+| **alg** | RS256 only under JWKS (already) |
+| **AUTH_ENFORCE=false** | Forbidden under enterprise/pilot (already) |
+
+**Rate-limit (gateway):**
+
+- Fastify `@fastify/rate-limit` (or existing plugin if present) on:
+
+  - unauthenticated token endpoints / login proxy if any
+  - global per-IP budget for `/api/*` (generous for UI; tight for 401 storms)
+  - stricter budget on paths that trigger JWKS/verify failures
+
+Defaults (tunable env): e.g. `GATEWAY_RATE_LIMIT_MAX=300` / `timeWindow=1m`; auth-fail bucket lower.
+
+**Alternatives rejected:**
+
+| Alt | Why reject |
+|-----|------------|
+| aud optional forever | ADR-008 #1 / token confusion risk |
+| Only service-mesh mTLS | Out of Q0; complementary later |
+| Redis-backed distributed limit | Optional later; in-memory OK for single gateway replica |
+
+**Acceptance:**
+
+- Token missing/wrong aud or azp → 401.
+- Burst of unauth requests → 429 without process crash.
+- smoke:pilot:auth extended or new enterprise auth smoke.
+
+---
+
+### E0.6 — Tenancy ADR + enforcement sketch (DEDICATED_STACK)
+
+**Problem:** Pilot contract is operational; enterprise automation needs a durable ADR and deploy enforcement sketch without implementing SHARED_RLS.
+
+**Decision KD-E0.6:**
+
+1. New **ADR-009: Tenancy model — DEDICATED_STACK default**.
+2. STATUS remains source of runtime lock (`tenancy: DEDICATED_STACK`).
+3. Enforcement sketch (implement minimal checks in Q0; full isolation Q3):
+
+| Layer | DEDICATED_STACK behavior |
+|-------|--------------------------|
+| Deploy | One compose/k8s release **per customer org**; `DEFAULT_TENANT_ID` fixed |
+| Gateway | JWT `tenantId` only trusted source; inject `x-tenant-id`; reject cross-tenant headers from client |
+| Data | Row filter via tenant-extension remains defense-in-depth (single real tenant per DB) |
+| NATS | Subjects not multi-tenant partitioned; stack isolation = network/credentials |
+| Forbidden | Shared DB RLS product features until STATUS flips |
+
+**SHARED_RLS:** Design stub only in ADR “Future”; **no code path** in Q0.
+
+**Acceptance:**
+
+- ADR-009 merged; STATUS documents lock.
+- Smoke tenant isolation still green; docs no longer imply multi-tenant SaaS.
+
+---
+
+## Key decisions summary
+
+| ID | Decision |
+|----|----------|
+| KD-E0.1 | JetStream mandatory under `ENTERPRISE=1` / enterprise boot; fail-closed |
+| KD-E0.2 | Outbox `lockedAt` (+ optional `lockedBy`); reclaim by lock expiry |
+| KD-E0.3 | Per-service `ProcessedEvent` + shared guard helper |
+| KD-E0.4 | Secrets Variant B only; no filter-repo without APPROVED_BY_USER_A |
+| KD-E0.5 | Hard iss + required aud + azp allowlist; gateway rate-limit |
+| KD-E0.6 | ADR-009 DEDICATED_STACK; STATUS is lock; sketch only for SHARED_RLS |
+| KD-E0.7 | Q0 PRs stay platform-only — no domain feature expansion |
+| KD-E0.8 | Gates = live scripts; never readiness file counts |
+
+---
+
+## Alternatives (program-level)
+
+| Topic | Chosen | Rejected |
+|-------|--------|----------|
+| Messaging | JetStream mandatory enterprise | Kafka; core-NATS prod |
+| Outbox safety | DB lock timestamp | Redis lease; single-replica forever |
+| Idempotency | processed_events ledger | Business-key only; broker window only |
+| Secrets | Variant B | Auto history rewrite |
+| Tenancy | DEDICATED_STACK | SHARED_RLS in Q0 |
+| Auth | iss/aud/azp + RL | mTLS-only; soft optional claims |
 
 ---
 
 ## Security
 
-- No secrets in git; rotate any residual found by `ci-no-secrets`  
-- Enterprise forbids auth bypass env  
-- Rate limit reduces token spray  
-- Tenant claim cannot escalate to another stack (dedicated)  
-- JetStream ACLs deferred to Q3 network isolation  
+| Control | Q0 action |
+|---------|-----------|
+| Authn | Hard iss/aud/azp; AUTH always on enterprise |
+| Authz | Unchanged RBAC matrix from pilot; no X-Dev-Role |
+| Secrets | ci-no-secrets; Variant B; no secrets in commits |
+| Abuse | Gateway rate-limit |
+| Tenancy | Dedicated stack isolation + JWT tenant claim |
+| Supply chain | No new random deps without need; prefer existing fastify ecosystem |
+| Audit | Prefer structured logs on auth fail / rate-limit / outbox reclaim |
 
-## Risks
+Threat notes:
 
-| Risk | Mitigation |
-|------|------------|
-| Migration churn across ~12 Outbox schemas | Shared migration SQL template; staged PR |
-| Double-delivery during lockedAt rollout | Deploy relay after migrations; short reclaim window |
-| Rate limit breaks e2e | High limit in pilot; enterprise defaults; smoke uses auth tokens |
-| Dual Nest+JS still somewhere | Audit script in gate; fail if `@EventPattern` without preferJetStream guard for enterprise subjects |
+- **Token substitution across clients** → azp allowlist.
+- **Double spend / double stock** → processed_events + lockedAt.
+- **Secret leak via automation** → no filter-repo; no .env commit; STATUS approval gate.
 
 ---
 
-## Testing / Gates (Q0)
+## Risks & residuals
 
-From `milestones.json` + always-on:
+| ID | Risk | Sev | Mitigation / residual |
+|----|------|-----|------------------------|
+| R-Q0-1 | Migration churn across ~12 Outbox schemas | Med | Shared SQL/migration template; PR per batch |
+| R-Q0-2 | FOR UPDATE SKIP LOCKED via raw SQL drift | Med | Centralize in shared-kernel; tests |
+| R-Q0-3 | processed_events table growth | Low | Optional TTL job later (not Q0 DoD) |
+| R-Q0-4 | Rate-limit false positives on e2e | Med | Env-tunable limits; CI higher ceilings |
+| R-Q0-5 | History secrets (Variant B) | Med | Private repo + rotation before customer prod |
+| R-Q0-6 | JetStream mandatory breaks pure unit envs | Low | Enterprise flag only; unit tests mock |
+| R-Q0-7 | Incomplete handler adoption of ledger | High | Gate list + code review checklist on money/stock/saga |
+| R-Q0-8 | HA NATS still single node | Med | Accepted until Q3 |
+
+---
+
+## Testing & gates (Q0)
+
+From `docs/enterprise-2.0/milestones.json` + ADR-008:
 
 ```bash
 bash scripts/ci-no-secrets.sh
 pnpm run db:check:baselines
-pnpm run check:no-float-money
+pnpm run check:no-float-money   # or scripts/check-no-float-money.sh
 pnpm run smoke:pilot
 REQUIRE_LIVE=1 REQUIRE_LIVE_STRICT=1 pnpm run smoke:pilot
 REQUIRE_LIVE=1 npx tsx scripts/smoke-outbox-live-hard.ts
@@ -187,161 +411,208 @@ REQUIRE_LIVE=1 REQUIRE_LIVE_STRICT=1 npx tsx scripts/smoke-saga-compensation.ts
 bash scripts/enterprise-2.0/gate-check.sh Q0
 ```
 
-Add (this milestone):
+Additional IMPLEMENT-era checks (wire into smoke or unit):
 
-- Unit: GenericOutboxRelay reclaim uses `lockedAt`  
-- Unit: processed_events helper de-dupes  
-- Contract/smoke: enterprise profile refuses AUTH_ENFORCE=false  
+- Auth: wrong aud/azp → 401; rate-limit → 429 under burst fixture.
+- Outbox: two relay workers fixture (or simulated concurrent claim) no stuck poison.
+- Idempotency: redelivery fixture on finance/inv.
+
+**Forbidden gate substitutes:** readiness JSON, contract self-assert counts, Faza 29+ theater.
 
 ---
 
 ## Rollout
 
-1. Merge automation scaffold PR → master  
-2. Branch `enterprise-0.1-platform` from master  
-3. Execute PR Plan below in order  
-4. GATE live  
-5. PR → master, tag `enterprise-0.1-platform`  
-6. Automation STATUS → Q1 DESIGN  
+1. DESIGN (this doc) → STATUS `IMPLEMENT`.
+2. IMPLEMENT on `enterprise-0.1-platform` following PR Plan order.
+3. GATE via `gate-check.sh Q0` (live stack).
+4. RELEASE: PR → master, tag `enterprise-0.1-platform`, advance automation to Q1 DESIGN.
 
----
+Compose/boot:
 
-## Alternatives considered
-
-| Option | Why not |
-|--------|---------|
-| Only docs/ADR without code | Fails “no readiness theater” |
-| Shared DB RLS in Q0 | Human lock is DEDICATED_STACK; Q3+ |
-| Temporal now | Q2 scope |
-| Force JetStream on all local dev | Hurts velocity; enterprise profile only |
-
----
-
-## Open questions (locked defaults)
-
-| OQ | Default for automation |
-|----|------------------------|
-| SHARED_RLS? | No — DEDICATED_STACK |
-| filter-repo A? | No — APPROVED_BY_USER_A false |
-| Rate limit backend | In-process memory OK for single gateway replica; Redis later Q3 |
+- Set `ENTERPRISE=1`, `NATS_JETSTREAM=true`, `JWT_AUDIENCE`, `JWT_AZP_ALLOWLIST`, `KEYCLOAK_ISSUER` in pilot/enterprise env samples (`.env.erp.example`).
 
 ---
 
 ## PR Plan
 
-### PR 1: Enterprise profile flags + JetStream assert
+Ordered, mergeable slices. Each PR must keep `smoke:pilot` non-worse on completed paths; no domain features.
 
-- **Dependencies:** none  
-- **Files:**  
-  - `apps/shared-kernel/src/jetstream/flags.ts` (enterprise assert)  
-  - `apps/shared-kernel/src/index.ts` exports  
-  - `apps/api-gateway/src/main.ts` (call assert early when ENTERPRISE)  
-  - `docker-compose.enterprise.yml` or `infra/enterprise.env.example`  
-  - `docs/ENTERPRISE-0.1-PLATFORM-DESIGN.md` (this file, already on branch)  
-- **Description:** Introduce `ENTERPRISE=1` / `ERP_PROFILE=enterprise`. When set, require `NATS_JETSTREAM` truthy or fail boot. Document enterprise env. No domain changes.
+### PR 1: Messaging — enterprise JetStream mandatory profile
 
-### PR 2: Outbox lockedAt schema (all producers)
+- **Dependencies:** none (baseline pilot JS kernel)
+- **Files:**
+  - `apps/shared-kernel/src/jetstream/flags.ts` (+ new `enterprise-profile.ts` if cleaner)
+  - `apps/shared-kernel/src/jetstream/index.ts`
+  - service `main.ts` / bootstrap hooks (finance, inv, gateway boot docs)
+  - `docker-compose.yml` / `.env.erp.example` enterprise/pilot env
+  - `scripts/boot-pilot-complete.sh` (export NATS_JETSTREAM + ENTERPRISE as appropriate)
+  - unit tests flags
+- **Description:** `ENTERPRISE=1` requires JetStream; fail-fast helpers; compose defaults on for pilot/enterprise. `SKIP_JS` ignored when enterprise. No new streams beyond pilot set unless bootstrap gap found.
 
-- **Dependencies:** PR 1  
-- **Files:**  
-  - `apps/*/prisma/schema.prisma` (OutboxEvent.lockedAt)  
-  - `apps/*/prisma/migrations/*_outbox_locked_at/`  
-  - `scripts/check-prisma-baselines.sh` still green  
-- **Description:** Add `lockedAt DateTime?` to OutboxEvent across producer services with migrate-only migrations.
+### PR 2: Outbox — schema lockedAt + lockedBy migrations
 
-### PR 3: GenericOutboxRelay claim/reclaim on lockedAt
+- **Dependencies:** none (schema-only; can parallel PR 1)
+- **Files:**
+  - `apps/*/prisma/schema.prisma` OutboxEvent (all producers with outbox)
+  - `apps/*/prisma/migrations/*_outbox_locked_at/**`
+  - `docs/PRISMA-MIGRATIONS.md` note
+- **Description:** Add `lockedAt DateTime?`, `lockedBy String?` to OutboxEvent everywhere GenericOutboxRelay is used. Baselines remain valid; new forward migrations only.
 
-- **Dependencies:** PR 2  
-- **Files:**  
-  - `apps/shared-kernel/src/outbox-relay.ts`  
-  - `apps/shared-kernel/test/outbox-relay.spec.ts`  
-- **Description:** Set lockedAt on claim; reclaim by lockedAt age; update residual docs. Keep JetStream msgID path.
+### PR 3: Outbox — GenericOutboxRelay claim v3 multi-replica safe
 
-### PR 4: Dual-path consumer audit + enterprise subjects guard
+- **Dependencies:** PR 2
+- **Files:**
+  - `apps/shared-kernel/src/outbox-relay.ts`
+  - `apps/shared-kernel/test/outbox-relay.spec.ts`
+  - service relay subclasses only if overrides needed
+- **Description:** Set lock on claim; reclaim by `lockedAt` expiry; optional raw conditional update; document env `OUTBOX_RECLAIM_MINUTES`. Remove residual “createdAt-only” note as resolved.
 
-- **Dependencies:** PR 1  
-- **Files:**  
-  - inventory of `@EventPattern` handlers (finance, inv, pm, proc, mes, …)  
-  - apply `preferJetStreamConsumerPath()` no-op pattern where missing for enterprise-critical subjects  
-  - optional `scripts/check-no-dual-nats-path.sh`  
-- **Description:** No dual Nest+JS delivery on enterprise path for spine subjects.
+### PR 4: Consumers — ProcessedEvent model + shared guard
 
-### PR 5: processed_events helper + critical consumers
+- **Dependencies:** none (can parallel PR 2–3)
+- **Files:**
+  - `apps/shared-kernel/src/processed-event.ts` (new helper)
+  - `apps/shared-kernel/test/processed-event.spec.ts`
+  - `apps/finance/prisma/**`, `apps/inv-service/prisma/**`, other spine services as needed
+  - migrations `*_processed_events`
+- **Description:** Introduce ledger table + `withProcessedEventGuard`. Export from shared-kernel index.
 
-- **Dependencies:** PR 3  
-- **Files:**  
-  - `apps/shared-kernel/src/processed-events.ts` (new)  
-  - finance reverse WIP / journal handlers  
-  - inv reservation release path  
-  - saga compensation smoke path if applicable  
-  - Prisma model or raw SQL table per service that needs it (start finance + inv)  
-- **Description:** Idempotent consume for money/stock/saga; unique (consumer, event_id).
+### PR 5: Consumers — wire idempotency on money/stock/saga paths
 
-### PR 6: Auth enterprise hard + rate limit
+- **Dependencies:** PR 4 (and PR 1 recommended for JS msgID path)
+- **Files:**
+  - `apps/finance/src/**` (WIP, journal, reverse)
+  - `apps/inv-service/src/**` (ETO/reservation consumers)
+  - `apps/mes-service`, `apps/pm-service`, `apps/plm-service` event handlers if mutating
+  - `apps/analytics-service` saga compensation entry if state mutation
+  - smoke hooks / unit tests
+- **Description:** Guard all enterprise-critical handlers. Prefer msgID. Prove redelivery no-ops.
 
-- **Dependencies:** PR 1  
-- **Files:**  
-  - `apps/api-gateway/src/auth/auth-env.ts`  
-  - `apps/api-gateway/src/auth/verify-token.ts`  
-  - `apps/api-gateway/src/auth/rate-limit.ts` (new)  
-  - `apps/api-gateway/src/main.ts`  
-- **Description:** Enterprise forbids auth bypass; require iss; optional aud/azp allowlist; IP rate limit.
+### PR 6: Secrets — Variant B enforcement + automation guard
 
-### PR 7: ADR-009 Tenancy DEDICATED_STACK + enforcement sketch
+- **Dependencies:** none
+- **Files:**
+  - `scripts/ci-no-secrets.sh` (if gaps)
+  - `scripts/enterprise-2.0/*` guard comments / refuse filter-repo
+  - `docs/SECURITY-SECRETS-VARIANT-B.md` (ops rotation checklist refresh)
+  - STATUS remains `APPROVED_BY_USER_A: false`
+- **Description:** No history rewrite. Document rotation. Ensure gates always run ci-no-secrets.
 
-- **Dependencies:** PR 6  
-- **Files:**  
-  - `docs/ADRs/ADR-009-Tenancy-Dedicated-Stack.md`  
-  - gateway tenant inject assert vs `ERP_TENANT_ID`  
-  - shared-kernel constant `TENANCY_MODEL`  
-- **Description:** Lock tenancy model in code+docs; no SHARED_RLS implementation.
+### PR 7: Auth — hard iss/aud/azp under enterprise/pilot
 
-### PR 8: Secrets Variant B enterprise docs + CI wire
+- **Dependencies:** none (gateway-only; parallel OK)
+- **Files:**
+  - `apps/api-gateway/src/auth/verify-token.ts`
+  - `apps/api-gateway/src/auth/auth-env.ts`
+  - `apps/api-gateway/src/auth/jwt.strategy.ts` (align)
+  - `.env.erp.example` (`JWT_AUDIENCE`, `JWT_AZP_ALLOWLIST`, `KEYCLOAK_ISSUER`)
+  - auth unit / smoke scripts
+- **Description:** Require audience + azp allowlist when enterprise/pilot; pin issuer; keep RS256 JWKS path.
 
-- **Dependencies:** none (can parallel PR 1)  
-- **Files:**  
-  - `docs/enterprise-2.0/SECRETS-VARIANT-B.md`  
-  - ensure `ci-no-secrets` in enterprise gate (already)  
-  - STATUS note APPROVED_BY_USER_A  
-- **Description:** Document B path; refuse automated A.
+### PR 8: Auth — gateway HTTP rate-limit
 
-### PR 9: Q0 live gate hardening + package scripts
+- **Dependencies:** PR 7 recommended (same surface)
+- **Files:**
+  - `apps/api-gateway/src/main.ts`
+  - package.json dependency if `@fastify/rate-limit` added
+  - env knobs + tests
+- **Description:** Per-IP rate limit; stricter behavior on repeated 401 if feasible; tunable for CI.
 
-- **Dependencies:** PR 3, PR 5, PR 6  
-- **Files:**  
-  - `scripts/enterprise-2.0/gate-check.sh` (enterprise env export)  
-  - optional `smoke:enterprise:platform`  
-  - STATUS / automation advance to RELEASE after pass  
-- **Description:** Single entry for Q0 certification gates under ENTERPRISE=1.
+### PR 9: Tenancy — ADR-009 DEDICATED_STACK + enforcement sketch
 
----
+- **Dependencies:** none
+- **Files:**
+  - `docs/ADRs/ADR-009-Tenancy-Dedicated-Stack.md` (new)
+  - `docs/SINGLE-TENANT-CONTRACT.md` (align multi-replica after E0.2)
+  - optional: gateway reject client-supplied tenant spoof already covered — document only
+  - `docs/PROJECT-STATE.md` / TD touch honesty (minimal)
+- **Description:** ADR + STATUS lock reference. Sketch SHARED_RLS as future only. No SaaS RLS implementation.
 
-## Implementation order (automation)
+### PR 10: Quality — enterprise gate wiring + docs honesty
 
-```text
-PR1 → (PR2 → PR3) ∥ (PR4) ∥ (PR8) → PR5 → PR6 → PR7 → PR9 → GATE → RELEASE
+- **Dependencies:** PR 1–9 functionally
+- **Files:**
+  - `package.json` scripts if new smokes
+  - `scripts/smoke-*.ts` extensions (auth azp, outbox multi-claim if added)
+  - `docs/PRODUCTION-READINESS.md`, `docs/TECHNICAL-DEBT.md`, `docs/PROJECT-STATE.md`
+  - `docs/ENTERPRISE-2.0-STATUS.md` only via automation after GATE
+- **Description:** Ensure Q0 gate_commands pass; update TD-JS / outbox residuals to enterprise-done; no theater.
+
+### PR dependency graph
+
+```mermaid
+flowchart TD
+  PR1[PR1 JetStream mandatory]
+  PR2[PR2 Outbox lockedAt schema]
+  PR3[PR3 Relay claim v3]
+  PR4[PR4 ProcessedEvent helper]
+  PR5[PR5 Wire idempotent consumers]
+  PR6[PR6 Secrets B guard]
+  PR7[PR7 iss aud azp]
+  PR8[PR8 Rate-limit]
+  PR9[PR9 ADR-009 tenancy]
+  PR10[PR10 Gates + docs]
+
+  PR2 --> PR3
+  PR4 --> PR5
+  PR1 --> PR5
+  PR3 --> PR5
+  PR7 --> PR8
+  PR1 --> PR10
+  PR3 --> PR10
+  PR5 --> PR10
+  PR6 --> PR10
+  PR8 --> PR10
+  PR9 --> PR10
 ```
 
-Prefer serial safety if concurrency causes migrate conflicts: **1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9**.
+**Suggested parallel tracks:**
+
+- Track A: PR1 → (feeds PR5)
+- Track B: PR2 → PR3 → PR5
+- Track C: PR4 → PR5
+- Track D: PR7 → PR8
+- Track E: PR6, PR9 (docs/guards)
+- Integrate: PR10
 
 ---
 
-## Success criteria
+## Self-review (design quality)
 
-- Tag `enterprise-0.1-platform` on master  
-- GATE exit 0 with live stack  
-- ADR-008 + ADR-009 present  
-- No secrets CI green  
-- Outbox multi-replica residual closed for lockedAt  
-- STATUS checklist Q0: done; phase advances to Q1 DESIGN  
+| Check | Result |
+|-------|--------|
+| Maps 1:1 to E0.1–E0.6 | Yes |
+| ADR-008 non-negotiables honored | Yes |
+| PR Plan has `### PR N:` sections | Yes (1–10) |
+| No domain feature expansion | Yes |
+| No readiness theater / Faza 29+ | Yes |
+| Secrets A not auto-executed | Yes (`APPROVED_BY_USER_A=false`) |
+| Tenancy DEDICATED_STACK locked | Yes |
+| Honest residuals (NATS HA → Q3) | Yes |
+| Implements vs design-only called out | SHARED_RLS sketch only; HA deferred |
 
 ---
 
-## Self-review notes
+## Definition of done (milestone Q0)
 
-- Aligns with ADR-008; no domain scope creep  
-- PR Plan has explicit Dependencies / Files / Description  
-- Honesty: pilot residuals cited from code comments  
-- Automation-friendly: phases DESIGN→IMPLEMENT→GATE→RELEASE  
+- [ ] All PRs 1–10 merged to milestone branch / master via RELEASE process
+- [ ] `bash scripts/enterprise-2.0/gate-check.sh Q0` exit 0
+- [ ] Tag `enterprise-0.1-platform` pushed
+- [ ] STATUS advances to Q1 DESIGN
+- [ ] No secrets committed; no force-push master
 
-**DESIGN phase complete when this file is on branch and STATUS `phase: IMPLEMENT`.**
+---
+
+## References
+
+- `docs/ADRs/ADR-008-Enterprise-2.0-Non-Negotiables.md`
+- `docs/ENTERPRISE-2.0-PLAN.md`
+- `docs/ENTERPRISE-2.0-STATUS.md`
+- `docs/enterprise-2.0/milestones.json`
+- `docs/PILOT-V1-DESIGN.md` (baseline PR 1–21)
+- `docs/SECURITY-SECRETS-VARIANT-B.md`
+- `docs/SINGLE-TENANT-CONTRACT.md`
+- `apps/shared-kernel/src/outbox-relay.ts` residual (pre-Q0)
+- `apps/shared-kernel/src/jetstream/*`
+- `apps/api-gateway/src/auth/verify-token.ts`

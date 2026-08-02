@@ -153,6 +153,16 @@ model OutboxEvent {
   lastError     String?
   createdAt     DateTime     @default(now())
   lockedAt      DateTime?
+  lockedBy      String?
   processedAt   DateTime?
 }
 
+/// Consumer idempotency ledger (Enterprise Q0 / E0.3).
+model ProcessedEvent {
+  eventId     String
+  consumer    String
+  processedAt DateTime @default(now())
+
+  @@id([eventId, consumer])
+  @@index([consumer, processedAt])
+}

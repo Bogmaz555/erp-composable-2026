@@ -1,18 +1,18 @@
 # Enterprise 2.0 — automation status
 
 ```
-updated: 2026-08-02T11:21:24.128Z
+updated: 2026-08-02T11:22:15.000Z
 program: enterprise-2.0
 baseline_tag: pilot-v1.1.0
 target_tag: enterprise-2.0.0
 tenancy: DEDICATED_STACK
 automation_mode: full
 branch: enterprise-0.1-platform
-sha: b749ba6
+sha: pending
 milestone: Q0
-phase: IMPLEMENT
+phase: GATE
 milestone_index: 0
-phase_index: 1
+phase_index: 2
 state: READY
 checklist:
   Q0: pending
@@ -23,7 +23,7 @@ checklist:
   Q5: pending
   automation_scaffold: true
 last_error: none
-next_action: Execute docs/enterprise-2.0/NEXT_AGENT_PROMPT.md (Q0/IMPLEMENT)
+next_action: Run gate-check.sh Q0 / pnpm run enterprise:step
 resume_prompt: |
   RESUME Enterprise 2.0 full automation. No confirmation pauses.
   Repo: /home/bogdan-mazur/PROGRAMY/ERP/erp-composable-2026
@@ -53,8 +53,5 @@ See `docs/enterprise-2.0/milestones.json` for milestone definitions and gates.
 | 2026-08-02 | Scaffold created (plan, runner, prompts, workflow) |
 | 2026-08-02 | Full unattended automation: driver, contract, continuous workflow, install |
 | 2026-08-02T11:11:06.850Z | STATUS reset for full automation Q0 DESIGN |
-| 2026-08-02T11:14:28.873Z | advance success: Q0 design ENTERPRISE-0.1-PLATFORM-DESIGN.md complete → IMPLEMENT |
-| 2026-08-02T11:16:00.468Z | erroneous advance to GATE (reverted — IMPLEMENT not done) |
-| 2026-08-02T11:18:00.000Z | Q0 DESIGN hardened (full PR Plan E0.1–E0.6); phase IMPLEMENT honest |
-
-| 2026-08-02T11:21:24.128Z | Q0 IMPLEMENT PR1-3 done |
+| 2026-08-02T11:14:28.873Z | Q0 DESIGN complete → IMPLEMENT |
+| 2026-08-02T11:22:00.000Z | Q0 IMPLEMENT: E0.1–E0.6 platform workstreams (JetStream enterprise, outbox lockedAt/By, processed_events, secrets B guard, auth iss/aud/azp, rate-limit, ADR-009) → GATE |

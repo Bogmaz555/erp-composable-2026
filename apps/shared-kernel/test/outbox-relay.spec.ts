@@ -202,7 +202,7 @@ describe('GenericOutboxRelay v2', () => {
 
     expect(prisma.outboxEvent.updateMany).toHaveBeenCalledWith({
       where: { id: 'evt-1', status: 'PENDING' },
-      data: { status: 'PROCESSING', lockedAt: expect.any(Date) },
+      data: { status: 'PROCESSING', lockedAt: expect.any(Date), lockedBy: expect.any(String) },
     });
     expect(natsClient.emit).toHaveBeenCalledWith(
       'inventory.stock.reserved.v1',

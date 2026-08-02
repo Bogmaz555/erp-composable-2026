@@ -17,3 +17,4 @@ export * from './roles';
 export * from './outbox-relay';
 export * from './jetstream';
 export * from './tenant-extension';
+export * from './processed-event';
