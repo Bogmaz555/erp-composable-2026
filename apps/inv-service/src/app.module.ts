@@ -54,6 +54,8 @@ import { InvEtoJetStreamConsumer } from './jetstream-inv-eto.consumer';
   ],
   providers: [
     PrismaService,
+    // Also as provider so InvEtoJetStreamConsumer can inject it (Nest controllers are not DI-exportable by default)
+    PmIntegrationController,
     CreateItemHandler,
     AdjustStockHandler,
     GetInventoryHandler,

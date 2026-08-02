@@ -87,12 +87,13 @@ export class PrismaService extends PrismaClient implements OnModuleDestroy {
    * Tenant-aware client — real row filters via shared-kernel tenant-extension.
    * findUnique is rewritten to findFirst({ id, tenantId }) (no illegal unique merge).
    */
-  get isolatedClient() {
+  /** Typed as PrismaClient for handlers; extension is runtime filter only. */
+  get isolatedClient(): PrismaClient {
     const currentTenant = this.tenantId;
     return extendPrismaWithTenant(
       this,
       () => getTenantIdFromAls() || currentTenant,
       { modelsWithTenantId: 'all' },
-    );
+    ) as unknown as PrismaClient;
   }
 }
