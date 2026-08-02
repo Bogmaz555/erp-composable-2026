@@ -1,10 +1,9 @@
 import { Controller, Get, Post, Body, Logger, Param, UseGuards } from '@nestjs/common';
 import { EventPattern, Payload, Ctx, NatsContext } from '@nestjs/microservices';
 import { CommandBus } from '@nestjs/cqrs';
-import type { MesProductionRecordedV1Event } from '@erp/shared-kernel';
-import { preferJetStreamConsumerPath } from '@erp/shared-kernel';
 import {
   ETO_MUTATION_ROLES,
+  preferJetStreamConsumerPath,
   runWithTenantAsync,
   type MesProductionRecordedV1Event,
 } from '@erp/shared-kernel';

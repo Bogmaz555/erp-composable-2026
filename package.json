@@ -27,12 +27,16 @@
     "@nestjs/testing": "^11.0.1",
     "@opentelemetry/api": "^1.9.1",
     "@opentelemetry/sdk-trace-node": "^2.7.1",
+    "@playwright/test": "^1.60.0",
     "@types/jest": "^29.5.0",
     "@types/node": "^20.0.0",
+    "@types/pg": "^8.20.3",
     "concurrently": "^9.2.1",
     "express": "^5.2.1",
     "fastify": "^5.8.5",
     "jest": "^29.5.0",
+    "nats": "^2.29.3",
+    "pg": "^8.22.0",
     "prisma": "^5.22.0",
     "ts-jest": "^29.1.0",
     "tsx": "^4.23.1",
@@ -295,7 +299,9 @@
     "worker:master:loop": "bash scripts/autonomous-master-orchestrator.sh --loop --interval 300",
     "regression:report": "npx tsx scripts/master-regression-report.ts",
     "preboot:all": "bash scripts/ensure-databases.sh proc-service pm-service finance inv-service hr eam-service && bash scripts/ensure-finance-prod.sh build",
-    "boot:all": "concurrently -c \"bgBlue.bold,bgMagenta.bold,bgYellow.bold,bgCyan.bold,bgGreen.bold,bgRed.bold,bgWhite.bold,bgBlack.bold,bgGreen,bgBlue,bgRed,bgYellow,bgMagenta\" -n \"GATEWAY,PM,PROC,CRM,INV,FRONT,QUALITY,EAM,PLM,MES,FIN,ANALYTICS,HR,TAX\" \"pnpm run start:gateway\" \"pnpm run start:pm\" \"pnpm run start:proc\" \"pnpm run start:crm\" \"pnpm run start:inv\" \"pnpm run start:frontend\" \"pnpm run start:quality\" \"pnpm run start:eam\" \"pnpm run start:plm\" \"pnpm run start:mes\" \"pnpm run start:fin:prod\" \"pnpm run start:analytics\" \"pnpm run start:hr\" \"pnpm run start:tax\""
+    "boot:all": "concurrently -c \"bgBlue.bold,bgMagenta.bold,bgYellow.bold,bgCyan.bold,bgGreen.bold,bgRed.bold,bgWhite.bold,bgBlack.bold,bgGreen,bgBlue,bgRed,bgYellow,bgMagenta\" -n \"GATEWAY,PM,PROC,CRM,INV,FRONT,QUALITY,EAM,PLM,MES,FIN,ANALYTICS,HR,TAX\" \"pnpm run start:gateway\" \"pnpm run start:pm\" \"pnpm run start:proc\" \"pnpm run start:crm\" \"pnpm run start:inv\" \"pnpm run start:frontend\" \"pnpm run start:quality\" \"pnpm run start:eam\" \"pnpm run start:plm\" \"pnpm run start:mes\" \"pnpm run start:fin:prod\" \"pnpm run start:analytics\" \"pnpm run start:hr\" \"pnpm run start:tax\"",
+    "smoke:outbox-live-hard": "npx tsx scripts/smoke-outbox-live-hard.ts",
+    "smoke:pilot:strict": "REQUIRE_LIVE=1 REQUIRE_LIVE_STRICT=1 NATS_JETSTREAM=true bash -c \"pnpm run smoke:pilot && pnpm run smoke:outbox-live-hard\""
   },
   "prisma": {
     "seed": "npx tsx scripts/seed.ts"

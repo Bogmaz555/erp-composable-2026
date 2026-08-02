@@ -23,8 +23,14 @@ const FIN_URL = process.env.FINANCE_SERVICE_URL || 'http://127.0.0.1:4010';
 const NATS_URL = process.env.NATS_URL || 'nats://127.0.0.1:4222';
 const FIN_DB =
   process.env.FINANCE_DATABASE_URL ||
-  'postgresql://erp_user:erp_password@localhost:5438/finance_db?schema=public';
+  process.env.FIN_DATABASE_URL ||
+  'postgresql://erp_user:erp_password@localhost:5438/fin_db?schema=public';
 const REQUIRE_LIVE = process.env.REQUIRE_LIVE === '1' || process.env.REQUIRE_LIVE === 'true';
+/** K1 strict: live reverse must succeed (no soft-SKIP for reverse path). */
+const STRICT_LIVE =
+  process.env.REQUIRE_LIVE_STRICT === '1' ||
+  process.env.REQUIRE_LIVE_STRICT === 'true' ||
+  REQUIRE_LIVE;
 
 let fails = 0;
 
@@ -419,15 +425,16 @@ async function liveFailStep(): Promise<void> {
     }
   }
 
-  // Live reverse is best-effort: structure checks are the hard gate for PR16.
-  // With REQUIRE_LIVE=1, missing deps (pg/nats) or auth on orchestrate → soft SKIP, not fail.
-  if (REQUIRE_LIVE && !reverseOk) {
-    skip(
-      'REQUIRE_LIVE=1: live reverse path not fully asserted (structure OK; install pg+nats and set FINANCE_SERVICE_URL/auth for full live)',
+  if (STRICT_LIVE && !reverseOk) {
+    fail(
+      'STRICT live: reverse path not asserted (need finance up + NATS + DB seed; FINANCE_DATABASE_URL=.../fin_db)',
     );
   }
-  if (REQUIRE_LIVE && seeded && !idempotentOk) {
-    skip('REQUIRE_LIVE=1: idempotency not confirmed live (structure still PASS)');
+  if (STRICT_LIVE && seeded && !idempotentOk) {
+    fail('STRICT live: expected idempotent REVERSAL row count=1 after double publish');
+  }
+  if (!STRICT_LIVE && !reverseOk) {
+    skip('live reverse not asserted (set REQUIRE_LIVE=1 for hard fail)');
   }
 }
 

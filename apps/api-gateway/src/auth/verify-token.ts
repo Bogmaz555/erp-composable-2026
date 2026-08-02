@@ -59,14 +59,21 @@ export function verifyToken(token: string): Promise<GatewayClaims> {
 
   return new Promise((resolve, reject) => {
     if (useKeycloak) {
-      const issuer =
+      // Accept localhost and 127.0.0.1 issuers (Keycloak token iss depends on how clients call it)
+      const issuerEnv =
         process.env.KEYCLOAK_ISSUER ||
         process.env.JWT_ISSUER ||
-        'http://localhost:8080/realms/erp';
-      const audience = process.env.JWT_AUDIENCE; // optional; Keycloak often omits azp-only
+        '';
+      const issuers = issuerEnv
+        ? [issuerEnv]
+        : [
+            'http://localhost:8080/realms/erp',
+            'http://127.0.0.1:8080/realms/erp',
+          ];
+      const audience = process.env.JWT_AUDIENCE; // optional
       const opts: jwt.VerifyOptions = {
         algorithms: ['RS256'],
-        issuer,
+        issuer: issuers,
       };
       if (audience) {
         opts.audience = audience;
