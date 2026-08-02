@@ -1,16 +1,16 @@
 # Enterprise 2.1 — automation status
 
 ```
-updated: 2026-08-02T20:08:03.313Z
+updated: 2026-08-02T20:10:04.244Z
 program: enterprise-2.1
 baseline_tag: enterprise-2.0.0
 target_tag: enterprise-2.1.0
 tenancy: DEDICATED_STACK
 automation_mode: full
 branch: enterprise-2.1-automation
-sha: c52fd22
+sha: 3bf4eef
 milestone: P1
-phase: DESIGN
+phase: IMPLEMENT
 milestone_index: 0
 phase_index: 0
 state: READY
@@ -23,7 +23,7 @@ checklist:
   P5: pending
   plan_scaffold: true
 last_error: none
-next_action: Execute docs/enterprise-2.1/NEXT_AGENT_PROMPT.md (P1/DESIGN)
+next_action: Execute docs/enterprise-2.1/NEXT_AGENT_PROMPT.md (P1/IMPLEMENT)
 resume_prompt: |
   RESUME Enterprise 2.1 full automation. No confirmation pauses.
   Repo: /home/bogdan-mazur/PROGRAMY/ERP/erp-composable-2026
@@ -64,3 +64,4 @@ Enterprise 2.0 STATUS remains **DONE** (`enterprise-2.0.0`). Do not reset 2.0. T
 | 2026-08-02T20:06:55.352Z | re-gate attempt1 analytics restart |
 | 2026-08-02T20:07:19.856Z | advance success: P0/RELEASE gate passed P0 |
 | 2026-08-02T20:08:03.313Z | advance success: P1/DESIGN P0 RELEASE PR#11 tag enterprise-2.1.p0-bootstrap |
+| 2026-08-02T20:10:04.244Z | advance success: P1/IMPLEMENT P1 design ENTERPRISE-2.1-P1-OBS-DESIGN.md complete |

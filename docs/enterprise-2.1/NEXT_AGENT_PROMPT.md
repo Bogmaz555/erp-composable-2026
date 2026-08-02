@@ -1,18 +1,17 @@
-<!-- generated 2026-08-02T20:08:03.342Z milestone=P1 phase=DESIGN sha=c52fd22 -->
+<!-- generated 2026-08-02T20:10:04.274Z milestone=P1 phase=IMPLEMENT sha=3bf4eef -->
 <!-- Enterprise 2.1 — paste into Grok or /workflow -->
 
-# AGENT MISSION — P1 DESIGN (autonomous)
+# AGENT MISSION — P1 IMPLEMENT (autonomous)
 
 Repo: /home/bogdan-mazur/PROGRAMY/ERP/erp-composable-2026
-Baseline: enterprise-2.0.0
-Branch: `enterprise-2.1-p1-observability` (create from master if missing)
-Tenancy: **DEDICATED_STACK**
-
-## Identity
-Principal Architect. Full autonomy. No confirmation pauses.
+Design: `docs/ENTERPRISE-2.1-P1-OBS-DESIGN.md`
+Branch: `enterprise-2.1-p1-observability`
 
 ## Task
-Produce design at **`docs/ENTERPRISE-2.1-P1-OBS-DESIGN.md`** for **P1: Observability and SLO**.
+1. Read docs/ENTERPRISE-2.1-P1-OBS-DESIGN.md ## PR Plan
+2. Implement in dependency order on `enterprise-2.1-p1-observability`
+3. When complete: STATUS phase=GATE, commit, push
+4. Prefer: `bash scripts/enterprise-2.1/gate-check.sh P1`
 
 ### Workstreams
 - OTel/traces on gateway + PM INV FIN MES
@@ -20,12 +19,9 @@ Produce design at **`docs/ENTERPRISE-2.1-P1-OBS-DESIGN.md`** for **P1: Observabi
 - Burn-rate / availability alerts
 - On-call runbook
 
-### Rules
-- Key Decisions, Alternatives, Security, risks, **## PR Plan** with `### PR N: Title`
-- Non-negotiables: ADR-008 + docs/ENTERPRISE-2.1-PLAN.md
-- Do **not** reset Enterprise 2.0 STATUS (stays DONE)
-- After design: STATUS phase=IMPLEMENT, commit, push
-- Forbidden: readiness theater, Faza 29+, secrets in git
+### Gates next
+  - `pnpm run smoke:pilot`
+  - `bash scripts/enterprise-2.1/check-p1-obs.sh`
 
 START NOW.
 
