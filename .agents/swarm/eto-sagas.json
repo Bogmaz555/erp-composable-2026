@@ -3,8 +3,220 @@
     "correlationId": "eto-demo-chain",
     "projectId": "proj-eto-demo",
     "status": "ACTIVE",
+    "completedSteps": [
+      "inventory.reservation.created.v1",
+      "mes.production.recorded.v1",
+      "inventory.reservation.released.v1"
+    ],
+    "lastEventAt": "2026-08-02T11:41:18.177Z",
+    "percentComplete": 43
+  },
+  {
+    "correlationId": "saga-glite-1785670857448",
+    "projectId": "proj-glite-1785670857448",
+    "status": "ACTIVE",
     "completedSteps": [],
-    "lastEventAt": "2026-08-02T10:37:05.312Z",
+    "lastEventAt": "2026-08-02T11:40:57.543Z",
+    "percentComplete": 0
+  },
+  {
+    "correlationId": "saga-glite-1785670807795",
+    "projectId": "proj-glite-1785670807795",
+    "status": "ACTIVE",
+    "completedSteps": [],
+    "lastEventAt": "2026-08-02T11:40:07.891Z",
+    "percentComplete": 0
+  },
+  {
+    "correlationId": "saga-glite-1785670725048",
+    "projectId": "proj-glite-1785670725048",
+    "status": "ACTIVE",
+    "completedSteps": [],
+    "lastEventAt": "2026-08-02T11:39:27.830Z",
+    "percentComplete": 0
+  },
+  {
+    "correlationId": "saga-glite-1785670746371",
+    "projectId": "proj-glite-1785670746371",
+    "status": "ACTIVE",
+    "completedSteps": [],
+    "lastEventAt": "2026-08-02T11:39:27.830Z",
+    "percentComplete": 0
+  },
+  {
+    "correlationId": "saga-glite-1785670089365",
+    "projectId": "proj-glite-1785670089365",
+    "status": "ACTIVE",
+    "completedSteps": [],
+    "lastEventAt": "2026-08-02T11:28:09.443Z",
+    "percentComplete": 0
+  },
+  {
+    "correlationId": "saga-glite-1785670081812",
+    "projectId": "proj-glite-1785670081812",
+    "status": "ACTIVE",
+    "completedSteps": [],
+    "lastEventAt": "2026-08-02T11:28:01.906Z",
+    "percentComplete": 0
+  },
+  {
+    "correlationId": "saga-glite-1785670065425",
+    "projectId": "proj-glite-1785670065425",
+    "status": "ACTIVE",
+    "completedSteps": [],
+    "lastEventAt": "2026-08-02T11:27:45.489Z",
+    "percentComplete": 0
+  },
+  {
+    "correlationId": "saga-glite-1785670063698",
+    "projectId": "proj-glite-1785670063698",
+    "status": "ACTIVE",
+    "completedSteps": [],
+    "lastEventAt": "2026-08-02T11:27:43.774Z",
+    "percentComplete": 0
+  },
+  {
+    "correlationId": "saga-glite-1785670057712",
+    "projectId": "proj-glite-1785670057712",
+    "status": "ACTIVE",
+    "completedSteps": [],
+    "lastEventAt": "2026-08-02T11:27:37.794Z",
+    "percentComplete": 0
+  },
+  {
+    "correlationId": "saga-glite-1785670045944",
+    "projectId": "proj-glite-1785670045944",
+    "status": "ACTIVE",
+    "completedSteps": [],
+    "lastEventAt": "2026-08-02T11:27:26.083Z",
+    "percentComplete": 0
+  },
+  {
+    "correlationId": "saga-glite-1785670042586",
+    "projectId": "proj-glite-1785670042586",
+    "status": "ACTIVE",
+    "completedSteps": [],
+    "lastEventAt": "2026-08-02T11:27:22.676Z",
+    "percentComplete": 0
+  },
+  {
+    "correlationId": "saga-glite-1785670024621",
+    "projectId": "proj-glite-1785670024621",
+    "status": "ACTIVE",
+    "completedSteps": [],
+    "lastEventAt": "2026-08-02T11:27:04.712Z",
+    "percentComplete": 0
+  },
+  {
+    "correlationId": "saga-glite-1785669940730",
+    "projectId": "proj-glite-1785669940730",
+    "status": "ACTIVE",
+    "completedSteps": [],
+    "lastEventAt": "2026-08-02T11:25:40.815Z",
+    "percentComplete": 0
+  },
+  {
+    "correlationId": "saga-glite-1785669925531",
+    "projectId": "proj-glite-1785669925531",
+    "status": "ACTIVE",
+    "completedSteps": [],
+    "lastEventAt": "2026-08-02T11:25:25.614Z",
+    "percentComplete": 0
+  },
+  {
+    "correlationId": "saga-glite-1785669918610",
+    "projectId": "proj-glite-1785669918610",
+    "status": "ACTIVE",
+    "completedSteps": [],
+    "lastEventAt": "2026-08-02T11:25:18.691Z",
+    "percentComplete": 0
+  },
+  {
+    "correlationId": "saga-glite-1785669903540",
+    "projectId": "proj-glite-1785669903540",
+    "status": "ACTIVE",
+    "completedSteps": [],
+    "lastEventAt": "2026-08-02T11:25:03.621Z",
+    "percentComplete": 0
+  },
+  {
+    "correlationId": "saga-glite-1785669897031",
+    "projectId": "proj-glite-1785669897031",
+    "status": "ACTIVE",
+    "completedSteps": [],
+    "lastEventAt": "2026-08-02T11:24:57.096Z",
+    "percentComplete": 0
+  },
+  {
+    "correlationId": "saga-glite-1785669881791",
+    "projectId": "proj-glite-1785669881791",
+    "status": "ACTIVE",
+    "completedSteps": [],
+    "lastEventAt": "2026-08-02T11:24:41.868Z",
+    "percentComplete": 0
+  },
+  {
+    "correlationId": "saga-glite-1785669877087",
+    "projectId": "proj-glite-1785669877087",
+    "status": "ACTIVE",
+    "completedSteps": [],
+    "lastEventAt": "2026-08-02T11:24:37.182Z",
+    "percentComplete": 0
+  },
+  {
+    "correlationId": "saga-glite-1785669860513",
+    "projectId": "proj-glite-1785669860513",
+    "status": "ACTIVE",
+    "completedSteps": [],
+    "lastEventAt": "2026-08-02T11:24:20.612Z",
+    "percentComplete": 0
+  },
+  {
+    "correlationId": "saga-glite-1785669853235",
+    "projectId": "proj-glite-1785669853235",
+    "status": "ACTIVE",
+    "completedSteps": [],
+    "lastEventAt": "2026-08-02T11:24:13.356Z",
+    "percentComplete": 0
+  },
+  {
+    "correlationId": "saga-glite-1785669831057",
+    "projectId": "proj-glite-1785669831057",
+    "status": "ACTIVE",
+    "completedSteps": [],
+    "lastEventAt": "2026-08-02T11:23:51.153Z",
+    "percentComplete": 0
+  },
+  {
+    "correlationId": "saga-glite-1785669809596",
+    "projectId": "proj-glite-1785669809596",
+    "status": "ACTIVE",
+    "completedSteps": [],
+    "lastEventAt": "2026-08-02T11:23:29.680Z",
+    "percentComplete": 0
+  },
+  {
+    "correlationId": "saga-glite-1785669787499",
+    "projectId": "proj-glite-1785669787499",
+    "status": "ACTIVE",
+    "completedSteps": [],
+    "lastEventAt": "2026-08-02T11:23:07.581Z",
+    "percentComplete": 0
+  },
+  {
+    "correlationId": "saga-glite-1785667128777",
+    "projectId": "proj-glite-1785667128777",
+    "status": "ACTIVE",
+    "completedSteps": [],
+    "lastEventAt": "2026-08-02T10:38:48.848Z",
+    "percentComplete": 0
+  },
+  {
+    "correlationId": "saga-glite-1785667111731",
+    "projectId": "proj-glite-1785667111731",
+    "status": "ACTIVE",
+    "completedSteps": [],
+    "lastEventAt": "2026-08-02T10:38:31.807Z",
     "percentComplete": 0
   },
   {

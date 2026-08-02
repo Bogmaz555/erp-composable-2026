@@ -1,0 +1,60 @@
+{
+  "title": "Enterprise Core SLO",
+  "uid": "erp-enterprise-core-slo",
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "30s",
+  "tags": ["erp", "enterprise-2.1", "slo"],
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Gateway erp_up",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "erp_up{service=\"api-gateway\"}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "1": { "text": "UP" }, "0": { "text": "DOWN" } } }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 1 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Gateway scrape up",
+      "gridPos": { "h": 8, "w": 12, "x": 6, "y": 0 },
+      "targets": [
+        {
+          "expr": "up{job=\"erp-api-gateway\"}",
+          "refId": "A",
+          "legendFormat": "scrape"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "text",
+      "title": "SLO targets (contract)",
+      "gridPos": { "h": 6, "w": 18, "x": 0, "y": 8 },
+      "options": {
+        "mode": "markdown",
+        "content": "See `docs/enterprise-2.0/SLO-MATRIX.md` and `docs/ENTERPRISE-2.1-P1-OBS-DESIGN.md`.\n\n- Gateway availability: 99.5%\n- p95 domain latency budgets: pilot hybrid\n- Health matrix: `pnpm run health:matrix`"
+      }
+    }
+  ]
+}

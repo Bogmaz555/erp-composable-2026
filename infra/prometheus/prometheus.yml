@@ -18,3 +18,15 @@ scrape_configs:
         labels:
           service: analytics-service
           domain: bi-snapshot
+
+  # Enterprise 2.1 P1 — gateway Prometheus text metrics
+  - job_name: erp-api-gateway
+    metrics_path: /api/metrics
+    static_configs:
+      - targets: ['host.docker.internal:4005']
+        labels:
+          service: api-gateway
+          domain: core
+
+  # Honesty residual: other Nest services lack /metrics yet — health via health-matrix.sh
+  # Optional future: blackbox_exporter probes on :4002-4011 /health
