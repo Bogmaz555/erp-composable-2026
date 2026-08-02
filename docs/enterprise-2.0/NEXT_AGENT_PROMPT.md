@@ -1,23 +1,39 @@
-<!-- generated 2026-08-02T11:27:54.919Z milestone=Q0 phase=RELEASE sha=fac21c5 -->
+<!-- generated 2026-08-02T11:28:12.820Z milestone=Q1 phase=DESIGN sha=85c6ede -->
 <!-- Unattended: paste into Grok OR run /workflow enterprise-20-step|continuous -->
 
-# AGENT MISSION — Q0 RELEASE (autonomous)
+# AGENT MISSION — Q1 DESIGN (autonomous)
 
 Repo: /home/bogdan-mazur/PROGRAMY/ERP/erp-composable-2026
-Branch: `enterprise-0.1-platform`
-Tag: **enterprise-0.1-platform**
+Baseline: pilot-v1.1.0 → current master
+Branch: `enterprise-0.2-eto-spine` (create from master if missing)
+Tenancy lock: **DEDICATED_STACK**
+
+## Identity
+Principal Architect. Full autonomy. No "should I continue?" questions.
 
 ## Task
-1. Ensure gates green
-2. `gh pr create --base master --head enterprise-0.1-platform` (or update existing)
-3. Merge when required CI green (admin OK if only optional red)
-4. Tag `enterprise-0.1-platform` on merge commit; push tag
-5. Advance STATUS to next milestone DESIGN (or DONE if Q5)
-6. Commit STATUS on master or automation branch; push
+Produce design document at **`docs/ENTERPRISE-0.2-ETO-DESIGN.md`** for milestone **Q1: ETO Manufacturing Spine**.
 
-Milestone order: Q0→Q1→Q2→Q3→Q4→Q5→DONE
+### Workstreams
+- PLM BOM/ECO depth event-only write path
+- PM CCPM EVM real journey
+- MES routing operations genealogy
+- INV LOT/SN WMS traceability
+- PROC MRP PO receive
+- Remove sync HTTP write-path between services
+- Event schema contracts for Active events
 
-START NOW.
+### Rules
+- Include Key Decisions, Alternatives, Security, risks, **## PR Plan** with `### PR N: Title`, Dependencies, Files, Description
+- No readiness theater / Faza 29+
+- Non-negotiables: ADR-008 + docs/ENTERPRISE-2.0-PLAN.md
+- After design file written: update docs/ENTERPRISE-2.0-STATUS.md phase=IMPLEMENT, commit, push branch `enterprise-2.0-automation` or `enterprise-0.2-eto-spine`
+- Prefer also running: `/design` equivalent quality (self-review once)
+
+### Forbidden
+- domain scope creep
+
+START NOW. Write the design file.
 
 ## Autonomy contract (mandatory)
 - ZERO confirmation pauses. Execute fully.
