@@ -8,7 +8,7 @@ target_tag: enterprise-2.0.0
 tenancy: DEDICATED_STACK
 automation_mode: full
 branch: enterprise-0.1-platform
-sha: pending
+sha: cc552cd
 milestone: Q0
 phase: GATE
 milestone_index: 0
