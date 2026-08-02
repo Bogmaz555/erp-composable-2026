@@ -8,9 +8,8 @@ const TOKEN_KEY = 'erp-access-token';
 const KEYCLOAK_AUTH =
   process.env.NEXT_PUBLIC_KEYCLOAK_URL ||
   'http://localhost:8080/realms/erp/protocol/openid-connect/auth';
-const KEYCLOAK_TOKEN =
-  process.env.NEXT_PUBLIC_KEYCLOAK_TOKEN_URL ||
-  'http://localhost:8080/realms/erp/protocol/openid-connect/token';
+/** Prefer same-origin proxy so Cloudflare / remote browsers work without :8080. */
+const TOKEN_PROXY = '/auth/token';
 const CLIENT_ID = process.env.NEXT_PUBLIC_KEYCLOAK_CLIENT_ID || 'erp-frontend';
 
 export default function LoginButton() {
@@ -37,17 +36,15 @@ export default function LoginButton() {
     setBusy(true);
     setError(null);
     try {
-      const body = new URLSearchParams({
-        grant_type: 'password',
-        client_id: CLIENT_ID,
-        username: username.trim(),
-        password,
-        scope: 'openid',
-      });
-      const res = await fetch(KEYCLOAK_TOKEN, {
+      // Same-origin proxy → Keycloak (works via Cloudflare tunnel)
+      const res = await fetch(TOKEN_PROXY, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: username.trim(),
+          password,
+          client_id: CLIENT_ID,
+        }),
       });
       const data = await res.json().catch(() => ({} as Record<string, string>));
       if (!res.ok || !data.access_token) {
