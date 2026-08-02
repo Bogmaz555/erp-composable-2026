@@ -1,0 +1,55 @@
+e18865fc56bae26949de01faff8712fe
+"use strict";
+/**
+ * JetStream kernel helpers for ERP Pilot v1.
+ *
+ * - Stream names: ETO_CORE / SUPPLY / QUALITY
+ * - Feature flag: NATS_JETSTREAM
+ * - publishWithAck / publishJsonWithAck (GenericOutboxRelay when flag on)
+ * - ensurePilotStreams (idempotent bootstrap)
+ * - runDurablePullLoop + single consumer path policy (fin-wip / inv-eto)
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.FIN_WIP_FILTER_SUBJECTS = exports.INV_ETO_CONSUMER_SUBJECTS = exports.FIN_WIP_CONSUMER_SUBJECTS = exports.STREAM_FOR_ETO_DURABLES = exports.DURABLE_INV_ETO = exports.DURABLE_FIN_WIP = exports.nestEventPatternDisabled = exports.preferJetStreamConsumerPath = exports.parseJsMsg = exports.runDurablePullLoop = exports.ensurePilotStreamsOnConnection = exports.ensurePilotStreams = exports.publishJsonWithAck = exports.publishWithAck = exports.closeJetStream = exports.connectJetStream = exports.ERP_PROFILE_ENV = exports.ENTERPRISE_ENV = exports.NATS_JETSTREAM_ENV = exports.resolveNatsUrl = exports.parseTruthyEnv = exports.assertEnterpriseMessaging = exports.isEnterpriseProfile = exports.isJetStreamEnabled = exports.subjectMatchesPattern = exports.resolveStreamForSubject = exports.BOOTSTRAP_DURABLE_CONSUMERS = exports.STREAM_MAX_BYTES = exports.STREAM_MAX_AGE_MS = exports.STREAM_DEFINITIONS = exports.STREAM_SUBJECTS = exports.ALL_STREAM_NAMES = exports.STREAM_QUALITY = exports.STREAM_SUPPLY = exports.STREAM_ETO_CORE = void 0;
+var streams_1 = require("./streams");
+Object.defineProperty(exports, "STREAM_ETO_CORE", { enumerable: true, get: function () { return streams_1.STREAM_ETO_CORE; } });
+Object.defineProperty(exports, "STREAM_SUPPLY", { enumerable: true, get: function () { return streams_1.STREAM_SUPPLY; } });
+Object.defineProperty(exports, "STREAM_QUALITY", { enumerable: true, get: function () { return streams_1.STREAM_QUALITY; } });
+Object.defineProperty(exports, "ALL_STREAM_NAMES", { enumerable: true, get: function () { return streams_1.ALL_STREAM_NAMES; } });
+Object.defineProperty(exports, "STREAM_SUBJECTS", { enumerable: true, get: function () { return streams_1.STREAM_SUBJECTS; } });
+Object.defineProperty(exports, "STREAM_DEFINITIONS", { enumerable: true, get: function () { return streams_1.STREAM_DEFINITIONS; } });
+Object.defineProperty(exports, "STREAM_MAX_AGE_MS", { enumerable: true, get: function () { return streams_1.STREAM_MAX_AGE_MS; } });
+Object.defineProperty(exports, "STREAM_MAX_BYTES", { enumerable: true, get: function () { return streams_1.STREAM_MAX_BYTES; } });
+Object.defineProperty(exports, "BOOTSTRAP_DURABLE_CONSUMERS", { enumerable: true, get: function () { return streams_1.BOOTSTRAP_DURABLE_CONSUMERS; } });
+Object.defineProperty(exports, "resolveStreamForSubject", { enumerable: true, get: function () { return streams_1.resolveStreamForSubject; } });
+Object.defineProperty(exports, "subjectMatchesPattern", { enumerable: true, get: function () { return streams_1.subjectMatchesPattern; } });
+var flags_1 = require("./flags");
+Object.defineProperty(exports, "isJetStreamEnabled", { enumerable: true, get: function () { return flags_1.isJetStreamEnabled; } });
+Object.defineProperty(exports, "isEnterpriseProfile", { enumerable: true, get: function () { return flags_1.isEnterpriseProfile; } });
+Object.defineProperty(exports, "assertEnterpriseMessaging", { enumerable: true, get: function () { return flags_1.assertEnterpriseMessaging; } });
+Object.defineProperty(exports, "parseTruthyEnv", { enumerable: true, get: function () { return flags_1.parseTruthyEnv; } });
+Object.defineProperty(exports, "resolveNatsUrl", { enumerable: true, get: function () { return flags_1.resolveNatsUrl; } });
+Object.defineProperty(exports, "NATS_JETSTREAM_ENV", { enumerable: true, get: function () { return flags_1.NATS_JETSTREAM_ENV; } });
+Object.defineProperty(exports, "ENTERPRISE_ENV", { enumerable: true, get: function () { return flags_1.ENTERPRISE_ENV; } });
+Object.defineProperty(exports, "ERP_PROFILE_ENV", { enumerable: true, get: function () { return flags_1.ERP_PROFILE_ENV; } });
+var client_1 = require("./client");
+Object.defineProperty(exports, "connectJetStream", { enumerable: true, get: function () { return client_1.connectJetStream; } });
+Object.defineProperty(exports, "closeJetStream", { enumerable: true, get: function () { return client_1.closeJetStream; } });
+var publish_1 = require("./publish");
+Object.defineProperty(exports, "publishWithAck", { enumerable: true, get: function () { return publish_1.publishWithAck; } });
+Object.defineProperty(exports, "publishJsonWithAck", { enumerable: true, get: function () { return publish_1.publishJsonWithAck; } });
+var bootstrap_1 = require("./bootstrap");
+Object.defineProperty(exports, "ensurePilotStreams", { enumerable: true, get: function () { return bootstrap_1.ensurePilotStreams; } });
+Object.defineProperty(exports, "ensurePilotStreamsOnConnection", { enumerable: true, get: function () { return bootstrap_1.ensurePilotStreamsOnConnection; } });
+var consumer_1 = require("./consumer");
+Object.defineProperty(exports, "runDurablePullLoop", { enumerable: true, get: function () { return consumer_1.runDurablePullLoop; } });
+Object.defineProperty(exports, "parseJsMsg", { enumerable: true, get: function () { return consumer_1.parseJsMsg; } });
+var consumer_path_1 = require("./consumer-path");
+Object.defineProperty(exports, "preferJetStreamConsumerPath", { enumerable: true, get: function () { return consumer_path_1.preferJetStreamConsumerPath; } });
+Object.defineProperty(exports, "nestEventPatternDisabled", { enumerable: true, get: function () { return consumer_path_1.nestEventPatternDisabled; } });
+Object.defineProperty(exports, "DURABLE_FIN_WIP", { enumerable: true, get: function () { return consumer_path_1.DURABLE_FIN_WIP; } });
+Object.defineProperty(exports, "DURABLE_INV_ETO", { enumerable: true, get: function () { return consumer_path_1.DURABLE_INV_ETO; } });
+Object.defineProperty(exports, "STREAM_FOR_ETO_DURABLES", { enumerable: true, get: function () { return consumer_path_1.STREAM_FOR_ETO_DURABLES; } });
+Object.defineProperty(exports, "FIN_WIP_CONSUMER_SUBJECTS", { enumerable: true, get: function () { return consumer_path_1.FIN_WIP_CONSUMER_SUBJECTS; } });
+Object.defineProperty(exports, "INV_ETO_CONSUMER_SUBJECTS", { enumerable: true, get: function () { return consumer_path_1.INV_ETO_CONSUMER_SUBJECTS; } });
+Object.defineProperty(exports, "FIN_WIP_FILTER_SUBJECTS", { enumerable: true, get: function () { return consumer_path_1.FIN_WIP_FILTER_SUBJECTS; } });

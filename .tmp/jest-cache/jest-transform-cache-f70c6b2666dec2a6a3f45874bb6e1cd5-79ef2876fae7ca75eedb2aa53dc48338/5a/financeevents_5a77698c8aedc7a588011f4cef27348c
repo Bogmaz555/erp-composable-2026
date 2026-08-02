@@ -1,0 +1,4 @@
+97ea0d2ea5f1e64ade5c23f2eec81aab
+"use strict";
+/** Finance bounded context — milestone & project accounting events */
+Object.defineProperty(exports, "__esModule", { value: true });

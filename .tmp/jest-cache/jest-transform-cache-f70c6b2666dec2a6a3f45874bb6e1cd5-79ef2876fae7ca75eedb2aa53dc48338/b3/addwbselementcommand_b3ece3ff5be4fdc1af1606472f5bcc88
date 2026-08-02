@@ -1,0 +1,14 @@
+a57a3b2dd9c5f49565084f7a2455ba88
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.AddWbsElementCommand = void 0;
+class AddWbsElementCommand {
+    constructor(projectId, name, type, parentId) {
+        this.projectId = projectId;
+        this.name = name;
+        this.type = type;
+        this.parentId = parentId;
+    }
+}
+exports.AddWbsElementCommand = AddWbsElementCommand;
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiL2hvbWUvYm9nZGFuLW1henVyL1BST0dSQU1ZL0VSUC9lcnAtY29tcG9zYWJsZS0yMDI2L2FwcHMvcG0tc2VydmljZS9zcmMvY29tbWFuZHMvYWRkLXdicy1lbGVtZW50LmNvbW1hbmQudHMiLCJtYXBwaW5ncyI6Ijs7O0FBQUEsTUFBYSxvQkFBb0I7SUFDL0IsWUFDa0IsU0FBaUIsRUFDakIsSUFBWSxFQUNaLElBQVUsRUFDVixRQUFpQjtRQUhqQixjQUFTLEdBQVQsU0FBUyxDQUFRO1FBQ2pCLFNBQUksR0FBSixJQUFJLENBQVE7UUFDWixTQUFJLEdBQUosSUFBSSxDQUFNO1FBQ1YsYUFBUSxHQUFSLFFBQVEsQ0FBUztJQUNoQyxDQUFDO0NBQ0w7QUFQRCxvREFPQyIsIm5hbWVzIjpbXSwic291cmNlcyI6WyIvaG9tZS9ib2dkYW4tbWF6dXIvUFJPR1JBTVkvRVJQL2VycC1jb21wb3NhYmxlLTIwMjYvYXBwcy9wbS1zZXJ2aWNlL3NyYy9jb21tYW5kcy9hZGQtd2JzLWVsZW1lbnQuY29tbWFuZC50cyJdLCJzb3VyY2VzQ29udGVudCI6WyJleHBvcnQgY2xhc3MgQWRkV2JzRWxlbWVudENvbW1hbmQge1xuICBjb25zdHJ1Y3RvcihcbiAgICBwdWJsaWMgcmVhZG9ubHkgcHJvamVjdElkOiBzdHJpbmcsXG4gICAgcHVibGljIHJlYWRvbmx5IG5hbWU6IHN0cmluZyxcbiAgICBwdWJsaWMgcmVhZG9ubHkgdHlwZT86IGFueSxcbiAgICBwdWJsaWMgcmVhZG9ubHkgcGFyZW50SWQ/OiBzdHJpbmcsXG4gICkge31cbn1cbiJdLCJ2ZXJzaW9uIjozfQ==

@@ -1,0 +1,13 @@
+0640c92bfb4030ffa47246c8f8b84b76
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.LinkProjectBomCommand = void 0;
+class LinkProjectBomCommand {
+    constructor(projectId, bomVersionId, tenantId) {
+        this.projectId = projectId;
+        this.bomVersionId = bomVersionId;
+        this.tenantId = tenantId;
+    }
+}
+exports.LinkProjectBomCommand = LinkProjectBomCommand;
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiL2hvbWUvYm9nZGFuLW1henVyL1BST0dSQU1ZL0VSUC9lcnAtY29tcG9zYWJsZS0yMDI2L2FwcHMvcG0tc2VydmljZS9zcmMvY29tbWFuZHMvbGluay1wcm9qZWN0LWJvbS5jb21tYW5kLnRzIiwibWFwcGluZ3MiOiI7OztBQUFBLE1BQWEscUJBQXFCO0lBQ2hDLFlBQ2tCLFNBQWlCLEVBQ2pCLFlBQW9CLEVBQ3BCLFFBQWlCO1FBRmpCLGNBQVMsR0FBVCxTQUFTLENBQVE7UUFDakIsaUJBQVksR0FBWixZQUFZLENBQVE7UUFDcEIsYUFBUSxHQUFSLFFBQVEsQ0FBUztJQUNoQyxDQUFDO0NBQ0w7QUFORCxzREFNQyIsIm5hbWVzIjpbXSwic291cmNlcyI6WyIvaG9tZS9ib2dkYW4tbWF6dXIvUFJPR1JBTVkvRVJQL2VycC1jb21wb3NhYmxlLTIwMjYvYXBwcy9wbS1zZXJ2aWNlL3NyYy9jb21tYW5kcy9saW5rLXByb2plY3QtYm9tLmNvbW1hbmQudHMiXSwic291cmNlc0NvbnRlbnQiOlsiZXhwb3J0IGNsYXNzIExpbmtQcm9qZWN0Qm9tQ29tbWFuZCB7XG4gIGNvbnN0cnVjdG9yKFxuICAgIHB1YmxpYyByZWFkb25seSBwcm9qZWN0SWQ6IHN0cmluZyxcbiAgICBwdWJsaWMgcmVhZG9ubHkgYm9tVmVyc2lvbklkOiBzdHJpbmcsXG4gICAgcHVibGljIHJlYWRvbmx5IHRlbmFudElkPzogc3RyaW5nLFxuICApIHt9XG59XG4iXSwidmVyc2lvbiI6M30=

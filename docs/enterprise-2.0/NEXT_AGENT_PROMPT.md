@@ -1,37 +1,23 @@
-<!-- generated 2026-08-02T12:07:46.273Z milestone=Q3 phase=DESIGN sha=4bed95b -->
+<!-- generated 2026-08-02T12:09:38.851Z milestone=Q3 phase=GATE sha=3bf4601 -->
 <!-- Unattended: paste into Grok OR run /workflow enterprise-20-step|continuous -->
 
-# AGENT MISSION — Q3 DESIGN (autonomous)
+# AGENT MISSION — Q3 GATE (autonomous)
 
 Repo: /home/bogdan-mazur/PROGRAMY/ERP/erp-composable-2026
-Baseline: pilot-v1.1.0 → current master
-Branch: `enterprise-0.4-isolation-scale` (create from master if missing)
-Tenancy lock: **DEDICATED_STACK**
-
-## Identity
-Principal Architect. Full autonomy. No "should I continue?" questions.
+Branch: `enterprise-0.4-isolation-scale`
 
 ## Task
-Produce design document at **`docs/ENTERPRISE-0.4-SCALE-DESIGN.md`** for milestone **Q3: Isolation and Scale**.
+1. Run: `bash scripts/enterprise-2.0/gate-check.sh Q3`
+2. Also run live commands if stack available:
+  - `pnpm run smoke:pilot`
+  - `bash scripts/enterprise-2.0/gate-check.sh Q3`
+  - `bash scripts/enterprise-2.0/check-q3-scale.sh`
+3. If fail: fix (max 3 attempts), re-gate; if still fail STATUS state=BLOCKED with last_error
+4. If pass: STATUS phase=RELEASE, commit, push
 
-### Workstreams
-- Tenancy model enforced (DEDICATED or SHARED_RLS)
-- NetworkPolicy + non-public services
-- NATS 3-node or documented HA path
-- k6 business-path load budgets
-- HPA PDB resources on Helm
+Boot stack if needed: `bash scripts/boot-pilot-complete.sh` (or enterprise boot when exists).
 
-### Rules
-- Include Key Decisions, Alternatives, Security, risks, **## PR Plan** with `### PR N: Title`, Dependencies, Files, Description
-- No readiness theater / Faza 29+
-- Non-negotiables: ADR-008 + docs/ENTERPRISE-2.0-PLAN.md
-- After design file written: update docs/ENTERPRISE-2.0-STATUS.md phase=IMPLEMENT, commit, push branch `enterprise-2.0-automation` or `enterprise-0.4-isolation-scale`
-- Prefer also running: `/design` equivalent quality (self-review once)
-
-### Forbidden
-- domain scope creep
-
-START NOW. Write the design file.
+START NOW.
 
 ## Autonomy contract (mandatory)
 - ZERO confirmation pauses. Execute fully.

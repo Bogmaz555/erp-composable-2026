@@ -1,0 +1,202 @@
+7bed7742ab8f3b0b4649dcec47f4d17e
+"use strict";
+/**
+ * Lightweight event payload validation for Enterprise Q1 Active spine contracts.
+ * No external schema library — pure TS guards (shared-kernel keeps zero extra deps).
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.ACTIVE_SPINE_EVENTS = void 0;
+exports.validatePlmBomReleasedV2 = validatePlmBomReleasedV2;
+exports.validatePlmEcoApprovedV1 = validatePlmEcoApprovedV1;
+exports.validatePmMaterialRequestedV1 = validatePmMaterialRequestedV1;
+exports.validatePmProjectReleasedV1 = validatePmProjectReleasedV1;
+exports.validateInventoryReservationCreatedV1 = validateInventoryReservationCreatedV1;
+exports.validateInventoryReservationReleasedV1 = validateInventoryReservationReleasedV1;
+exports.validateInvStockOutV1 = validateInvStockOutV1;
+exports.validateMesProductionRecordedV1 = validateMesProductionRecordedV1;
+exports.validateMesWorkorderCompletedV1 = validateMesWorkorderCompletedV1;
+exports.validateProcPurchaseOrderCreatedV1 = validateProcPurchaseOrderCreatedV1;
+exports.validateProcPurchaseOrderApprovedV1 = validateProcPurchaseOrderApprovedV1;
+exports.validateProcMaterialReceivedV1 = validateProcMaterialReceivedV1;
+exports.validateEventPayload = validateEventPayload;
+exports.assertValidEventPayload = assertValidEventPayload;
+function reqStr(v, path, errors) {
+    if (typeof v !== 'string' || !v.trim())
+        errors.push(`${path}: required non-empty string`);
+}
+function optStr(v, path, errors) {
+    if (v !== undefined && v !== null && typeof v !== 'string') {
+        errors.push(`${path}: expected string`);
+    }
+}
+function reqNum(v, path, errors) {
+    if (typeof v !== 'number' || Number.isNaN(v))
+        errors.push(`${path}: required number`);
+}
+function isObj(v) {
+    return typeof v === 'object' && v !== null && !Array.isArray(v);
+}
+/** Active spine event type names (Q1 contract set). */
+exports.ACTIVE_SPINE_EVENTS = [
+    'plm.bom.released.v2',
+    'plm.eco.approved.v1',
+    'pm.material.requested.v1',
+    'pm.project.released.v1',
+    'inventory.reservation.created.v1',
+    'inventory.reservation.released.v1',
+    'inv.stock.out.v1',
+    'mes.production.recorded.v1',
+    'mes.workorder.completed.v1',
+    'proc.purchaseorder.created.v1',
+    'proc.purchaseorder.approved.v1',
+    'proc.material.received.v1',
+];
+function validatePlmBomReleasedV2(payload) {
+    const errors = [];
+    if (!isObj(payload))
+        return { ok: false, errors: ['payload: must be object'] };
+    reqStr(payload.bomVersionId, 'bomVersionId', errors);
+    reqStr(payload.itemId, 'itemId', errors);
+    reqStr(payload.revision, 'revision', errors);
+    if (!Array.isArray(payload.components)) {
+        errors.push('components: required array');
+    }
+    else {
+        payload.components.forEach((c, i) => {
+            if (!isObj(c)) {
+                errors.push(`components[${i}]: must be object`);
+                return;
+            }
+            reqStr(c.bomComponentId, `components[${i}].bomComponentId`, errors);
+            reqStr(c.childItemId, `components[${i}].childItemId`, errors);
+            reqNum(c.quantity, `components[${i}].quantity`, errors);
+        });
+    }
+    return errors.length ? { ok: false, errors } : { ok: true };
+}
+function validatePlmEcoApprovedV1(payload) {
+    const errors = [];
+    if (!isObj(payload))
+        return { ok: false, errors: ['payload: must be object'] };
+    reqStr(payload.ecoId, 'ecoId', errors);
+    reqStr(payload.ecoNumber, 'ecoNumber', errors);
+    if (payload.affectedBomVersionIds !== undefined && !Array.isArray(payload.affectedBomVersionIds)) {
+        errors.push('affectedBomVersionIds: expected array');
+    }
+    return errors.length ? { ok: false, errors } : { ok: true };
+}
+function validatePmMaterialRequestedV1(payload) {
+    const errors = [];
+    if (!isObj(payload))
+        return { ok: false, errors: ['payload: must be object'] };
+    reqStr(payload.projectId, 'projectId', errors);
+    reqStr(payload.itemId, 'itemId', errors);
+    reqNum(payload.requestedQuantity, 'requestedQuantity', errors);
+    optStr(payload.bomComponentId, 'bomComponentId', errors);
+    return errors.length ? { ok: false, errors } : { ok: true };
+}
+function validatePmProjectReleasedV1(payload) {
+    const errors = [];
+    if (!isObj(payload))
+        return { ok: false, errors: ['payload: must be object'] };
+    reqStr(payload.projectId, 'projectId', errors);
+    reqStr(payload.projectName, 'projectName', errors);
+    return errors.length ? { ok: false, errors } : { ok: true };
+}
+function validateInventoryReservationCreatedV1(payload) {
+    const errors = [];
+    if (!isObj(payload))
+        return { ok: false, errors: ['payload: must be object'] };
+    reqStr(payload.reservationId ?? payload.id, 'reservationId', errors);
+    reqStr(payload.itemId, 'itemId', errors);
+    reqNum(payload.quantity, 'quantity', errors);
+    return errors.length ? { ok: false, errors } : { ok: true };
+}
+function validateInventoryReservationReleasedV1(payload) {
+    const errors = [];
+    if (!isObj(payload))
+        return { ok: false, errors: ['payload: must be object'] };
+    reqStr(payload.reservationId ?? payload.id, 'reservationId', errors);
+    return errors.length ? { ok: false, errors } : { ok: true };
+}
+function validateInvStockOutV1(payload) {
+    const errors = [];
+    if (!isObj(payload))
+        return { ok: false, errors: ['payload: must be object'] };
+    reqStr(payload.itemId, 'itemId', errors);
+    reqNum(payload.missingQuantity ?? payload.quantity, 'missingQuantity|quantity', errors);
+    return errors.length ? { ok: false, errors } : { ok: true };
+}
+function validateMesProductionRecordedV1(payload) {
+    const errors = [];
+    if (!isObj(payload))
+        return { ok: false, errors: ['payload: must be object'] };
+    reqStr(payload.workOrderId, 'workOrderId', errors);
+    reqNum(payload.quantityGood, 'quantityGood', errors);
+    return errors.length ? { ok: false, errors } : { ok: true };
+}
+function validateMesWorkorderCompletedV1(payload) {
+    const errors = [];
+    if (!isObj(payload))
+        return { ok: false, errors: ['payload: must be object'] };
+    reqStr(payload.workOrderId, 'workOrderId', errors);
+    return errors.length ? { ok: false, errors } : { ok: true };
+}
+function validateProcPurchaseOrderCreatedV1(payload) {
+    const errors = [];
+    if (!isObj(payload))
+        return { ok: false, errors: ['payload: must be object'] };
+    reqStr(payload.orderId ?? payload.id, 'orderId', errors);
+    reqStr(payload.sku, 'sku', errors);
+    reqNum(payload.quantity, 'quantity', errors);
+    return errors.length ? { ok: false, errors } : { ok: true };
+}
+function validateProcPurchaseOrderApprovedV1(payload) {
+    return validateProcPurchaseOrderCreatedV1(payload);
+}
+function validateProcMaterialReceivedV1(payload) {
+    const errors = [];
+    if (!isObj(payload))
+        return { ok: false, errors: ['payload: must be object'] };
+    reqStr(payload.purchaseOrderId ?? payload.orderId, 'purchaseOrderId', errors);
+    reqStr(payload.itemId ?? payload.sku, 'itemId|sku', errors);
+    reqNum(payload.quantity, 'quantity', errors);
+    return errors.length ? { ok: false, errors } : { ok: true };
+}
+const VALIDATORS = {
+    'plm.bom.released.v2': validatePlmBomReleasedV2,
+    'plm.eco.approved.v1': validatePlmEcoApprovedV1,
+    'pm.material.requested.v1': validatePmMaterialRequestedV1,
+    'pm.project.released.v1': validatePmProjectReleasedV1,
+    'inventory.reservation.created.v1': validateInventoryReservationCreatedV1,
+    'inventory.reservation.released.v1': validateInventoryReservationReleasedV1,
+    'inv.stock.out.v1': validateInvStockOutV1,
+    'mes.production.recorded.v1': validateMesProductionRecordedV1,
+    'mes.workorder.completed.v1': validateMesWorkorderCompletedV1,
+    'proc.purchaseorder.created.v1': validateProcPurchaseOrderCreatedV1,
+    'proc.purchaseorder.approved.v1': validateProcPurchaseOrderApprovedV1,
+    'proc.material.received.v1': validateProcMaterialReceivedV1,
+};
+/**
+ * Validate Active spine event payload. Unknown event types → ok (non-spine).
+ * Under enterprise producers should call with requireKnown=true for spine subjects.
+ */
+function validateEventPayload(eventType, payload, opts) {
+    const fn = VALIDATORS[eventType];
+    if (!fn) {
+        if (opts?.requireKnown) {
+            return { ok: false, errors: [`unknown spine event type: ${eventType}`] };
+        }
+        return { ok: true };
+    }
+    return fn(payload);
+}
+/**
+ * Assert valid payload or throw. Use before outbox insert under ENTERPRISE=1.
+ */
+function assertValidEventPayload(eventType, payload) {
+    const r = validateEventPayload(eventType, payload);
+    if (r.ok === false) {
+        throw new Error(`Event schema violation for ${eventType}: ${r.errors.join('; ')}`);
+    }
+}

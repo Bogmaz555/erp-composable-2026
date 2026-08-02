@@ -1,7 +1,12 @@
 import './tracing';
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
-import { assertEnterpriseMessaging, isEnterpriseProfile } from '@erp/shared-kernel';
+import {
+  assertEnterpriseMessaging,
+  assertTenancyModel,
+  isEnterpriseProfile,
+  resolveTenancyModel,
+} from '@erp/shared-kernel';
 import { AppModule } from './app.module';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { verifyToken } from './auth/verify-token';
@@ -75,8 +80,11 @@ async function bootstrap() {
   // Enterprise Q0 (KD-1): when ENTERPRISE=1 or ERP_PROFILE=enterprise, require JetStream.
   // Fail closed before Nest init if messaging profile is mis-set.
   assertEnterpriseMessaging();
+  assertTenancyModel();
   if (isEnterpriseProfile()) {
-    console.log('[Gateway] ENTERPRISE profile — JetStream messaging required (asserted)');
+    console.log(
+      `[Gateway] ENTERPRISE profile — JetStream required; tenancy=${resolveTenancyModel()}`,
+    );
   }
 
   // Pilot fail-fast: forbid AUTH_ENFORCE=false / AUTH_DISABLE=true; require JWKS.

@@ -1,0 +1,42 @@
+e823e3a0df83268d69533be418c25cd6
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.connectJetStream = connectJetStream;
+exports.closeJetStream = closeJetStream;
+const nats_1 = require("nats");
+const flags_1 = require("./flags");
+/**
+ * Connect to NATS and return JetStream client + manager.
+ * Caller owns lifecycle — call {@link closeJetStream} / `nc.close()` when done.
+ */
+async function connectJetStream(options = {}) {
+    const servers = options.servers ?? (0, flags_1.resolveNatsUrl)();
+    const nc = await (0, nats_1.connect)({
+        servers,
+        timeout: options.timeout ?? 5000,
+        ...options.connectOpts,
+    });
+    const js = nc.jetstream(options.jsOpts);
+    const jsm = await nc.jetstreamManager(options.jsOpts);
+    return { nc, js, jsm };
+}
+/**
+ * Close a NATS connection created by {@link connectJetStream}.
+ * Safe to call with null/undefined.
+ */
+async function closeJetStream(handles) {
+    if (!handles)
+        return;
+    const nc = 'nc' in handles ? handles.nc : handles;
+    try {
+        await nc.drain();
+    }
+    catch {
+        try {
+            await nc.close();
+        }
+        catch {
+            // ignore close races
+        }
+    }
+}
