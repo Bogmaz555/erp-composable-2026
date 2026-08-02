@@ -1,16 +1,16 @@
 # Enterprise 2.0 — automation status
 
 ```
-updated: 2026-08-02T13:15:08.112Z
+updated: 2026-08-02T13:19:04.851Z
 program: enterprise-2.0
 baseline_tag: pilot-v1.1.0
 target_tag: enterprise-2.0.0
 tenancy: DEDICATED_STACK
 automation_mode: full
 branch: enterprise-0.5-ux-mdm
-sha: 4a8413b
+sha: 713f98c
 milestone: Q4
-phase: GATE
+phase: RELEASE
 milestone_index: 2
 phase_index: 0
 state: READY
@@ -23,8 +23,14 @@ checklist: Q0: done
   Q5: pending
   automation_scaffold: true
 last_error: none
-next_action: Execute docs/enterprise-2.0/NEXT_AGENT_PROMPT.md (Q4/GATE)
+next_action: Execute docs/enterprise-2.0/NEXT_AGENT_PROMPT.md (Q4/RELEASE)
 resume_prompt: |
+  RESUME Enterprise 2.0. checkout current branch. Read docs/ENTERPRISE-2.0-STATUS.md.
+  milestone=Q4 phase=RELEASE. Continue autonomy. No confirmation pauses.
+  RESUME Enterprise 2.0. checkout current branch. Read docs/ENTERPRISE-2.0-STATUS.md.
+  milestone=Q4 phase=GATE. Continue autonomy. No confirmation pauses.
+  RESUME Enterprise 2.0. checkout current branch. Read docs/ENTERPRISE-2.0-STATUS.md.
+  milestone=Q4 phase=GATE. Continue autonomy. No confirmation pauses.
   RESUME Enterprise 2.0. checkout current branch. Read docs/ENTERPRISE-2.0-STATUS.md.
   milestone=Q4 phase=GATE. Continue autonomy. No confirmation pauses.
   RESUME Enterprise 2.0. checkout current branch. Read docs/ENTERPRISE-2.0-STATUS.md.
@@ -79,3 +85,8 @@ See `docs/enterprise-2.0/milestones.json` for milestone definitions and gates.
 | 2026-08-02T12:28:39.179Z | Q3 RELEASE complete; Q4 DESIGN next (UX MDM DMS) |
 | 2026-08-02T13:15:08.088Z | Q4 DESIGN ENTERPRISE-0.5-UX-DESIGN.md written |
 | 2026-08-02T13:15:08.112Z | advance success: Q4/GATE Q4 IMPLEMENT PR1-6 core delivered |
+| 2026-08-02T13:15:59.162Z | advance fail: Q4/GATE gate failed Q4 |
+| 2026-08-02T13:16:59.765Z | attempt1 finance dist/main up; re-gate Q4 |
+| 2026-08-02T13:17:38.118Z | advance fail: Q4/GATE gate failed Q4 |
+| 2026-08-02T13:18:16.540Z | attempt2 finance up e2e 12/12; re-gate Q4 |
+| 2026-08-02T13:19:04.851Z | advance success: Q4/RELEASE gate passed Q4 |
