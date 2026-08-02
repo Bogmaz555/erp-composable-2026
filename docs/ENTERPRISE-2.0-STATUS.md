@@ -1,18 +1,18 @@
 # Enterprise 2.0 — automation status
 
 ```
-updated: 2026-08-02T11:29:09.856Z
+updated: 2026-08-02T11:32:09.256Z
 program: enterprise-2.0
 baseline_tag: pilot-v1.1.0
 target_tag: enterprise-2.0.0
 tenancy: DEDICATED_STACK
 automation_mode: full
 branch: enterprise-0.2-eto-spine
-sha: 6469942
+sha: c80916b
 milestone: Q1
-phase: DESIGN
+phase: IMPLEMENT
 milestone_index: 1
-phase_index: 0
+phase_index: 1
 state: READY
 checklist:
   Q0: done
@@ -23,8 +23,10 @@ checklist:
   Q5: pending
   automation_scaffold: true
 last_error: none
-next_action: Execute docs/enterprise-2.0/NEXT_AGENT_PROMPT.md (Q1/DESIGN)
+next_action: Execute docs/enterprise-2.0/NEXT_AGENT_PROMPT.md (Q1/IMPLEMENT)
 resume_prompt: |
+  RESUME Enterprise 2.0. checkout current branch. Read docs/ENTERPRISE-2.0-STATUS.md.
+  milestone=Q1 phase=IMPLEMENT. Continue autonomy. No confirmation pauses.
   RESUME Enterprise 2.0 full automation. No confirmation pauses.
   Repo: /home/bogdan-mazur/PROGRAMY/ERP/erp-composable-2026
   git fetch && git checkout enterprise-2.0-automation && git pull --ff-only || true
@@ -53,5 +55,5 @@ See `docs/enterprise-2.0/milestones.json` for milestone definitions and gates.
 | 2026-08-02 | Scaffold + full unattended automation control plane |
 | 2026-08-02T11:28:10Z | **Q0 RELEASE complete**: PR #4 merged; tag `enterprise-0.1-platform` @ 47de9d6 |
 | 2026-08-02T11:29:09.000Z | Q1 DESIGN next (ETO Manufacturing Spine); no design doc yet — phase DESIGN (not IMPLEMENT) |
-
 | 2026-08-02T11:29:09.856Z | Q1 needs DESIGN doc before IMPLEMENT |
+| 2026-08-02T11:32:09.256Z | **Q1 DESIGN complete** → IMPLEMENT: `docs/ENTERPRISE-0.2-ETO-DESIGN.md` (PR Plan 1–11; E1.1–E1.7) |
