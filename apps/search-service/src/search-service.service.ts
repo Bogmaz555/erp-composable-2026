@@ -48,14 +48,45 @@ export class SearchServiceService implements OnModuleInit {
     }
   }
 
-  async globalSearch(query: string) {
-    // Search across multiple indices
-    const results = await this.client.multiSearch({
-      queries: [
-        { indexUid: 'opportunities', q: query },
-        { indexUid: 'projects', q: query }
-      ]
-    });
-    return results.results;
+  /**
+   * Enterprise Q4 — global search with role-based index allowlist.
+   * VIEWER/ENGINEER: projects + opportunities; ACCOUNTANT: no CRM ops; etc.
+   */
+  async globalSearch(query: string, roles: string[] = []) {
+    if (!this.client) {
+      return { results: [], error: 'meili_unavailable' };
+    }
+    const indices = this.allowedIndices(roles);
+    try {
+      const results = await this.client.multiSearch({
+        queries: indices.map((indexUid) => ({ indexUid, q: query })),
+      });
+      return { results: results.results || [], indices, authz: true };
+    } catch (e) {
+      return {
+        results: [],
+        error: (e as Error).message,
+        indices,
+        authz: true,
+      };
+    }
+  }
+
+  /** Role → Meili index allowlist (deny by default). */
+  allowedIndices(roles: string[]): string[] {
+    const r = new Set((roles || []).map((x) => String(x).toUpperCase()));
+    if (r.has('ADMIN')) return ['opportunities', 'projects', 'products', 'documents'];
+    const out = new Set<string>(['projects']);
+    if (r.has('ENGINEER') || r.has('PLANNER') || r.has('PRODUCTION_MANAGER')) {
+      out.add('products');
+      out.add('opportunities');
+    }
+    if (r.has('PROCUREMENT')) out.add('opportunities');
+    if (r.has('ACCOUNTANT')) {
+      /* finance docs only when indexed */
+      out.add('documents');
+    }
+    if (r.size === 0) return []; // unauthenticated → empty
+    return [...out];
   }
 }

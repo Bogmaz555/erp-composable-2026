@@ -9,13 +9,32 @@ datasource db {
 }
 
 model Document {
-  id                String   @id @default(uuid())
+  id                String            @id @default(uuid())
+  tenantId          String            @default("default")
   fileName          String
   fileUrl           String
-  mimeType          String   @default("application/pdf")
+  mimeType          String            @default("application/pdf")
   tags              String[]
   engineeringItemId String?
   projectId         String?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  entityRef         String? // e.g. plm:item:xyz
+  currentVersion    Int               @default(1)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  versions          DocumentVersion[]
+}
+
+/// Enterprise Q4 — immutable version history for DMS
+model DocumentVersion {
+  id          String   @id @default(uuid())
+  documentId  String
+  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  version     Int
+  storageKey  String
+  sha256      String?
+  createdBy   String?
+  createdAt   DateTime @default(now())
+
+  @@unique([documentId, version])
+  @@index([documentId])
 }
