@@ -1,8 +1,9 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Logger } from '@nestjs/common';
+import { Logger, Optional } from '@nestjs/common';
 import { wasProcessed, markProcessed } from '@erp/shared-kernel';
 import { PrismaService } from '../prisma.service';
 import { ensureAccount } from '../finance-accounts';
+import { PeriodCloseService } from '../period-close.service';
 
 /** Durable consumer name for processed_events ledger (Enterprise Q0 / E0.3). */
 export const REVERSE_WIP_CONSUMER = 'finance.reverse-wip';
@@ -28,12 +29,18 @@ export class ReverseWipCostCommand {
  *
  * Enterprise Q0 / E0.3:
  * - processed_events ledger on (eventId|correlationId, finance.reverse-wip)
+ *
+ * Enterprise Q2:
+ * - period close guard (refuse when CLOSED)
  */
 @CommandHandler(ReverseWipCostCommand)
 export class ReverseWipCostHandler implements ICommandHandler<ReverseWipCostCommand> {
   private readonly logger = new Logger(ReverseWipCostHandler.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly periods?: PeriodCloseService,
+  ) {}
 
   async execute(command: ReverseWipCostCommand) {
     const { projectId, tenantId, correlationId } = command;
@@ -44,6 +51,15 @@ export class ReverseWipCostHandler implements ICommandHandler<ReverseWipCostComm
     if (!projectId || !correlationId) {
       this.logger.warn('ReverseWipCost: missing projectId or correlationId — skip');
       return { ok: false, reason: 'missing_ids' };
+    }
+
+    if (this.periods) {
+      try {
+        await this.periods.assertPostingAllowed(tenantId);
+      } catch (e) {
+        this.logger.warn(`[Finance WIP] refused: ${(e as Error).message}`);
+        return { ok: false, reason: 'period_closed', message: (e as Error).message };
+      }
     }
 
     const ledgerKey = {

@@ -224,3 +224,73 @@ model ProcessedEvent {
   @@id([eventId, consumer])
   @@index([consumer, processedAt])
 }
+
+// ── Enterprise Q2: accounting period close (KD-Q2-1) ─────────────────────────
+/// Fiscal month per tenant (periodKey = YYYY-MM). Postings refuse CLOSED.
+model AccountingPeriod {
+  id          String   @id @default(uuid())
+  tenantId    String   @default("default")
+  /// Calendar period key YYYY-MM
+  periodKey   String
+  status      String   @default("OPEN") // OPEN | CLOSING | CLOSED
+  openedAt    DateTime @default(now())
+  closedAt    DateTime?
+  closedBy    String?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([tenantId, periodKey])
+  @@index([tenantId, status])
+}
+
+// ── Enterprise Q2: AR/AP skeleton linked to journal ───────────────────────────
+/// Accounts Receivable invoice (ETO billing path — not full AR suite).
+model ArInvoice {
+  id             String    @id @default(uuid())
+  tenantId       String    @default("default")
+  client         String
+  projectId      String?
+  amount         Decimal
+  currency       String    @default("PLN")
+  status         String    @default("OPEN") // OPEN | DRAFT | POSTED | PAID | VOID
+  milestone      String?
+  ksefReference  String?
+  journalEntryId String?
+  receivableId   String?
+  correlationId  String?
+  invoiceRef     String?
+  description    String?
+  dueDate        DateTime?
+  postedAt       DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([tenantId, status, projectId])
+  @@index([correlationId])
+  @@index([journalEntryId])
+}
+
+/// Accounts Payable bill (procurement commitment path — not full AP suite).
+model ApBill {
+  id             String    @id @default(uuid())
+  tenantId       String    @default("default")
+  vendor         String
+  orderRef       String?
+  amount         Decimal
+  currency       String    @default("PLN")
+  status         String    @default("OPEN") // OPEN | DRAFT | POSTED | PAID | VOID
+  journalEntryId String?
+  payableId      String?
+  correlationId  String?
+  description    String?
+  dueDate        DateTime?
+  postedAt       DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([tenantId, status])
+  @@index([orderRef])
+  @@index([correlationId])
+  @@index([journalEntryId])
+}

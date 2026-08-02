@@ -2,6 +2,8 @@ import { Test } from '@nestjs/testing';
 import { CommandBus } from '@nestjs/cqrs';
 import { MilestoneIntegrationController } from '../src/milestone-integration.controller';
 import { PrismaService } from '../src/prisma.service';
+import { PeriodCloseService } from '../src/period-close.service';
+import { ArApService } from '../src/ar-ap.service';
 
 describe('Finance: revenue recognition on tax.invoice.ksef.sent.v1', () => {
   it('creates RevenueRecognition and emits finance.revenue.recognized.v1 in $transaction', async () => {
@@ -16,12 +18,18 @@ describe('Finance: revenue recognition on tax.invoice.ksef.sent.v1', () => {
       $transaction: jest.fn(async (cb: (tx: typeof store) => Promise<unknown>) => cb(store)),
     };
     const commandBus = { execute: jest.fn().mockResolvedValue({}) };
+    const periods = { assertOpenForPosting: jest.fn().mockResolvedValue({}) };
+    const arAp = { createArInvoice: jest.fn().mockResolvedValue({ id: 'ar-1' }) };
 
     const moduleRef = await Test.createTestingModule({
       controllers: [MilestoneIntegrationController],
       providers: [
+        { provide: PeriodCloseService, useValue: { assertPostingAllowed: jest.fn().mockResolvedValue(undefined), assertOpenForPosting: jest.fn().mockResolvedValue({ status: 'OPEN' }), ensureOpenPeriod: jest.fn().mockResolvedValue({ status: 'OPEN' }) } },
+        { provide: ArApService, useValue: { createArInvoice: jest.fn(), voidArByCorrelation: jest.fn().mockResolvedValue({ voided: 0 }) } },
         { provide: PrismaService, useValue: prisma },
         { provide: CommandBus, useValue: commandBus },
+        { provide: PeriodCloseService, useValue: periods },
+        { provide: ArApService, useValue: arAp },
       ],
     }).compile();
 
@@ -44,5 +52,6 @@ describe('Finance: revenue recognition on tax.invoice.ksef.sent.v1', () => {
       }),
     );
     expect(commandBus.execute).toHaveBeenCalled();
+    expect(arAp.createArInvoice).toHaveBeenCalled();
   });
 });

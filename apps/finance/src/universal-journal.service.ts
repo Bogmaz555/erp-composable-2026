@@ -1,5 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
+import { PeriodCloseService } from './period-close.service';
 
 export interface JournalRecordInput {
   tenantId?: string;
@@ -17,14 +18,27 @@ export interface JournalRecordInput {
 export class UniversalJournalService {
   private readonly logger = new Logger(UniversalJournalService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly periods?: PeriodCloseService,
+  ) {}
 
   async record(input: JournalRecordInput) {
     if (!input.amount || input.amount === 0) return null;
+    const tenantId = input.tenantId || 'default';
+    // Enterprise Q2: refuse posts when accounting period CLOSED
+    if (this.periods) {
+      try {
+        await this.periods.assertPostingAllowed(tenantId);
+      } catch (e) {
+        this.logger.warn(`journal period blocked: ${(e as Error).message}`);
+        throw e;
+      }
+    }
     try {
       return await this.prisma.universalJournalEntry.create({
         data: {
-          tenantId: input.tenantId || 'default',
+          tenantId,
           projectId: input.projectId,
           wbsElementId: input.wbsElementId,
           eventType: input.eventType,

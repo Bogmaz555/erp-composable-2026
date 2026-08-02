@@ -8,6 +8,8 @@ import type {
 import { CommandBus } from '@nestjs/cqrs';
 import { RecordTransactionCommand } from './commands/record-transaction.handler';
 import { PrismaService } from './prisma.service';
+import { PeriodCloseService, PeriodClosedError } from './period-close.service';
+import { ArApService } from './ar-ap.service';
 
 @Controller()
 export class MilestoneIntegrationController {
@@ -16,6 +18,8 @@ export class MilestoneIntegrationController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly commandBus: CommandBus,
+    private readonly periods: PeriodCloseService,
+    private readonly arAp: ArApService,
   ) {}
 
   @EventPattern('finance.payment.milestone.reached.v1')
@@ -129,6 +133,16 @@ export class MilestoneIntegrationController {
       `[Finance] KSeF confirmed ${data.ksefReferenceNumber} for ${data.milestone} project ${data.projectId}`,
     );
 
+    try {
+      await this.periods.assertOpenForPosting(tenantId);
+    } catch (e) {
+      if (e instanceof PeriodClosedError) {
+        this.logger.warn(`[Finance] Revenue refused (period closed): ${e.message}`);
+        return { status: 'period_closed', periodCode: e.periodCode };
+      }
+      throw e;
+    }
+
     // Mark invoiced first (status hop before recognition); non-outbox path
     await this.prisma.milestoneBilling.updateMany({
       where: {
@@ -207,6 +221,27 @@ export class MilestoneIntegrationController {
           `Revenue ${data.milestone} project ${data.projectId} (KSeF ${data.ksefReferenceNumber})`,
         ),
       );
+
+      // Q2 PR2: AR invoice skeleton linked to journal (ETO billing)
+      const due = new Date();
+      due.setDate(due.getDate() + 30);
+      await this.arAp
+        .createArInvoice({
+          tenantId,
+          projectId: data.projectId,
+          client: `Projekt ${data.projectId}`,
+          amount: Number(data.amount),
+          currency: data.currency || 'PLN',
+          milestone: data.milestone,
+          ksefReference: data.ksefReferenceNumber,
+          correlationId: data.invoiceId || data.ksefReferenceNumber,
+          invoiceRef: data.ksefReferenceNumber,
+          dueDate: due,
+          postToJournal: true,
+        })
+        .catch((e) =>
+          this.logger.warn(`[Finance] ArInvoice create: ${(e as Error).message}`),
+        );
     } catch (e) {
       this.logger.warn(`[Finance] Revenue recognition failed: ${(e as Error).message}`);
     }

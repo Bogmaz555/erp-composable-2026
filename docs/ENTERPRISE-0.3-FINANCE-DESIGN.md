@@ -7,7 +7,7 @@
 | **Baseline** | `enterprise-0.2-eto-spine` (after Q1) + `pilot-v1.1.0` |
 | **Target tag** | `enterprise-0.3-finance-compliance` |
 | **Branch** | `enterprise-0.3-finance-compliance` |
-| **Status** | **Ready for IMPLEMENT** |
+| **Status** | **IMPLEMENT complete — ready for GATE** |
 | **Date** | 2026-08-02 |
 | **Tenancy** | **DEDICATED_STACK** |
 | **Non-negotiables** | ADR-008, ENTERPRISE-2.0-PLAN |

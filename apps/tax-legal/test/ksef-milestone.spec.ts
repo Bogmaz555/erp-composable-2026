@@ -1,6 +1,9 @@
 import { Test } from '@nestjs/testing';
 import { TaxLegalController } from '../src/tax-legal.controller';
-import { KsefSandboxService } from '../src/ksef-sandbox.service';
+import { KsefRouterService } from '../src/ksef-router.service';
+import { JpkV7Service } from '../src/jpk-v7.service';
+import { JpkKrService } from '../src/jpk-kr.service';
+import { JpkKrValidatorService } from '../src/jpk-kr-validator.service';
 import { PrismaService } from '../src/prisma.service';
 
 describe('TaxLegal: KSeF on finance.payment.milestone.reached.v1', () => {
@@ -18,7 +21,10 @@ describe('TaxLegal: KSeF on finance.payment.milestone.reached.v1', () => {
       controllers: [TaxLegalController],
       providers: [
         { provide: PrismaService, useValue: prisma },
-        { provide: KsefSandboxService, useValue: ksef },
+        { provide: KsefRouterService, useValue: ksef },
+        { provide: JpkV7Service, useValue: {} },
+        { provide: JpkKrService, useValue: {} },
+        { provide: JpkKrValidatorService, useValue: {} },
       ],
     }).compile();
 

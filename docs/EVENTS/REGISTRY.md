@@ -69,14 +69,17 @@ Ten dokument jest **Single Source of Truth** dla wszystkich zdarzeń w systemie.
 - `finance.wip.cost.reversed` — **Active** (Pilot G-lite compensation — see `finance.wip.cost.reversed.md`)
 - `finance.payment.milestone.reached.v1` — **Active** (Faza 2 — PM FAT/SAT → MilestoneBilling → TaxLegal)
 - `finance.revenue.recognized.v1` — **Active** (po KSeF — revenue recognition)
+- `finance.revenue.reversed.v1` — **Active** (Enterprise Q2 — KSeF/revenue compensation by correlationId)
+- `finance.commitment.released.v1` — **Active** (Enterprise Q2 — PO financial commitment release)
 - `finance.journal.entry.created.v1` — **Planned**
 - `finance.invoice.issued.v1` — **Planned** (przez TaxLegal)
 - `finance.payment.received.v1` — **Planned**
 
 ### Quality
-- `quality.ncr.raised.v1` — **Active** (Outbox → PM fever / WBS hold)
-- `quality.ncr.closed.v1` — **Active**
-- `quality.capa.created.v1` — **Active** (CAPA ISO 9001 §10.2)
+- `quality.ncr.raised.v1` — **Active** (Outbox → PM fever / WBS hold; Q2 outbox TX)
+- `quality.ncr.closed.v1` — **Active** (Q2 outbox TX)
+- `quality.capa.created.v1` — **Active** (CAPA ISO 9001 §10.2; NCR link enforced; Q2 outbox TX)
+- `quality.capa.closed.v1` — **Active** (Enterprise Q2 — CAPA DONE)
 - `quality.capa.verified.v1` — **Active**
 - Quality consumes `proc.material.received.v1`, `mes.workorder.completed.v1` — **Active** (auto inspection)
 - `quality.inspection.completed.v1` — **Planned**
