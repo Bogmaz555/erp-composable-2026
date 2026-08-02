@@ -13,4 +13,8 @@ export interface ProjectReleasedEvent {
   wbsElementId?: string;
   productName: string;
   quantity: number;
+  tenantId?: string;
+  bomVersionId?: string;
+  releasedAt?: string;
+  releasedBy?: string;
 }

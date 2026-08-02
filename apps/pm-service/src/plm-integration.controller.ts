@@ -1,8 +1,11 @@
-import { Controller, Logger, Post, Body } from '@nestjs/common';
+import { Controller, Logger, Post, Body, ForbiddenException } from '@nestjs/common';
 import { EventPattern, Payload, Ctx, NatsContext } from '@nestjs/microservices';
 import { CommandBus } from '@nestjs/cqrs';
 import type { PlmBomReleasedV2Event } from '@erp/shared-kernel';
-import { assertEtoOperationalPayload } from '@erp/shared-kernel';
+import {
+  assertEtoOperationalPayload,
+  enterpriseHttpWriteBlocked,
+} from '@erp/shared-kernel';
 import { AddWbsElementCommand } from './commands/add-wbs-element.command';
 import { RequestMaterialCommand } from './commands/request-material.handler';
 import { LinkProjectBomCommand } from './commands/link-project-bom.command';
@@ -10,7 +13,7 @@ import { LinkProjectBomCommand } from './commands/link-project-bom.command';
 /**
  * Event-driven PLM → PM integration (ETO).
  * Primary: @EventPattern('plm.bom.released.v2') via NATS.
- * Legacy/demo: POST plm-integration/bom-released (delegates to same handler).
+ * Legacy/demo: POST plm-integration/bom-released (forbidden under ENTERPRISE=1).
  */
 @Controller()
 export class PlmIntegrationController {
@@ -29,9 +32,14 @@ export class PlmIntegrationController {
     return this.processBomReleased(payload, userId);
   }
 
-  /** @deprecated Use NATS plm.bom.released.v2 — kept for manual/demo triggers */
+  /** @deprecated Use NATS plm.bom.released.v2 — blocked under ENTERPRISE=1 (KD-E1.8) */
   @Post('plm-integration/bom-released')
   async onBomReleasedHttp(@Body() payload: PlmBomReleasedV2Event) {
+    if (enterpriseHttpWriteBlocked()) {
+      throw new ForbiddenException(
+        'ENTERPRISE=1 forbids sync HTTP write path plm-integration/bom-released. Use NATS plm.bom.released.v2.',
+      );
+    }
     this.logger.warn('[PM] HTTP bom-released — prefer NATS EventPattern in production');
     return this.processBomReleased(payload, payload.releasedBy || 'http-demo');
   }

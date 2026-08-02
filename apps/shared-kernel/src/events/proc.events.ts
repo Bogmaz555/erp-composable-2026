@@ -6,6 +6,7 @@ export interface PurchaseOrderCreatedEvent {
   bomComponentId?: string;
   source?: 'SHORTAGE' | 'MRP' | 'MANUAL' | 'LONG_LEAD';
   status?: string;
+  tenantId?: string;
 }
 
 export interface PurchaseOrderApprovedEvent {
@@ -18,6 +19,24 @@ export interface PurchaseOrderApprovedEvent {
   tenantId?: string;
   source?: string;
   approvedBy?: string;
+}
+
+/** proc.material.received.v1 — goods receipt toward INV */
+export interface ProcMaterialReceivedV1Event {
+  purchaseOrderId: string;
+  sku: string;
+  quantity: number;
+  unitPrice?: number;
+  freightCost?: number;
+  customsDuty?: number;
+  landedUnitCost?: number;
+  projectId?: string;
+  bomComponentId?: string;
+  tenantId?: string;
+  lotNumber?: string;
+  serialNumber?: string;
+  receivedAt?: string;
+  receivedBy?: string;
 }
 
 export interface ProcLongLeadDetectedEvent {

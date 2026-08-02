@@ -1,5 +1,6 @@
-import { Controller, Get, Post, Patch, Body, Inject } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, Inject, ForbiddenException } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
+import { enterpriseHttpWriteBlocked } from '@erp/shared-kernel';
 import { PrismaService } from './prisma.service';
 import { GetProjectsWithWbsQuery } from './queries/get-projects-with-wbs.query';
 import { AddWbsElementCommand } from './commands/add-wbs-element.command';
@@ -44,8 +45,14 @@ export class PmController {
     );
   }
 
+  /** Demo seed only — forbidden under ENTERPRISE=1 (Q1 KD-E1.3). */
   @Post('seed-ccpm')
   async seedCCPM() {
+    if (enterpriseHttpWriteBlocked()) {
+      throw new ForbiddenException(
+        'ENTERPRISE=1 forbids seed-ccpm mock path. Use real project release + schedule baseline.',
+      );
+    }
     console.log('Seeding CCPM projects...');
     
     // Project 1: YELLOW

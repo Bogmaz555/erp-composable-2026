@@ -69,3 +69,13 @@ model OutboxEvent {
   lockedBy      String?
   processedAt   DateTime?
 }
+
+/// Consumer idempotency ledger (Enterprise Q1 / E1.5).
+model ProcessedEvent {
+  eventId     String
+  consumer    String
+  processedAt DateTime @default(now())
+
+  @@id([eventId, consumer])
+  @@index([consumer, processedAt])
+}

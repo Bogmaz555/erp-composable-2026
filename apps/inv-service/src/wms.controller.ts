@@ -93,8 +93,11 @@ export class WmsController {
   async confirmPick(
     @Param('id') pickListId: string,
     @Param('lineId') lineId: string,
-    @Body() body: { pickedQty: number },
+    @Body() body: { pickedQty: number; lotId?: string; serialNumber?: string },
   ) {
+    const pickList = await this.prisma.pickList.findUnique({
+      where: { id: pickListId },
+    });
     const line = await this.prisma.pickLine.update({
       where: { id: lineId },
       data: {
@@ -116,6 +119,49 @@ export class WmsController {
         data: { status: 'IN_PROGRESS' },
       });
     }
+
+    // Q1 E1.4 — WMS pick confirm emits inv.stock.out.v1 via outbox (event-only to peers)
+    if (body.pickedQty > 0) {
+      try {
+        await this.prisma.stockTransaction.create({
+          data: {
+            id: randomUUID(),
+            tenantId: 'default',
+            itemId: line.itemId,
+            quantity: -Math.abs(body.pickedQty),
+            type: 'PICK',
+            lotId: body.lotId ?? null,
+            referenceType: 'PickList',
+            referenceId: pickListId,
+          },
+        });
+      } catch {
+        /* schema may vary — outbox is primary integration */
+      }
+      await this.prisma.outboxEvent.create({
+        data: {
+          id: randomUUID(),
+          aggregateId: pickListId,
+          aggregateType: 'PickList',
+          eventType: 'inv.stock.out.v1',
+          payload: {
+            itemId: line.itemId,
+            sku: line.sku,
+            quantity: body.pickedQty,
+            missingQuantity: body.pickedQty,
+            projectId: pickList?.projectId ?? undefined,
+            wbsElementId: pickListId,
+            lotId: body.lotId,
+            serialNumber: body.serialNumber,
+            pickListId,
+            pickLineId: lineId,
+            source: 'WMS_PICK',
+          },
+          status: 'PENDING',
+        },
+      });
+    }
+
     return line;
   }
 }

@@ -24,7 +24,21 @@ export interface MesProductionRecordedV1Event {
   operatorId?: string;
   laborHours?: number;
   bomComponentIds?: string[];
+  operationId?: string;
+  lotIds?: string[];
+  serialNumbers?: string[];
   recordedAt?: string;
+}
+
+/** Canonical NATS payload for mes.workorder.completed.v1 */
+export interface MesWorkorderCompletedV1Event {
+  workOrderId: string;
+  projectId?: string;
+  tenantId?: string;
+  completedAt?: string;
+  bomComponentIds?: string[];
+  lotIds?: string[];
+  serialNumbers?: string[];
 }
 
 export class MaterialConsumedEvent {

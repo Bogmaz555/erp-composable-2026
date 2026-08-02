@@ -37,6 +37,13 @@ export class RecordProductionHandler implements ICommandHandler<RecordProduction
       })
       .catch(() => null);
 
+    const lotIds = (command as { lotIds?: string[] }).lotIds ?? [];
+    const serialNumbers = (command as { serialNumbers?: string[] }).serialNumbers ?? [];
+    const operationId = (command as { operationId?: string }).operationId;
+    const bomComponentIds = requirements
+      .map((r) => r.bomComponentId)
+      .filter((x): x is string => Boolean(x));
+
     const outboxPayload: Record<string, unknown> = {
       workOrderId: command.workOrderId,
       projectId: workOrder?.projectId || undefined,
@@ -46,8 +53,11 @@ export class RecordProductionHandler implements ICommandHandler<RecordProduction
       operatorId: command.operatorId,
       laborHours: command.laborHours || 0,
       recordedAt: new Date().toISOString(),
-      bomComponentIds: requirements.map((r) => r.bomComponentId).filter(Boolean),
-      bomComponentId: requirements[0]?.bomComponentId || undefined,
+      bomComponentIds,
+      bomComponentId: bomComponentIds[0] || undefined,
+      operationId,
+      lotIds,
+      serialNumbers,
     };
     if (workOrder?.projectId) {
       try {
@@ -89,15 +99,37 @@ export class RecordProductionHandler implements ICommandHandler<RecordProduction
         }
       }
 
-      await tx.asBuiltRecord.create({
+      // As-built genealogy (Q1 E1.3): parent record + components with bomComponentId
+      const asBuilt = await tx.asBuiltRecord.create({
         data: {
           tenantId,
           workOrderId: command.workOrderId,
           itemId: asBuiltItemId,
           quantity: command.quantityGood,
           completedAt: new Date(),
+          serialNumber: null,
         },
       });
+
+      if (requirements.length > 0 && command.quantityGood > 0) {
+        const totalReqQty = requirements.reduce((sum, r) => sum + r.quantity, 0) || 1;
+        for (const req of requirements) {
+          const qty = Math.min(
+            req.quantity,
+            command.quantityGood * (req.quantity / totalReqQty),
+          );
+          if (qty <= 0) continue;
+          await tx.asBuiltComponent.create({
+            data: {
+              asBuiltRecordId: asBuilt.id,
+              bomComponentId: req.bomComponentId,
+              itemId: req.itemId,
+              quantity: qty,
+              consumedAt: new Date(),
+            },
+          });
+        }
+      }
 
       await tx.outboxEvent.create({
         data: {
@@ -106,6 +138,26 @@ export class RecordProductionHandler implements ICommandHandler<RecordProduction
           aggregateType: 'WorkOrder',
           eventType: 'mes.production.recorded.v1',
           payload: outboxPayload as object,
+          status: 'PENDING',
+        },
+      });
+
+      // Q1 E1.3 — promote workorder completed event (Active spine)
+      await tx.outboxEvent.create({
+        data: {
+          tenantId: workOrder?.tenantId || tenantId,
+          aggregateId: command.workOrderId,
+          aggregateType: 'WorkOrder',
+          eventType: 'mes.workorder.completed.v1',
+          payload: {
+            workOrderId: command.workOrderId,
+            projectId: workOrder?.projectId || undefined,
+            tenantId: workOrder?.tenantId || tenantId,
+            completedAt: new Date().toISOString(),
+            bomComponentIds,
+            lotIds,
+            serialNumbers,
+          },
           status: 'PENDING',
         },
       });

@@ -11,9 +11,12 @@ export interface PlmBomReleasedComponentSnapshot {
   effectivityTo?: string | Date;
   /** Double BOM — poziom w drzewie (0 = top) */
   bomLevel?: number;
+  /** Alias used in design KD-E1.1 */
+  level?: number;
   parentBomComponentId?: string;
   isSubAssembly?: boolean;
   subBomVersionId?: string;
+  makeBuy?: 'MAKE' | 'BUY' | 'PHANTOM' | string;
 }
 
 /** Canonical payload for plm.bom.released.v2 (ETO traceability spine) */
@@ -28,6 +31,20 @@ export interface PlmBomReleasedV2Event {
   machineSerial?: string;
   releasedAt?: string;
   releasedBy?: string;
+  correlationId?: string;
+}
+
+/** Canonical payload for plm.eco.approved.v1 */
+export interface PlmEcoApprovedV1Event {
+  ecoId: string;
+  ecoNumber: string;
+  title?: string;
+  affectedBomVersionIds: string[];
+  releasedBomVersionIds?: string[];
+  approvedBy?: string;
+  approvedAt?: string;
+  tenantId?: string;
+  correlationId?: string;
 }
 
 export class BomReleasedEvent {
