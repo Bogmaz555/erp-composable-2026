@@ -35,7 +35,10 @@ probe() {
     echo "OK   ${name} :${port}${path} → ${code}"
     results+=("${name}=ok")
     ok=$((ok + 1))
-    [[ "$name" == "gateway" ]] && gw_ok=1
+    # note: avoid `[[ ]] && x=1` under set -e (false branch exits)
+    if [[ "$name" == "gateway" ]]; then
+      gw_ok=1
+    fi
   else
     echo "FAIL ${name} :${port}${path} → ${code}"
     results+=("${name}=fail")

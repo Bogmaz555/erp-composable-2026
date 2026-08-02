@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Settings2, Zap, Box, Trash2, CheckCircle2, Lightbulb, History, ChevronDown, ChevronRight, PlusCircle, AlertCircle, Calendar, ShieldCheck, Briefcase } from 'lucide-react';
+import { fetchWithAuth } from '../../../context/AuthContext';
 
 interface CatalogItem {
     id: string;
@@ -59,7 +60,7 @@ export default function CpqConfigurator() {
     useEffect(() => {
         const fetchOpportunities = async () => {
             try {
-                const response = await fetch('/api/crm');
+                const response = await fetchWithAuth('/api/crm');
                 if (response.ok) {
                     const data = await response.json();
                     const activeOpps = data.filter((opp: any) =>
@@ -74,7 +75,7 @@ export default function CpqConfigurator() {
 
         const fetchCatalog = async () => {
              try {
-                const response = await fetch('/api/crm/catalog');
+                const response = await fetchWithAuth('/api/crm/catalog');
                 if (response.ok) {
                     const data = await response.json();
                     setCatalogItems(data);
@@ -90,7 +91,7 @@ export default function CpqConfigurator() {
 
     useEffect(() => {
         if (selectedCategory) {
-            fetch(`/api/crm/suggestions?category=${encodeURIComponent(selectedCategory)}`)
+            fetchWithAuth(`/api/crm/suggestions?category=${encodeURIComponent(selectedCategory)}`)
                .then(res => res.json())
                .then(data => setSuggestions(data.suggestions || []))
                .catch(err => {
@@ -187,7 +188,7 @@ export default function CpqConfigurator() {
 
         try {
             // Zapis do Opportunity (CRM)
-            const response = await fetch('/api/crm', {
+            const response = await fetchWithAuth('/api/crm', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -204,7 +205,7 @@ export default function CpqConfigurator() {
 
             if (response.ok) {
                 // Generowanie wirtualnego dokumentu PDF
-                await fetch('/api/crm/documents', {
+                await fetchWithAuth('/api/crm/documents', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -219,7 +220,7 @@ export default function CpqConfigurator() {
                 const dueDate = new Date();
                 dueDate.setDate(dueDate.getDate() + (offerValidityDays - 2));
 
-                await fetch('/api/crm/tasks', {
+                await fetchWithAuth('/api/crm/tasks', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({

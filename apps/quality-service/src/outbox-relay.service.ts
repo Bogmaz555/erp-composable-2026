@@ -19,8 +19,11 @@ export class QualityOutboxRelayService implements OnModuleInit, OnModuleDestroy 
   }
 
   async onModuleDestroy() {
-    await this.closeJetStreamTransport();
-    this.natsClient.close();
+    try {
+      this.natsClient.close();
+    } catch {
+      /* ignore close errors on shutdown */
+    }
   }
 
   @Interval(3000)

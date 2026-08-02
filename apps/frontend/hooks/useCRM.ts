@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { fetchWithAuth } from '../context/AuthContext';
 
 export interface Customer {
   id: string;
@@ -60,8 +61,14 @@ export function useOpportunities() {
   return useQuery<Opportunity[]>({
     queryKey: ['opportunities'],
     queryFn: async () => {
-      const res = await fetch('/api/crm');
-      if (!res.ok) throw new Error('Failed to fetch opportunities');
+      const res = await fetchWithAuth('/api/crm');
+      if (!res.ok) {
+        throw new Error(
+          res.status === 401
+            ? 'Wymagane logowanie (Keycloak) — CRM'
+            : 'Failed to fetch opportunities',
+        );
+      }
       return res.json();
     },
   });
@@ -71,7 +78,7 @@ export function useCatalog() {
   return useQuery<CatalogItem[]>({
     queryKey: ['catalog'],
     queryFn: async () => {
-      const res = await fetch('/api/crm/catalog');
+      const res = await fetchWithAuth('/api/crm/catalog');
       if (!res.ok) throw new Error('Failed to fetch catalog');
       return res.json();
     },
@@ -83,7 +90,7 @@ export function useUpdatePipelineStage() {
 
   return useMutation({
     mutationFn: async ({ id, newStage }: { id: string; newStage: string }) => {
-      const res = await fetch('/api/crm/pipeline', {
+      const res = await fetchWithAuth('/api/crm/pipeline', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, status: newStage }),

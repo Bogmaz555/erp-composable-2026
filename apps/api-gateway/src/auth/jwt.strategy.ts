@@ -59,10 +59,15 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
   async validate(payload: any) {
     // OQ-1: claim name = tenantId (legacy `tenant` fallback only)
-    const tenantClaim =
+    const raw =
       (typeof payload?.[TENANT_JWT_CLAIM] === 'string' && payload[TENANT_JWT_CLAIM]) ||
       (typeof payload?.tenant === 'string' && payload.tenant) ||
-      'public';
+      '';
+    // Missing/public claim → DEFAULT_TENANT_ID (seeded data lives under `default`)
+    const tenantClaim =
+      raw && raw !== 'public'
+        ? raw
+        : (process.env.DEFAULT_TENANT_ID || 'default').trim() || 'default';
     return {
       id: payload.sub || payload.userId,
       roles: payload.realm_access?.roles || payload.roles || ['VIEWER'],

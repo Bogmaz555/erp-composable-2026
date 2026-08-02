@@ -50,6 +50,7 @@ import {
 
 import { useOpportunities, useCatalog, useUpdatePipelineStage, Opportunity, CatalogItem, Customer, Activity, DocumentItem, BOMItem } from '../../hooks/useCRM';
 import { useQueryClient } from '@tanstack/react-query';
+import { fetchWithAuth } from '../../context/AuthContext';
 
 type TabType = 'dashboard' | 'customers' | 'pipeline' | 'cpq' | 'catalog' | 'schedule' | 'registry';
 
@@ -138,7 +139,7 @@ export default function CRMPage() {
         const data = XLSX.utils.sheet_to_json(ws);
         
         // Pass data to AI Mapper endpoint
-        const response = await fetch('/api/crm/ai-mapper', {
+        const response = await fetchWithAuth('/api/crm/ai-mapper', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ excelData: data })
@@ -175,7 +176,7 @@ export default function CRMPage() {
           price: i.price
         }))
       };
-      const res = await fetch('/api/crm/bom', {
+      const res = await fetchWithAuth('/api/crm/bom', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -224,7 +225,7 @@ export default function CRMPage() {
   const fetchTasks = useCallback(async () => {
     try {
       setLoadingTasks(true);
-      const res = await fetch('/api/crm/tasks');
+      const res = await fetchWithAuth('/api/crm/tasks');
       if (res.ok) {
         setTasks(await res.json());
       }
@@ -239,7 +240,7 @@ export default function CRMPage() {
     // Optimistic UI Update
     setTasks(prev => prev.filter(t => t.id !== taskId));
     try {
-      const res = await fetch('/api/crm/tasks', {
+      const res = await fetchWithAuth('/api/crm/tasks', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: taskId, isCompleted: !currentStatus })
@@ -839,7 +840,7 @@ export default function CRMPage() {
                 onClick={async () => {
                   setIsSubmittingCatalog(true);
                   try {
-                    const res = await fetch('/api/crm/catalog', {
+                    const res = await fetchWithAuth('/api/crm/catalog', {
                       method: 'POST',
                       headers: {'Content-Type': 'application/json'},
                       body: JSON.stringify(newCatalogItem)
@@ -1162,7 +1163,7 @@ export default function CRMPage() {
                       const extMatch = file.name.match(/\.([^.]+)$/);
                       const fileType = extMatch ? extMatch[1].toUpperCase() : 'DOC';
                       
-                      const res = await fetch('/api/crm/documents', {
+                      const res = await fetchWithAuth('/api/crm/documents', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -1244,7 +1245,7 @@ export default function CRMPage() {
                       if (!selectedOpportunity || !newNoteContent.trim()) return;
                       setIsSubmittingNote(true);
                       try {
-                        const res = await fetch('/api/crm/activities', {
+                        const res = await fetchWithAuth('/api/crm/activities', {
                           method: 'POST',
                           headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify({

@@ -96,11 +96,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (stored) setActiveRoleState(stored);
 
     // Keycloak implicit flow — token w hash URL (#access_token=...)
-    if (typeof window !== 'undefined' && window.location.hash.includes('access_token=')) {
-      const hash = new URLSearchParams(window.location.hash.slice(1));
+    // Also support error= in hash/query (redirect denied / invalid client)
+    if (typeof window !== 'undefined') {
+      const hashRaw = window.location.hash.startsWith('#')
+        ? window.location.hash.slice(1)
+        : window.location.hash;
+      const hash = new URLSearchParams(hashRaw);
       const accessToken = hash.get('access_token');
       if (accessToken) {
         localStorage.setItem(TOKEN_KEY, accessToken);
+        window.history.replaceState(null, '', window.location.pathname + window.location.search);
+      } else if (hash.get('error')) {
+        console.error(
+          '[auth] Keycloak redirect error:',
+          hash.get('error'),
+          hash.get('error_description'),
+        );
         window.history.replaceState(null, '', window.location.pathname + window.location.search);
       }
     }

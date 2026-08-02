@@ -43,10 +43,16 @@ function toClaims(payload: any): GatewayClaims {
     (typeof payload?.[TENANT_JWT_CLAIM] === 'string' && payload[TENANT_JWT_CLAIM]) ||
     (typeof payload?.tenant === 'string' && payload.tenant) ||
     'public';
+  // Pilot/local Keycloak tokens often omit tenantId — map missing claim to DEFAULT_TENANT_ID
+  // (data is seeded under `default`, not `public`). Explicit claim still wins.
+  const resolvedTenant =
+    claim && claim !== 'public'
+      ? claim
+      : (process.env.DEFAULT_TENANT_ID || 'default').trim() || 'default';
   return {
     userId: payload.sub || payload.userId || 'unknown',
     roles: payload.realm_access?.roles || payload.roles || ['VIEWER'],
-    tenantId: claim,
+    tenantId: resolvedTenant,
     email: payload.email,
     azp: typeof payload.azp === 'string' ? payload.azp : undefined,
     aud: payload.aud,

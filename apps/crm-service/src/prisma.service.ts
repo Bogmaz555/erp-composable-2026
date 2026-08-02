@@ -51,13 +51,14 @@ export class PrismaService extends PrismaClient implements OnModuleDestroy {
   /**
    * Tenant-aware client (shared-kernel extension).
    * CRM models lack tenantId today → filter list empty (honest no-op filters, real API).
+   * Cast: `$extends` return is `unknown` in shared-kernel generic; same pattern as pm-service.
    */
-  get isolatedClient() {
+  get isolatedClient(): PrismaClient {
     const currentTenant = this.tenantId;
     return extendPrismaWithTenant(
       this,
       () => getTenantIdFromAls() || currentTenant,
       { modelsWithTenantId: [] },
-    );
+    ) as unknown as PrismaClient;
   }
 }

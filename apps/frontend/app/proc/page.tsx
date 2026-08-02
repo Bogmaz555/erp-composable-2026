@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { ShoppingCart, PackageOpen, LayoutGrid, RotateCcw, AlertTriangle, CheckCircle2, Copy, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { fetchWithAuth } from '../../context/AuthContext';
 import ProcActions from './ProcActions';
 import MrpPanel from './MrpPanel';
 import LandedCostPanel from './LandedCostPanel';
@@ -31,26 +32,33 @@ export default function ProcurementDashboard() {
     setError(null);
     try {
       if (id && decision) {
-        // TWARDY OSTRZAŁ BEZPOŚREDNIO W PORT 4004 (Omijamy Bramę)
-        const response = await fetch(`/api/proc/orders/${id}/${decision.toLowerCase()}`, {
+        const response = await fetchWithAuth(`/api/proc/orders/${id}/${decision.toLowerCase()}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ approvedBy: 'Procurement Director' })
         });
 
         if (!response.ok) {
-          throw new Error('Failed to update order status');
+          throw new Error(
+            response.status === 401
+              ? 'Wymagane logowanie (Keycloak) — zatwierdzanie PO'
+              : 'Failed to update order status',
+          );
         }
       }
 
-      // TWARDY OSTRZAŁ BEZPOŚREDNIO W PORT 4004 (Omijamy Bramę)
-      const response = await fetch('/api/proc/orders', {
+      // Via gateway rewrite /api/* → :4005 (AUTH_ENFORCE requires Bearer)
+      const response = await fetchWithAuth('/api/proc/orders', {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
       });
 
       if (!response.ok) {
-        throw new Error('No response from Procurement backend (Direct Route)');
+        throw new Error(
+          response.status === 401
+            ? 'Wymagane logowanie (Keycloak) — brak tokenu do PROC'
+            : `No response from Procurement backend (HTTP ${response.status})`,
+        );
       }
 
       const data = await response.json();
@@ -273,7 +281,7 @@ export default function ProcurementDashboard() {
                               onClick={async () => {
                                 setLoading(true);
                                 try {
-                                  const res = await fetch(`/api/proc/orders/${po.id}/receive`, {
+                                  const res = await fetchWithAuth(`/api/proc/orders/${po.id}/receive`, {
                                     method: 'PATCH',
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify({

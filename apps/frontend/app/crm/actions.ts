@@ -1,11 +1,12 @@
 'use server'
 
 import { revalidatePath } from 'next/cache';
+import { fetchWithAuth } from '../../context/AuthContext';
 
 const API_GATEWAY_URL = 'http://localhost:4000';
 
 export async function createOpportunity(data: { title: string, value: number, tkw: number, customerName: string }) {
-  await fetch(`${API_GATEWAY_URL}/api/crm/opportunities`, {
+  await fetchWithAuth(`${API_GATEWAY_URL}/api/crm/opportunities`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data)
@@ -15,7 +16,7 @@ export async function createOpportunity(data: { title: string, value: number, tk
 }
 
 export async function acceptOpportunity(opportunityId: string) {
-  await fetch(`${API_GATEWAY_URL}/api/crm/opportunities/${opportunityId}/pipeline`, {
+  await fetchWithAuth(`${API_GATEWAY_URL}/api/crm/opportunities/${opportunityId}/pipeline`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ status: 'ACCEPTED' })
@@ -26,7 +27,7 @@ export async function acceptOpportunity(opportunityId: string) {
 }
 
 export async function fetchOpportunities() {
-  const res = await fetch(`${API_GATEWAY_URL}/api/crm/opportunities`, { cache: 'no-store' });
+  const res = await fetchWithAuth(`${API_GATEWAY_URL}/api/crm/opportunities`, { cache: 'no-store' });
   if (!res.ok) return [];
   return res.json();
 }

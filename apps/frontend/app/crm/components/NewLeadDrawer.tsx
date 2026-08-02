@@ -14,6 +14,7 @@ import {
   Sparkles,
   ChevronDown,
 } from 'lucide-react';
+import { fetchWithAuth } from '../../../context/AuthContext';
 
 type CurrencyCode = 'PLN' | 'EUR' | 'USD';
 
@@ -68,15 +69,21 @@ export default function NewLeadDrawer({ isOpen, onClose, onSuccess }: NewLeadDra
     setSubmitting(true);
 
     try {
-      const res = await fetch('/api/crm/lead', {
+      const res = await fetchWithAuth('/api/crm/lead', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ companyName, nip, email, title, estimatedValue, currency }),
       });
 
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || `HTTP ${res.status}`);
+        const data = await res.json().catch(() => ({} as { error?: string; message?: string }));
+        if (res.status === 401) {
+          throw new Error('Wymagane logowanie (Keycloak) — brak tokenu do CRM');
+        }
+        if (res.status === 502 || res.status === 503 || res.status === 504) {
+          throw new Error('CRM service niedostępny — spróbuj ponownie za chwilę');
+        }
+        throw new Error(data.error || data.message || `HTTP ${res.status}`);
       }
 
       setSuccess(true);

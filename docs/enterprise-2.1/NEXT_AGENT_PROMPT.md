@@ -1,4 +1,4 @@
-<!-- generated 2026-08-02T20:16:56.286Z milestone=DONE phase=DONE sha=7dc5f63 -->
+<!-- generated 2026-08-02T20:20:41.202Z milestone=DONE phase=DONE sha=7dc5f63 -->
 <!-- Enterprise 2.1 — paste into Grok or /workflow -->
 
 # Enterprise 2.1 — DONE
