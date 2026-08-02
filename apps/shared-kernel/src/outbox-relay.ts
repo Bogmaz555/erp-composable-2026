@@ -15,27 +15,25 @@ import {
 export type OutboxRelayStatus = 'PENDING' | 'PROCESSING' | 'PROCESSED' | 'FAILED';
 
 /**
- * GenericOutboxRelay v2 — single shared semantics for all producers.
+ * GenericOutboxRelay v3 — multi-replica-safe claim (Enterprise Q0 / E0.2).
  *
  * Algorithm:
- * 1. Optional reclaim of stuck PROCESSING → PENDING (createdAt older than N minutes)
- * 2. Claim rows: PENDING → PROCESSING (conditional updateMany per id)
+ * 1. Optional reclaim of stuck PROCESSING → PENDING (lockedAt older than N minutes)
+ * 2. Claim rows: PENDING → PROCESSING + lockedAt=now + lockedBy=instance (conditional)
  * 3. await publish (not fire-and-forget)
  *    - NATS_JETSTREAM=true → JetStream publishWithAck, msgID = outbox id (server de-dupe)
  *    - else → Nest ClientProxy.emit (core NATS)
- * 4. Success → PROCESSED; failure → attempts++, lastError, PENDING or FAILED after max
+ * 4. Success → PROCESSED + clear lock; failure → attempts++, lastError, PENDING/FAILED + clear lock
  * 5. No empty catch blocks
  * 6. In-process reentrancy guard (overlapping @Interval ticks skip)
  *
- * ## Residual (wontfix this PR): reclaim age uses `createdAt`
+ * ## Multi-replica reclaim (Enterprise Q0 / E0.2)
  *
- * OutboxEvent has no `updatedAt` / `lockedAt` / `processingStartedAt`. Reclaim therefore
- * filters `PROCESSING` + `createdAt < now - OUTBOX_RECLAIM_MINUTES`. Under multi-instance
- * relay, an aged backlog row claimed by worker A can be reclaimed to PENDING by worker B
- * while A is still publishing → double delivery (at-least-once; consumers must be
- * idempotent). Accept for pilot. Follow-up: set lock timestamp on claim and filter reclaim
- * on that field. Mitigate now: set `OUTBOX_RECLAIM_MINUTES=0` on multi-replica deploys with
- * low crash risk, or rely on consumer idempotency.
+ * Claim sets `lockedAt = now()` and `lockedBy = instanceId`. Reclaim filters
+ * `PROCESSING` + `lockedAt < now - OUTBOX_RECLAIM_MINUTES` (not `createdAt` alone),
+ * so an aged backlog row claimed recently is not stolen mid-publish.
+ * Rows with null `lockedAt` (pre-migration or legacy) fall back to `createdAt` age.
+ * Consumers must stay at-least-once safe (`processed_events`).
  */
 export abstract class GenericOutboxRelay {
   protected abstract readonly logger: Logger;
@@ -45,6 +43,15 @@ export abstract class GenericOutboxRelay {
 
   /** Prevents overlapping relayEvents ticks (e.g. @Interval while a batch is still running). */
   private running = false;
+
+  /** hostname:pid for lockedBy diagnostics */
+  protected get instanceId(): string {
+    const host =
+      (typeof process !== 'undefined' && (process.env.HOSTNAME || process.env.COMPUTERNAME)) ||
+      'relay';
+    const pid = typeof process !== 'undefined' ? process.pid : 0;
+    return `${host}:${pid}`;
+  }
 
   /** Lazy JetStream connection when NATS_JETSTREAM is on. */
   private jsHandles: JetStreamHandles | null = null;
@@ -58,11 +65,11 @@ export abstract class GenericOutboxRelay {
   }
 
   /**
-   * Reclaim PROCESSING rows whose createdAt is older than this many minutes.
+   * Reclaim PROCESSING rows whose lockedAt is older than this many minutes.
    * 0 disables reclaim. Env: OUTBOX_RECLAIM_MINUTES (default 15).
    *
-   * Residual: no lockedAt/updatedAt on OutboxEvent — see class residual note. Multi-instance
-   * double delivery on aged backlog is accepted (at-least-once) until a later PR.
+   * Primary filter is lockedAt (set on claim). Null lockedAt uses createdAt only as
+   * rollout fallback for rows claimed before the lockedAt migration.
    */
   protected get reclaimMinutes(): number {
     const raw = process.env.OUTBOX_RECLAIM_MINUTES;
@@ -150,8 +157,8 @@ export abstract class GenericOutboxRelay {
   /**
    * Reclaim stuck PROCESSING rows so they can be retried after a crash mid-batch.
    *
-   * Uses createdAt as age proxy only (no lockedAt). See class residual note for
-   * multi-instance double-delivery risk on aged backlog — wontfix until schema lock field.
+   * Prefer lockedAt age (set on claim). Null lockedAt + old createdAt is a rollout fallback
+   * only — does not reclaim a recently claimed aged-backlog row (createdAt old, lockedAt fresh).
    */
   protected async reclaimStuckProcessing(): Promise<number> {
     const minutes = this.reclaimMinutes;
@@ -162,21 +169,40 @@ export abstract class GenericOutboxRelay {
       const result = await this.prisma.outboxEvent.updateMany({
         where: {
           status: 'PROCESSING',
-          createdAt: { lt: cutoff },
+          OR: [
+            { lockedAt: { lt: cutoff } },
+            // Pre-migration / legacy claim without lockedAt
+            { lockedAt: null, createdAt: { lt: cutoff } },
+          ],
         },
-        data: { status: 'PENDING' },
+        data: { status: 'PENDING', lockedAt: null, lockedBy: null },
       });
       const count = result?.count ?? 0;
       if (count > 0) {
         this.logger.warn(
-          `Reclaimed ${count} stuck PROCESSING outbox event(s) older than ${minutes}m ` +
-            `(createdAt proxy; multi-instance double-delivery residual on aged backlog)`,
+          `Reclaimed ${count} stuck PROCESSING outbox event(s) with lockedAt older than ${minutes}m ` +
+            `(or null lockedAt + aged createdAt fallback)`,
         );
       }
       return count;
     } catch (e) {
-      this.logger.error(`Failed to reclaim stuck PROCESSING outbox events`, e as Error);
-      return 0;
+      // Schema without lockedBy — retry without it
+      try {
+        const result = await this.prisma.outboxEvent.updateMany({
+          where: {
+            status: 'PROCESSING',
+            OR: [
+              { lockedAt: { lt: cutoff } },
+              { lockedAt: null, createdAt: { lt: cutoff } },
+            ],
+          },
+          data: { status: 'PENDING', lockedAt: null },
+        });
+        return result?.count ?? 0;
+      } catch (e2) {
+        this.logger.error(`Failed to reclaim stuck PROCESSING outbox events`, e2 as Error);
+        return 0;
+      }
     }
   }
 
@@ -194,14 +220,29 @@ export abstract class GenericOutboxRelay {
   }): Promise<void> {
     let claimed = false;
     try {
+      const now = new Date();
       const result = await this.prisma.outboxEvent.updateMany({
         where: { id: event.id, status: 'PENDING' },
-        data: { status: 'PROCESSING' },
+        data: {
+          status: 'PROCESSING',
+          lockedAt: now,
+          lockedBy: this.instanceId,
+        },
       });
       claimed = (result?.count ?? 0) > 0;
     } catch (e) {
-      this.logger.error(`Failed to claim outbox event ${event.id}`, e as Error);
-      return;
+      // Mid-migration: claim without lockedBy
+      try {
+        const now = new Date();
+        const result = await this.prisma.outboxEvent.updateMany({
+          where: { id: event.id, status: 'PENDING' },
+          data: { status: 'PROCESSING', lockedAt: now },
+        });
+        claimed = (result?.count ?? 0) > 0;
+      } catch (e2) {
+        this.logger.error(`Failed to claim outbox event ${event.id}`, e2 as Error);
+        return;
+      }
     }
 
     if (!claimed) {
@@ -226,16 +267,29 @@ export abstract class GenericOutboxRelay {
           status: 'PROCESSED' satisfies OutboxRelayStatus,
           processedAt: new Date(),
           lastError: null,
+          lockedAt: null,
+          lockedBy: null,
         },
       });
       this.logger.debug(`Successfully relayed event ${event.id}`);
     } catch (persistError) {
-      // Leave status PROCESSING: reclaim or a later tick can re-attempt the status write
-      // (may re-publish once under at-least-once — acceptable; better than false FAILED).
-      this.logger.error(
-        `Published outbox event ${event.id} but failed to mark PROCESSED — leaving PROCESSING for reclaim`,
-        persistError as Error,
-      );
+      try {
+        await this.prisma.outboxEvent.update({
+          where: { id: event.id },
+          data: {
+            status: 'PROCESSED' satisfies OutboxRelayStatus,
+            processedAt: new Date(),
+            lastError: null,
+            lockedAt: null,
+          },
+        });
+        this.logger.debug(`Successfully relayed event ${event.id}`);
+      } catch (persistError2) {
+        this.logger.error(
+          `Published outbox event ${event.id} but failed to mark PROCESSED — leaving PROCESSING for reclaim`,
+          persistError2 as Error,
+        );
+      }
     }
   }
 
@@ -306,13 +360,27 @@ export abstract class GenericOutboxRelay {
           attempts,
           lastError: message.slice(0, 500),
           status,
+          lockedAt: null,
+          lockedBy: null,
         },
       });
-    } catch (updateError) {
-      this.logger.error(
-        `Failed to persist outbox failure state for event ${event.id}`,
-        updateError as Error,
-      );
+    } catch {
+      try {
+        await this.prisma.outboxEvent.update({
+          where: { id: event.id },
+          data: {
+            attempts,
+            lastError: message.slice(0, 500),
+            status,
+            lockedAt: null,
+          },
+        });
+      } catch (updateError) {
+        this.logger.error(
+          `Failed to persist outbox failure state for event ${event.id}`,
+          updateError as Error,
+        );
+      }
     }
   }
 

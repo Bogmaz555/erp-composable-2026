@@ -29,9 +29,13 @@ export type {
 
 export {
   isJetStreamEnabled,
+  isEnterpriseProfile,
+  assertEnterpriseMessaging,
   parseTruthyEnv,
   resolveNatsUrl,
   NATS_JETSTREAM_ENV,
+  ENTERPRISE_ENV,
+  ERP_PROFILE_ENV,
 } from './flags';
 export type { EnvLike } from './flags';
 

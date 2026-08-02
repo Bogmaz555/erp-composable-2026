@@ -68,8 +68,30 @@ type OutboxRow = {
   eventType: string;
   payload: unknown;
   createdAt: Date;
+  lockedAt?: Date | null;
   processedAt?: Date | null;
 };
+
+function matchesWhere(row: OutboxRow, where: any): boolean {
+  if (!where) return true;
+  if (where.id && row.id !== where.id) return false;
+  if (where.id?.in && !where.id.in.includes(row.id)) return false;
+  if (where.status && row.status !== where.status) return false;
+  if (where.createdAt?.lt && !(row.createdAt < where.createdAt.lt)) return false;
+  if (where.lockedAt?.lt) {
+    if (row.lockedAt == null || !(row.lockedAt < where.lockedAt.lt)) return false;
+  }
+  if (Object.prototype.hasOwnProperty.call(where, 'lockedAt') && where.lockedAt === null) {
+    if (row.lockedAt != null) return false;
+  }
+  if (where.OR && Array.isArray(where.OR)) {
+    return where.OR.some((clause: any) => matchesWhere(row, clause));
+  }
+  if (where.AND && Array.isArray(where.AND)) {
+    return where.AND.every((clause: any) => matchesWhere(row, clause));
+  }
+  return true;
+}
 
 function createPrismaMock(rows: OutboxRow[]) {
   const store = new Map(rows.map((r) => [r.id, { ...r }]));
@@ -78,7 +100,7 @@ function createPrismaMock(rows: OutboxRow[]) {
     outboxEvent: {
       findMany: jest.fn(async ({ where, take }: any) => {
         const list = [...store.values()]
-          .filter((r) => r.status === where.status)
+          .filter((r) => matchesWhere(r, where))
           .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
           .slice(0, take ?? 50);
         return list.map((r) => ({ ...r }));
@@ -86,10 +108,7 @@ function createPrismaMock(rows: OutboxRow[]) {
       updateMany: jest.fn(async ({ where, data }: any) => {
         let count = 0;
         for (const row of store.values()) {
-          if (where.id && row.id !== where.id) continue;
-          if (where.status && row.status !== where.status) continue;
-          if (where.id?.in && !where.id.in.includes(row.id)) continue;
-          if (where.createdAt?.lt && !(row.createdAt < where.createdAt.lt)) continue;
+          if (!matchesWhere(row, where)) continue;
           Object.assign(row, data);
           count++;
         }
@@ -166,11 +185,12 @@ describe('GenericOutboxRelay v2', () => {
       eventType: 'inventory.stock.reserved.v1',
       payload: { sku: 'A' },
       createdAt: new Date(),
+      lockedAt: null,
       ...overrides,
     };
   }
 
-  it('claims PENDING → PROCESSING, awaits publish, marks PROCESSED', async () => {
+  it('claims PENDING → PROCESSING with lockedAt=now, awaits publish, marks PROCESSED', async () => {
     const prisma = createPrismaMock([makeEvent()]);
     const natsClient = {
       emit: jest.fn(() => of(undefined)),
@@ -182,7 +202,7 @@ describe('GenericOutboxRelay v2', () => {
 
     expect(prisma.outboxEvent.updateMany).toHaveBeenCalledWith({
       where: { id: 'evt-1', status: 'PENDING' },
-      data: { status: 'PROCESSING' },
+      data: { status: 'PROCESSING', lockedAt: expect.any(Date) },
     });
     expect(natsClient.emit).toHaveBeenCalledWith(
       'inventory.stock.reserved.v1',
@@ -241,14 +261,17 @@ describe('GenericOutboxRelay v2', () => {
     expect(prisma.outboxEvent.update).not.toHaveBeenCalled();
   });
 
-  it('reclaims stuck PROCESSING older than reclaim window back to PENDING', async () => {
+  it('reclaims stuck PROCESSING when lockedAt older than reclaim window', async () => {
     process.env.OUTBOX_RECLAIM_MINUTES = '10';
-    const old = new Date(Date.now() - 20 * 60_000);
+    // Aged backlog createdAt must NOT alone drive reclaim if lockedAt is fresh — this case:
+    // old lockedAt → reclaim
+    const oldLock = new Date(Date.now() - 20 * 60_000);
     const prisma = createPrismaMock([
       makeEvent({
         id: 'stuck',
         status: 'PROCESSING',
-        createdAt: old,
+        createdAt: new Date(), // recent createdAt
+        lockedAt: oldLock,
       }),
     ]);
     const relay = new TestRelay(prisma, { emit: jest.fn() });
@@ -256,15 +279,35 @@ describe('GenericOutboxRelay v2', () => {
     const count = await relay.reclaim();
     expect(count).toBe(1);
     expect(prisma._store.get('stuck')!.status).toBe('PENDING');
+    expect(prisma._store.get('stuck')!.lockedAt).toBeNull();
   });
 
-  it('does not reclaim recent PROCESSING rows', async () => {
+  it('does not reclaim PROCESSING with fresh lockedAt even if createdAt is old', async () => {
+    process.env.OUTBOX_RECLAIM_MINUTES = '10';
+    const oldCreated = new Date(Date.now() - 60 * 60_000);
+    const prisma = createPrismaMock([
+      makeEvent({
+        id: 'fresh-lock',
+        status: 'PROCESSING',
+        createdAt: oldCreated,
+        lockedAt: new Date(), // claim just happened
+      }),
+    ]);
+    const relay = new TestRelay(prisma, { emit: jest.fn() });
+
+    const count = await relay.reclaim();
+    expect(count).toBe(0);
+    expect(prisma._store.get('fresh-lock')!.status).toBe('PROCESSING');
+  });
+
+  it('does not reclaim recent PROCESSING with fresh lockedAt', async () => {
     process.env.OUTBOX_RECLAIM_MINUTES = '10';
     const prisma = createPrismaMock([
       makeEvent({
         id: 'fresh',
         status: 'PROCESSING',
         createdAt: new Date(),
+        lockedAt: new Date(),
       }),
     ]);
     const relay = new TestRelay(prisma, { emit: jest.fn() });
@@ -272,6 +315,24 @@ describe('GenericOutboxRelay v2', () => {
     const count = await relay.reclaim();
     expect(count).toBe(0);
     expect(prisma._store.get('fresh')!.status).toBe('PROCESSING');
+  });
+
+  it('reclaims null lockedAt + aged createdAt (rollout fallback)', async () => {
+    process.env.OUTBOX_RECLAIM_MINUTES = '10';
+    const old = new Date(Date.now() - 20 * 60_000);
+    const prisma = createPrismaMock([
+      makeEvent({
+        id: 'legacy',
+        status: 'PROCESSING',
+        createdAt: old,
+        lockedAt: null,
+      }),
+    ]);
+    const relay = new TestRelay(prisma, { emit: jest.fn() });
+
+    const count = await relay.reclaim();
+    expect(count).toBe(1);
+    expect(prisma._store.get('legacy')!.status).toBe('PENDING');
   });
 
   it('markPublishFailure logs and does not swallow update errors with empty catch', async () => {
