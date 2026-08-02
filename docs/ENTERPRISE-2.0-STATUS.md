@@ -1,14 +1,14 @@
 # Enterprise 2.0 — automation status
 
 ```
-updated: 2026-08-02T11:29:09.000Z
+updated: 2026-08-02T11:29:09.856Z
 program: enterprise-2.0
 baseline_tag: pilot-v1.1.0
 target_tag: enterprise-2.0.0
 tenancy: DEDICATED_STACK
 automation_mode: full
 branch: enterprise-0.2-eto-spine
-sha: 47de9d6
+sha: 6469942
 milestone: Q1
 phase: DESIGN
 milestone_index: 1
@@ -53,3 +53,5 @@ See `docs/enterprise-2.0/milestones.json` for milestone definitions and gates.
 | 2026-08-02 | Scaffold + full unattended automation control plane |
 | 2026-08-02T11:28:10Z | **Q0 RELEASE complete**: PR #4 merged; tag `enterprise-0.1-platform` @ 47de9d6 |
 | 2026-08-02T11:29:09.000Z | Q1 DESIGN next (ETO Manufacturing Spine); no design doc yet — phase DESIGN (not IMPLEMENT) |
+
+| 2026-08-02T11:29:09.856Z | Q1 needs DESIGN doc before IMPLEMENT |
