@@ -39,7 +39,7 @@ describe('INV: CreateReservation bomComponentId traceability', () => {
   });
 
   it('should persist bomComponentId on reservation and transaction', async () => {
-    const cmd = new CreateReservationCommand('item-1', 3, 'proj-1', null, null, 'bom-comp-xyz', 't1', 'user-1');
+    const cmd = new CreateReservationCommand('item-1', 3, 'proj-1', undefined, undefined, 'bom-comp-xyz', 't1', 'user-1');
 
     await handler.execute(cmd);
 
@@ -57,7 +57,7 @@ describe('INV: CreateReservation bomComponentId traceability', () => {
       7,
       'proj-eto-77',
       'wo-123',
-      null,
+      undefined,
       'bom-comp-uuid-xyz',
       'tenant-1',
       'user-auth-42'  // comes from authenticated caller / NATS x-user-id in real flow

@@ -43,8 +43,8 @@ describe('INV: CreateReservation with bomComponentId and audit', () => {
       'item-xyz',
       2,
       'proj-777',
-      null,
-      null,
+      undefined,
+      undefined,
       'bom-comp-xyz-42',
       'tenant-a',
       'user-from-gateway'

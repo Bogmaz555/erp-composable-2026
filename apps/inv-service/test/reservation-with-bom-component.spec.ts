@@ -48,8 +48,8 @@ describe('INV: CreateReservation with bomComponentId (ETO traceability)', () => 
       'item-gear',
       5,
       'project-abc',
-      null,
-      null,
+      undefined,
+      undefined,
       'bom-comp-gear-007',   // critical for traceability
       'tenant-1',
       'planner-01'
