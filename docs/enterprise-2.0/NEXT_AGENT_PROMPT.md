@@ -1,23 +1,36 @@
-<!-- generated 2026-08-02T11:52:57.000Z milestone=Q1 phase=RELEASE sha=1f042a8 -->
+<!-- generated 2026-08-02T11:54:25.590Z milestone=Q2 phase=IMPLEMENT sha=f68832e -->
 <!-- Unattended: paste into Grok OR run /workflow enterprise-20-step|continuous -->
 
-# AGENT MISSION — Q1 RELEASE (autonomous)
+# AGENT MISSION — Q2 IMPLEMENT (autonomous)
 
 Repo: /home/bogdan-mazur/PROGRAMY/ERP/erp-composable-2026
-Branch: `enterprise-0.2-eto-spine`
-Tag: **enterprise-0.2-eto-spine**
+Design: `docs/ENTERPRISE-0.3-FINANCE-DESIGN.md` (must exist)
+Branch: `enterprise-0.3-finance-compliance`
+
+## Identity
+Principal Engineer. Full autonomy. Implement PR Plan from design.
 
 ## Task
-1. Ensure gates green
-2. `gh pr create --base master --head enterprise-0.2-eto-spine` (or update existing)
-3. Merge when required CI green (admin OK if only optional red)
-4. Tag `enterprise-0.2-eto-spine` on merge commit; push tag
-5. Advance STATUS to next milestone DESIGN (or DONE if Q5)
-6. Commit STATUS on master or automation branch; push
+1. Read docs/ENTERPRISE-0.3-FINANCE-DESIGN.md ## PR Plan
+2. Implement PRs in dependency order on branch `enterprise-0.3-finance-compliance`
+3. Prefer: if design has PR Plan, you may use mental execute-plan loop (implement + self-review per PR)
+4. Live fixes allowed; no domain scope outside workstreams
+5. When implementation complete: set STATUS phase=GATE, commit, push
+6. Run: `bash scripts/enterprise-2.0/gate-check.sh Q2` if possible
 
-Milestone order: Q0→Q1→Q2→Q3→Q4→Q5→DONE
+### Workstreams
+- Finance journal AR/AP period close
+- KSeF prod-capable path
+- Quality NCR CAPA full
+- EAM real IoT adapter interface
+- Temporal (or equivalent) for ETO/finance/proc sagas
+- Full financial compensations
 
-START NOW.
+### Gates that must pass next
+  - `REQUIRE_LIVE=1 REQUIRE_LIVE_STRICT=1 pnpm run smoke:pilot`
+  - `REQUIRE_LIVE=1 REQUIRE_LIVE_STRICT=1 npx tsx scripts/smoke-saga-compensation.ts`
+
+START NOW. Implement.
 
 ## Autonomy contract (mandatory)
 - ZERO confirmation pauses. Execute fully.

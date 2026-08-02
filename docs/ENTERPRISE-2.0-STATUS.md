@@ -1,30 +1,34 @@
 # Enterprise 2.0 — automation status
 
 ```
-updated: 2026-08-02T11:52:56.962Z
+updated: 2026-08-02T11:54:25.554Z
 program: enterprise-2.0
 baseline_tag: pilot-v1.1.0
 target_tag: enterprise-2.0.0
 tenancy: DEDICATED_STACK
 automation_mode: full
-branch: enterprise-0.2-eto-spine
-sha: 1f042a8
-milestone: Q1
-phase: RELEASE
+branch: enterprise-0.3-finance-compliance
+sha: f68832e
+milestone: Q2
+phase: IMPLEMENT
 milestone_index: 1
 phase_index: 1
 state: READY
-checklist:
+checklist: Q0: done
   Q0: done
-  Q1: pending
+  Q1: done
   Q2: pending
   Q3: pending
   Q4: pending
   Q5: pending
   automation_scaffold: true
 last_error: none
-next_action: Execute docs/enterprise-2.0/NEXT_AGENT_PROMPT.md (Q1/RELEASE)
+next_action: Execute docs/enterprise-2.0/NEXT_AGENT_PROMPT.md (Q2/IMPLEMENT)
 resume_prompt: |
+  RESUME Enterprise 2.0. checkout current branch. Read docs/ENTERPRISE-2.0-STATUS.md.
+  milestone=Q2 phase=IMPLEMENT. Continue autonomy. No confirmation pauses.
+  RESUME Enterprise 2.0. checkout current branch. Read docs/ENTERPRISE-2.0-STATUS.md.
+  milestone=Q2 phase=DESIGN. Continue autonomy. No confirmation pauses.
   RESUME Enterprise 2.0. checkout current branch. Read docs/ENTERPRISE-2.0-STATUS.md.
   milestone=Q1 phase=RELEASE. Continue autonomy. No confirmation pauses.
   RESUME Enterprise 2.0. checkout current branch. Read docs/ENTERPRISE-2.0-STATUS.md.
@@ -68,3 +72,7 @@ See `docs/enterprise-2.0/milestones.json` for milestone definitions and gates.
 | 2026-08-02T11:46:28.119Z | advance fail: Q1/GATE gate failed Q1 |
 | 2026-08-02T11:51:52.560Z | stack rebooted 8/8; e2e 12/12 green; re-gate Q1 |
 | 2026-08-02T11:52:56.962Z | advance success: Q1/RELEASE gate passed Q1 |
+| 2026-08-02T11:53:25.397Z | advance success: Q2/DESIGN Q1 RELEASE PR#6 tag enterprise-0.2-eto-spine |
+| 2026-08-02T11:53:25.457Z | Q1 RELEASE complete; Q2 DESIGN next (finance compliance) |
+| 2026-08-02T11:53:37.044Z | on Q2 branch after Q1 release |
+| 2026-08-02T11:54:25.554Z | advance success: Q2/IMPLEMENT Q2 design ENTERPRISE-0.3-FINANCE-DESIGN.md complete |
