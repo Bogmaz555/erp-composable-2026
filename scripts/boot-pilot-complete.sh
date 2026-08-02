@@ -110,3 +110,4 @@ for name in gateway pm inv proc mes plm fin analytics; do
 done
 log "logs in $LOG"
 log "done"
+# Pilot complete: outbox services run single-process (no multi-replica)

@@ -1,8 +1,8 @@
 # ERP Composable 2026 — Stan Projektu (pełne podsumowanie)
 
 **Ostatnia aktualizacja:** 2026-08-02  
-**Bieżąca warstwa (honest):** **Pilot v1 CLOSED** — tag `pilot-v1.0.0` @ `da7569f`  
-**UAT:** [`docs/PILOT-V1-UAT.md`](./PILOT-V1-UAT.md) — **GO conditional**  
+**Bieżąca warstwa (honest):** **Pilot v1 COMPLETE** — tag `pilot-v1.1.0` @ `da7569f`  
+**UAT:** [`docs/PILOT-V1-UAT.md`](./PILOT-V1-UAT.md) — **GO full**  
 **Design binding:** [`docs/PILOT-V1-DESIGN.md`](./PILOT-V1-DESIGN.md)  
 **Honest quality gate:** `pnpm run smoke:pilot` / `REQUIRE_LIVE=1 pnpm run smoke:pilot`  
 **Closure board:** [`docs/PILOT-V1-CLOSURE-BOARD.md`](./PILOT-V1-CLOSURE-BOARD.md)
