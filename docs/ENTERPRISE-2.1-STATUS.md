@@ -1,16 +1,16 @@
 # Enterprise 2.1 — automation status
 
 ```
-updated: 2026-08-02T20:00:00.000Z
+updated: 2026-08-02T20:02:50.574Z
 program: enterprise-2.1
 baseline_tag: enterprise-2.0.0
 target_tag: enterprise-2.1.0
 tenancy: DEDICATED_STACK
 automation_mode: full
 branch: enterprise-2.1-automation
-sha: pending
+sha: 0b96e97
 milestone: P0
-phase: DESIGN
+phase: IMPLEMENT
 milestone_index: 0
 phase_index: 0
 state: READY
@@ -23,7 +23,7 @@ checklist:
   P5: pending
   plan_scaffold: true
 last_error: none
-next_action: Execute docs/enterprise-2.1/NEXT_AGENT_PROMPT.md (P0/DESIGN)
+next_action: Execute docs/enterprise-2.1/NEXT_AGENT_PROMPT.md (P0/IMPLEMENT)
 resume_prompt: |
   RESUME Enterprise 2.1 full automation. No confirmation pauses.
   Repo: /home/bogdan-mazur/PROGRAMY/ERP/erp-composable-2026
@@ -56,3 +56,5 @@ Enterprise 2.0 STATUS remains **DONE** (`enterprise-2.0.0`). Do not reset 2.0. T
 | Time | Event |
 |------|-------|
 | 2026-08-02 | 2.1 plan scaffold created (P0–P5); STATUS READY at P0 DESIGN |
+
+| 2026-08-02T20:02:50.574Z | advance success: P0/IMPLEMENT P0 design ENTERPRISE-2.1-P0-BOOTSTRAP-DESIGN.md complete |

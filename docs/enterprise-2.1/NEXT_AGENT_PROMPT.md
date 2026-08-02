@@ -1,18 +1,17 @@
-<!-- generated 2026-08-02T19:59:05.053Z milestone=P0 phase=DESIGN sha=pending -->
+<!-- generated 2026-08-02T20:02:50.674Z milestone=P0 phase=IMPLEMENT sha=0b96e97 -->
 <!-- Enterprise 2.1 — paste into Grok or /workflow -->
 
-# AGENT MISSION — P0 DESIGN (autonomous)
+# AGENT MISSION — P0 IMPLEMENT (autonomous)
 
 Repo: /home/bogdan-mazur/PROGRAMY/ERP/erp-composable-2026
-Baseline: enterprise-2.0.0
-Branch: `enterprise-2.1-p0-bootstrap` (create from master if missing)
-Tenancy: **DEDICATED_STACK**
-
-## Identity
-Principal Architect. Full autonomy. No confirmation pauses.
+Design: `docs/ENTERPRISE-2.1-P0-BOOTSTRAP-DESIGN.md`
+Branch: `enterprise-2.1-p0-bootstrap`
 
 ## Task
-Produce design at **`docs/ENTERPRISE-2.1-P0-BOOTSTRAP-DESIGN.md`** for **P0: Prod Bootstrap**.
+1. Read docs/ENTERPRISE-2.1-P0-BOOTSTRAP-DESIGN.md ## PR Plan
+2. Implement in dependency order on `enterprise-2.1-p0-bootstrap`
+3. When complete: STATUS phase=GATE, commit, push
+4. Prefer: `bash scripts/enterprise-2.1/gate-check.sh P0`
 
 ### Workstreams
 - Staging + prod Helm/compose profiles
@@ -21,12 +20,10 @@ Produce design at **`docs/ENTERPRISE-2.1-P0-BOOTSTRAP-DESIGN.md`** for **P0: Pro
 - Stable finance/gateway boot under ENTERPRISE=1
 - NATS_JETSTREAM + enterprise flags in prod values
 
-### Rules
-- Key Decisions, Alternatives, Security, risks, **## PR Plan** with `### PR N: Title`
-- Non-negotiables: ADR-008 + docs/ENTERPRISE-2.1-PLAN.md
-- Do **not** reset Enterprise 2.0 STATUS (stays DONE)
-- After design: STATUS phase=IMPLEMENT, commit, push
-- Forbidden: readiness theater, Faza 29+, secrets in git
+### Gates next
+  - `bash scripts/ci-no-secrets.sh`
+  - `pnpm run smoke:pilot`
+  - `bash scripts/enterprise-2.1/check-p0-bootstrap.sh`
 
 START NOW.
 
