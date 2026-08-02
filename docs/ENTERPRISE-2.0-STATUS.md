@@ -1,14 +1,14 @@
 # Enterprise 2.0 — automation status
 
 ```
-updated: 2026-08-02T12:05:36.655Z
+updated: 2026-08-02T12:06:21.658Z
 program: enterprise-2.0
 baseline_tag: pilot-v1.1.0
 target_tag: enterprise-2.0.0
 tenancy: DEDICATED_STACK
 automation_mode: full
 branch: enterprise-0.3-finance-compliance
-sha: 0daa02c
+sha: 05947dd
 milestone: Q2
 phase: GATE
 milestone_index: 1
@@ -23,7 +23,7 @@ checklist: Q0: done
   Q5: pending
   automation_scaffold: true
 last_error: none
-next_action: Execute docs/enterprise-2.0/NEXT_AGENT_PROMPT.md (Q2/GATE)
+next_action: Run Q2 GATE smokes then RELEASE if green
 resume_prompt: |
   RESUME Enterprise 2.0. checkout current branch. Read docs/ENTERPRISE-2.0-STATUS.md.
   milestone=Q2 phase=GATE. Continue autonomy. No confirmation pauses.
@@ -79,3 +79,6 @@ See `docs/enterprise-2.0/milestones.json` for milestone definitions and gates.
 | 2026-08-02T11:53:37.044Z | on Q2 branch after Q1 release |
 | 2026-08-02T11:54:25.554Z | advance success: Q2/IMPLEMENT Q2 design ENTERPRISE-0.3-FINANCE-DESIGN.md complete |
 | 2026-08-02T12:05:36.655Z | advance success: Q2/GATE Q2 IMPLEMENT PR1-8: period close, AR/AP, KSeF fail-closed, compensations, CAPA outbox TX, IotAdapter, Temporal worker+fallback |
+| 2026-08-02T12:05:55.080Z | Q2 IMPLEMENT PR1-4 done |
+| 2026-08-02T12:05:59.387Z | Q2 IMPLEMENT PR1-4 done; phase kept IMPLEMENT (PR5-8 remaining; do not GATE yet) |
+| 2026-08-02T12:06:21.658Z | Q2 PR1-4 verified green (period/AR-AP/KSeF/compensations); PR5-8 already landed; orchestrator matrix publish; phase GATE |
