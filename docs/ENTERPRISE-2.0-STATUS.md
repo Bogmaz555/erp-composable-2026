@@ -1,14 +1,14 @@
 # Enterprise 2.0 — automation status
 
 ```
-updated: 2026-08-02T11:24:16.737Z
+updated: 2026-08-02T11:25:29.032Z
 program: enterprise-2.0
 baseline_tag: pilot-v1.1.0
 target_tag: enterprise-2.0.0
 tenancy: DEDICATED_STACK
 automation_mode: full
 branch: enterprise-0.1-platform
-sha: cf1bf6f
+sha: f70042f
 milestone: Q0
 phase: GATE
 milestone_index: 0
@@ -25,6 +25,8 @@ checklist:
 last_error: gate failed Q0
 next_action: Execute docs/enterprise-2.0/NEXT_AGENT_PROMPT.md (Q0/GATE)
 resume_prompt: |
+  RESUME Enterprise 2.0. checkout current branch. Read docs/ENTERPRISE-2.0-STATUS.md.
+  milestone=Q0 phase=GATE. Continue autonomy. No confirmation pauses.
   RESUME Enterprise 2.0. checkout current branch. Read docs/ENTERPRISE-2.0-STATUS.md.
   milestone=Q0 phase=GATE. Continue autonomy. No confirmation pauses.
   RESUME Enterprise 2.0 full automation. No confirmation pauses.
@@ -60,3 +62,4 @@ See `docs/enterprise-2.0/milestones.json` for milestone definitions and gates.
 
 | 2026-08-02T11:23:40.665Z | Q0 IMPLEMENT PR1-3 done (lockedAt reclaim green; tests 29/29) |
 | 2026-08-02T11:24:16.737Z | advance fail: Q0/GATE gate failed Q0 |
+| 2026-08-02T11:25:29.032Z | advance fail: Q0/GATE gate failed Q0 |
