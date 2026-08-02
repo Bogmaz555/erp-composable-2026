@@ -1,18 +1,22 @@
-<!-- generated 2026-08-02T11:28:47.643Z milestone=Q1 phase=DESIGN sha=47de9d6 -->
+<!-- generated 2026-08-02T11:28:52.161Z milestone=Q1 phase=IMPLEMENT sha=0c5b57d -->
 <!-- Unattended: paste into Grok OR run /workflow enterprise-20-step|continuous -->
 
-# AGENT MISSION — Q1 DESIGN (autonomous)
+# AGENT MISSION — Q1 IMPLEMENT (autonomous)
 
 Repo: /home/bogdan-mazur/PROGRAMY/ERP/erp-composable-2026
-Baseline: pilot-v1.1.0 → current master
-Branch: `enterprise-0.2-eto-spine` (create from master if missing)
-Tenancy lock: **DEDICATED_STACK**
+Design: `docs/ENTERPRISE-0.2-ETO-DESIGN.md` (must exist)
+Branch: `enterprise-0.2-eto-spine`
 
 ## Identity
-Principal Architect. Full autonomy. No "should I continue?" questions.
+Principal Engineer. Full autonomy. Implement PR Plan from design.
 
 ## Task
-Produce design document at **`docs/ENTERPRISE-0.2-ETO-DESIGN.md`** for milestone **Q1: ETO Manufacturing Spine**.
+1. Read docs/ENTERPRISE-0.2-ETO-DESIGN.md ## PR Plan
+2. Implement PRs in dependency order on branch `enterprise-0.2-eto-spine`
+3. Prefer: if design has PR Plan, you may use mental execute-plan loop (implement + self-review per PR)
+4. Live fixes allowed; no domain scope outside workstreams
+5. When implementation complete: set STATUS phase=GATE, commit, push
+6. Run: `bash scripts/enterprise-2.0/gate-check.sh Q1` if possible
 
 ### Workstreams
 - PLM BOM/ECO depth event-only write path
@@ -23,17 +27,12 @@ Produce design document at **`docs/ENTERPRISE-0.2-ETO-DESIGN.md`** for milestone
 - Remove sync HTTP write-path between services
 - Event schema contracts for Active events
 
-### Rules
-- Include Key Decisions, Alternatives, Security, risks, **## PR Plan** with `### PR N: Title`, Dependencies, Files, Description
-- No readiness theater / Faza 29+
-- Non-negotiables: ADR-008 + docs/ENTERPRISE-2.0-PLAN.md
-- After design file written: update docs/ENTERPRISE-2.0-STATUS.md phase=IMPLEMENT, commit, push branch `enterprise-2.0-automation` or `enterprise-0.2-eto-spine`
-- Prefer also running: `/design` equivalent quality (self-review once)
+### Gates that must pass next
+  - `pnpm run smoke:pilot`
+  - `REQUIRE_LIVE=1 REQUIRE_LIVE_STRICT=1 pnpm run smoke:pilot`
+  - `./node_modules/.bin/playwright test e2e/pilot-eto-complete.spec.ts`
 
-### Forbidden
-- domain scope creep
-
-START NOW. Write the design file.
+START NOW. Implement.
 
 ## Autonomy contract (mandatory)
 - ZERO confirmation pauses. Execute fully.
