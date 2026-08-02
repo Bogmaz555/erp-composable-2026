@@ -34,6 +34,12 @@ spec:
               value: {{ .Values.apiGateway.useKeycloakJwks | default true | quote }}
             - name: PILOT
               value: {{ .Values.apiGateway.pilot | default "1" | quote }}
+            - name: ENTERPRISE
+              value: {{ .Values.apiGateway.enterprise | default "0" | quote }}
+            - name: NATS_JETSTREAM
+              value: {{ .Values.apiGateway.natsJetstream | default "false" | quote }}
+            - name: TENANCY_MODEL
+              value: {{ .Values.apiGateway.tenancyModel | default "DEDICATED_STACK" | quote }}
             - name: NATS_URL
               value: {{ .Values.apiGateway.natsUrl | default "nats://nats:4222" | quote }}
             - name: KEYCLOAK_JWKS_URI

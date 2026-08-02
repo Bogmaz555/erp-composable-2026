@@ -10,6 +10,10 @@ apiGateway:
   authEnforce: true
   useKeycloakJwks: true
   pilot: "1"
+  # Local/default: enterprise off. Staging/prod values-*.yaml set enterprise=1 + natsJetstream=true
+  enterprise: "0"
+  natsJetstream: "false"
+  tenancyModel: DEDICATED_STACK
   natsUrl: nats://nats:4222
   keycloakJwksUri: http://keycloak:8080/realms/erp/protocol/openid-connect/certs
   # Cluster-internal DNS (short Service names in the same namespace).

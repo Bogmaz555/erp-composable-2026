@@ -321,7 +321,10 @@
     "enterprise21:loop": "bash scripts/enterprise-2.1/run-automation.sh loop",
     "enterprise21:gate": "bash scripts/enterprise-2.1/run-automation.sh gate",
     "enterprise21:advance": "bash scripts/enterprise-2.1/run-automation.sh advance",
-    "enterprise21:status": "bash scripts/enterprise-2.1/run-automation.sh status"
+    "enterprise21:status": "bash scripts/enterprise-2.1/run-automation.sh status",
+    "health:matrix": "bash scripts/health-matrix.sh",
+    "boot:enterprise": "bash scripts/boot-enterprise.sh",
+    "build:finance": "bash -c \"cd apps/finance && npx tsc -p tsconfig.build.json\""
   },
   "prisma": {
     "seed": "npx tsx scripts/seed.ts"
