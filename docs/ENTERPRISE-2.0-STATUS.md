@@ -1,19 +1,19 @@
 # Enterprise 2.0 — automation status
 
 ```
-updated: 2026-08-02T12:09:38.815Z
+updated: 2026-08-02T12:26:09.196Z
 program: enterprise-2.0
 baseline_tag: pilot-v1.1.0
 target_tag: enterprise-2.0.0
 tenancy: DEDICATED_STACK
 automation_mode: full
 branch: enterprise-0.4-isolation-scale
-sha: 3bf4601
+sha: 1fb6731
 milestone: Q3
 phase: GATE
 milestone_index: 2
 phase_index: 0
-state: READY
+state: BLOCKED
 checklist: Q0: done
   Q0: done
   Q1: done
@@ -22,9 +22,11 @@ checklist: Q0: done
   Q4: pending
   Q5: pending
   automation_scaffold: true
-last_error: none
+last_error: gate failed Q3
 next_action: Execute docs/enterprise-2.0/NEXT_AGENT_PROMPT.md (Q3/GATE)
 resume_prompt: |
+  RESUME Enterprise 2.0. checkout current branch. Read docs/ENTERPRISE-2.0-STATUS.md.
+  milestone=Q3 phase=GATE. Continue autonomy. No confirmation pauses.
   RESUME Enterprise 2.0. checkout current branch. Read docs/ENTERPRISE-2.0-STATUS.md.
   milestone=Q3 phase=GATE. Continue autonomy. No confirmation pauses.
   RESUME Enterprise 2.0. checkout current branch. Read docs/ENTERPRISE-2.0-STATUS.md.
@@ -63,3 +65,5 @@ See `docs/enterprise-2.0/milestones.json` for milestone definitions and gates.
 
 | 2026-08-02T12:09:38.783Z | advance success: Q3/IMPLEMENT Q3 DESIGN complete |
 | 2026-08-02T12:09:38.815Z | advance success: Q3/GATE Q3 IMPLEMENT scale artifacts |
+| 2026-08-02T12:09:54.262Z | Q3 implement committed; running gate |
+| 2026-08-02T12:26:09.196Z | advance fail: Q3/GATE gate failed Q3 |

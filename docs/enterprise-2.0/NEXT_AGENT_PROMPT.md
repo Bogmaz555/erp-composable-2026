@@ -1,4 +1,4 @@
-<!-- generated 2026-08-02T12:09:38.851Z milestone=Q3 phase=GATE sha=3bf4601 -->
+<!-- generated 2026-08-02T12:26:09.231Z milestone=Q3 phase=GATE sha=1fb6731 -->
 <!-- Unattended: paste into Grok OR run /workflow enterprise-20-step|continuous -->
 
 # AGENT MISSION — Q3 GATE (autonomous)
@@ -10,7 +10,6 @@ Branch: `enterprise-0.4-isolation-scale`
 1. Run: `bash scripts/enterprise-2.0/gate-check.sh Q3`
 2. Also run live commands if stack available:
   - `pnpm run smoke:pilot`
-  - `bash scripts/enterprise-2.0/gate-check.sh Q3`
   - `bash scripts/enterprise-2.0/check-q3-scale.sh`
 3. If fail: fix (max 3 attempts), re-gate; if still fail STATUS state=BLOCKED with last_error
 4. If pass: STATUS phase=RELEASE, commit, push
