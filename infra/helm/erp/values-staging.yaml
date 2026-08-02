@@ -1,3 +1,4 @@
+# Enterprise 2.1 P0 — staging profile (no secret values)
 global:
   namespace: erp-staging
 
@@ -5,7 +6,28 @@ apiGateway:
   replicaCount: 2
   authEnforce: true
   useKeycloakJwks: true
-  pilot: "1"
+  pilot: "0"
+  enterprise: "1"
+  natsJetstream: "true"
+  tenancyModel: DEDICATED_STACK
+  natsUrl: nats://nats:4222
 
 analyticsService:
   replicaCount: 2
+
+enterprise:
+  profile: staging
+  ENTERPRISE: "1"
+  NATS_JETSTREAM: "true"
+  AUTH_ENFORCE: "true"
+  TENANCY_MODEL: DEDICATED_STACK
+
+autoscaling:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 4
+  targetCPUUtilizationPercentage: 75
+podDisruptionBudget:
+  maxUnavailable: 1
+networkPolicy:
+  enabled: true

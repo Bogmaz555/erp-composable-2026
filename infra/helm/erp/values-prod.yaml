@@ -1,3 +1,4 @@
+# Enterprise 2.1 P0 — production profile (no secret values)
 global:
   namespace: erp-prod
 
@@ -5,10 +6,26 @@ apiGateway:
   replicaCount: 3
   authEnforce: true
   useKeycloakJwks: true
-  pilot: "1"
+  pilot: "0"
+  # Enterprise profile (assertEnterpriseMessaging at gateway boot)
+  enterprise: "1"
+  natsJetstream: "true"
+  tenancyModel: DEDICATED_STACK
+  natsUrl: nats://nats:4222
+  # Secrets via Secret refs in cluster — do not put passwords here:
+  # keycloakJwksUri, serviceUrls, etc. override per install
 
 analyticsService:
   replicaCount: 2
+
+# Propagate enterprise messaging to app env via optional common labels/docs;
+# services that support ENTERPRISE/NATS_JETSTREAM should set them in their charts.
+enterprise:
+  profile: prod
+  ENTERPRISE: "1"
+  NATS_JETSTREAM: "true"
+  AUTH_ENFORCE: "true"
+  TENANCY_MODEL: DEDICATED_STACK
 
 resources:
   requests:
@@ -17,3 +34,13 @@ resources:
   limits:
     cpu: 1000m
     memory: 1Gi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 8
+  targetCPUUtilizationPercentage: 70
+podDisruptionBudget:
+  maxUnavailable: 1
+networkPolicy:
+  enabled: true
