@@ -3,7 +3,7 @@
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: {{ include "erp.fullname" . }}-api-gateway
+  name: {{ include "erp.name" . }}-api-gateway
   labels:
     app: api-gateway
     enterprise.q3: scale
@@ -11,7 +11,7 @@ spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: {{ include "erp.fullname" . }}-api-gateway
+    name: {{ include "erp.name" . }}-api-gateway
   minReplicas: {{ .Values.autoscaling.minReplicas | default 1 }}
   maxReplicas: {{ .Values.autoscaling.maxReplicas | default 5 }}
   metrics:
@@ -25,7 +25,7 @@ spec:
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
-  name: {{ include "erp.fullname" . }}-api-gateway
+  name: {{ include "erp.name" . }}-api-gateway
   labels:
     app: api-gateway
     enterprise.q3: scale

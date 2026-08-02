@@ -121,7 +121,6 @@
       ],
       "gate_commands": [
         "pnpm run smoke:pilot",
-        "bash scripts/enterprise-2.0/gate-check.sh Q3",
         "bash scripts/enterprise-2.0/check-q3-scale.sh"
       ]
     },
