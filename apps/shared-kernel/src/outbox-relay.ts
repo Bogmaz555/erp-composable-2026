@@ -19,7 +19,7 @@ export type OutboxRelayStatus = 'PENDING' | 'PROCESSING' | 'PROCESSED' | 'FAILED
  *
  * Algorithm:
  * 1. Optional reclaim of stuck PROCESSING → PENDING (lockedAt older than N minutes)
- * 2. Claim rows: PENDING → PROCESSING + lockedAt=now (conditional updateMany per id)
+ * 2. Claim rows: PENDING → PROCESSING + lockedAt=now + lockedBy=instance (conditional)
  * 3. await publish (not fire-and-forget)
  *    - NATS_JETSTREAM=true → JetStream publishWithAck, msgID = outbox id (server de-dupe)
  *    - else → Nest ClientProxy.emit (core NATS)
@@ -29,7 +29,8 @@ export type OutboxRelayStatus = 'PENDING' | 'PROCESSING' | 'PROCESSED' | 'FAILED
  *
  * ## Multi-replica reclaim (Enterprise Q0 / KD-2)
  *
- * Claim sets `lockedAt = now()`. Reclaim filters `PROCESSING` + `lockedAt < now - OUTBOX_RECLAIM_MINUTES`
+ * Claim sets `lockedAt = now()` and optional `lockedBy` (hostname:pid diagnostics).
+ * Reclaim filters `PROCESSING` + `lockedAt < now - OUTBOX_RECLAIM_MINUTES`
  * (not `createdAt` alone), so an aged backlog row claimed recently is not stolen mid-publish.
  * Rows with null `lockedAt` (pre-migration or legacy) fall back to `createdAt` age so crash
  * reclaim still works during rollout. Consumers remain at-least-once; JetStream msgID de-dupes
@@ -44,6 +45,12 @@ export abstract class GenericOutboxRelay {
   /** Prevents overlapping relayEvents ticks (e.g. @Interval while a batch is still running). */
   private running = false;
 
+  /** Lazy JetStream connection when NATS_JETSTREAM is on. */
+  private jsHandles: JetStreamHandles | null = null;
+  private jsConnectPromise: Promise<JetStreamHandles> | null = null;
+  private jsPathLogged = false;
+
+  /** Stable-ish instance id for lockedBy diagnostics (hostname:pid). */
   protected get instanceId(): string {
     const host =
       (typeof process !== 'undefined' && (process.env.HOSTNAME || process.env.COMPUTERNAME)) ||
@@ -51,11 +58,6 @@ export abstract class GenericOutboxRelay {
     const pid = typeof process !== 'undefined' ? process.pid : 0;
     return `${host}:${pid}`;
   }
-
-  /** Lazy JetStream connection when NATS_JETSTREAM is on. */
-  private jsHandles: JetStreamHandles | null = null;
-  private jsConnectPromise: Promise<JetStreamHandles> | null = null;
-  private jsPathLogged = false;
 
   /** Max publish attempts before marking FAILED (env OUTBOX_MAX_ATTEMPTS, default 5). */
   protected get maxAttempts(): number {
@@ -207,7 +209,11 @@ export abstract class GenericOutboxRelay {
       const now = new Date();
       const result = await this.prisma.outboxEvent.updateMany({
         where: { id: event.id, status: 'PENDING' },
-        data: { status: 'PROCESSING', lockedAt: now, lockedBy: this.instanceId },
+        data: {
+          status: 'PROCESSING',
+          lockedAt: now,
+          lockedBy: this.instanceId,
+        },
       });
       claimed = (result?.count ?? 0) > 0;
     } catch (e) {
@@ -237,6 +243,8 @@ export abstract class GenericOutboxRelay {
           status: 'PROCESSED' satisfies OutboxRelayStatus,
           processedAt: new Date(),
           lastError: null,
+          lockedAt: null,
+          lockedBy: null,
         },
       });
       this.logger.debug(`Successfully relayed event ${event.id}`);
@@ -317,6 +325,8 @@ export abstract class GenericOutboxRelay {
           attempts,
           lastError: message.slice(0, 500),
           status,
+          lockedAt: null,
+          lockedBy: null,
         },
       });
     } catch (updateError) {
