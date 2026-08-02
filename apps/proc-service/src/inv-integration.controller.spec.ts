@@ -3,8 +3,17 @@ import { CreatePurchaseOrderCommand } from './commands/create-purchase-order.han
 
 describe('InvIntegrationController', () => {
   it('creates PO from inv.stock.out.v1 with SHORTAGE meta', async () => {
-    const execute = jest.fn();
-    const controller = new InvIntegrationController({ execute } as never);
+    const execute = jest.fn().mockResolvedValue({ id: 'po-1' });
+    const prisma = {
+      processedEvent: {
+        findFirst: jest.fn().mockResolvedValue(null),
+        create: jest.fn().mockResolvedValue({}),
+      },
+    };
+    const controller = new InvIntegrationController(
+      { execute } as never,
+      prisma as never,
+    );
 
     await controller.handleOutOfStock(
       {

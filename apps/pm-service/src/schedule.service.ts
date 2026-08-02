@@ -96,11 +96,25 @@ export class ScheduleService {
       }
     }
 
+    // Project buffer (CCPM): prefer explicit BUFFER WBS, else project.totalBufferDays
+    const bufferNodes = nodes.filter(
+      (n) => /buffer/i.test(n.name) || n.status === 'BUFFER',
+    );
+    const projectBufferDays =
+      bufferNodes.reduce((s, n) => s + n.durationDays, 0) ||
+      Number(project.totalBufferDays ?? 0) ||
+      Math.ceil(bestDuration * 0.25);
+
     return {
       projectId,
       projectName: project.name,
       totalDurationDays: bestDuration,
       criticalPath: bestPath,
+      criticalChain: bestPath,
+      projectBufferDays,
+      feedingBuffers: bufferNodes.map((n) => ({ id: n.id, name: n.name, days: n.durationDays })),
+      feverZone: project.feverZone ?? null,
+      ccpmBufferPct: project.ccpmBufferPct ?? null,
       nodes,
       dependencies: deps,
       taskCount: project.tasks.length,

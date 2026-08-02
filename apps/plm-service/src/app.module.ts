@@ -5,6 +5,7 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 import { PrismaService } from './prisma.service';
 import { CreateBOMHandler } from './commands/create-bom.handler';
 import { CreateECOHandler } from './commands/create-eco.handler';
+import { ApproveEcoHandler } from './commands/approve-eco.handler';
 import { GetBOMsHandler } from './queries/get-boms.handler';
 import { GetECOsHandler } from './queries/get-ecos.handler';
 import { PlmBomController, PlmEcoController, PlmBomVersionsController } from './plm.controller';
@@ -24,6 +25,7 @@ import { LinkSubBomHandler } from './commands/link-sub-bom.handler';
 const CommandHandlers = [
   CreateBOMHandler, 
   CreateECOHandler,
+  ApproveEcoHandler,
   CreateItemHandler,
   ReleaseBomVersionHandler,
   AddBomComponentHandler,

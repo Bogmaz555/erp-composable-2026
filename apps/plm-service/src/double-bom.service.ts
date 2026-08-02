@@ -12,6 +12,7 @@ export interface ExplodedBomLine {
   parentBomComponentId?: string;
   isSubAssembly: boolean;
   subBomVersionId?: string;
+  makeBuy?: string;
 }
 
 @Injectable()
@@ -47,6 +48,8 @@ export class DoubleBomService {
           subBomId = auto?.id ?? null;
         }
 
+        const makeBuy = (comp.childItem as { makeBuy?: string })?.makeBuy;
+
         if (subBomId) {
           const sub = await this.prisma.bomVersion.findUnique({
             where: { id: subBomId },
@@ -66,7 +69,8 @@ export class DoubleBomService {
               parentBomComponentId,
               isSubAssembly: true,
               subBomVersionId: subBomId,
-            });
+              makeBuy,
+            } as ExplodedBomLine);
             await walk(sub.components, level + 1, lineQty, comp.id);
             continue;
           }
@@ -82,7 +86,8 @@ export class DoubleBomService {
           bomLevel: level,
           parentBomComponentId,
           isSubAssembly: false,
-        });
+          makeBuy,
+        } as ExplodedBomLine);
       }
     };
 

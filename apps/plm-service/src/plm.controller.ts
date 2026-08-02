@@ -7,6 +7,7 @@ import { Roles } from './auth/roles.decorator';
 import { GetBomTreeQuery } from './queries/get-bom-tree.query';
 import { CreateBOMCommand } from './commands/create-bom.handler';
 import { CreateECOCommand } from './commands/create-eco.handler';
+import { ApproveEcoCommand } from './commands/approve-eco.handler';
 import { GetBOMsQuery } from './queries/get-boms.handler';
 import { GetECOsQuery } from './queries/get-ecos.handler';
 import { ReleaseBomVersionCommand } from './commands/release-bom-version.command';
@@ -77,6 +78,23 @@ export class PlmEcoController {
   @Get(':id/impact')
   async getEcoImpact(@Param('id') id: string) {
     return this.ecoImpact.analyze(id);
+  }
+
+  /**
+   * Q1 E1.1 — Approve ECO (event-only write path).
+   * Emits plm.eco.approved.v1 via outbox; optionally re-releases affected BOMs
+   * (plm.bom.released.v2) without HTTP to peers.
+   */
+  @Post(':id/approve')
+  async approveEco(
+    @Param('id') id: string,
+    @Body() body: { approvedBy?: string; rereleaseBoms?: boolean },
+    @Req() req: any,
+  ) {
+    const approvedBy = body?.approvedBy || req?.user?.id || 'system';
+    return this.commandBus.execute(
+      new ApproveEcoCommand(id, approvedBy, body?.rereleaseBoms !== false),
+    );
   }
 }
 

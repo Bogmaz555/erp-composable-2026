@@ -1,4 +1,8 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import {
+  assertValidEventPayload,
+  isEnterpriseProfile,
+} from '@erp/shared-kernel';
 import { PrismaService } from '../prisma.service';
 import { OutboxStatus } from '.prisma/client-pm';
 
@@ -33,6 +37,19 @@ export class RequestMaterialHandler implements ICommandHandler<RequestMaterialCo
     const tenantId = command.tenantId || 'default';
     const bomComponentId = command.bomComponentId || null;
 
+    const payload = {
+      projectId: projectId,
+      wbsElementId: command.taskId,
+      itemId: command.sku,
+      requestedQuantity: command.quantity,
+      bomComponentId,
+      tenantId,
+    };
+
+    if (isEnterpriseProfile()) {
+      assertValidEventPayload('pm.material.requested.v1', payload);
+    }
+
     // Emit correct event name that INV already listens for (pm.material.requested.v1)
     // Payload enriched with bomComponentId so INV Reservation can link exactly
     await this.prisma.isolatedClient.outboxEvent.create({
@@ -42,14 +59,7 @@ export class RequestMaterialHandler implements ICommandHandler<RequestMaterialCo
         aggregateId: command.taskId,
         aggregateType: 'MaterialRequest',
         eventType: 'pm.material.requested.v1',
-        payload: {
-          projectId: projectId,
-          wbsElementId: command.taskId,
-          itemId: command.sku,
-          requestedQuantity: command.quantity,
-          bomComponentId,
-          tenantId,
-        },
+        payload,
         status: OutboxStatus.PENDING,
       },
     });

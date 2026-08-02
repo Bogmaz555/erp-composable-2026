@@ -27,7 +27,7 @@ Ten dokument jest **Single Source of Truth** dla wszystkich zdarzeń w systemie.
 
 ### Project Management (PM)
 - `pm.project.created.v1` — **Planned**
-- `pm.project.released.v1` — **Planned**
+- `pm.project.released.v1` — **Active** (Enterprise Q1)
 - `pm.material.requested.v1` — **Active** (Faza 1B — Outbox from RequestMaterial, bomComponentId)
 - PM consumes `plm.bom.released.v2` — **Active** (@EventPattern in pm-service)
 - PM consumes `proc.purchaseorder.approved.v1` — **Active**
@@ -44,7 +44,7 @@ Ten dokument jest **Single Source of Truth** dla wszystkich zdarzeń w systemie.
 ### PLM
 - `plm.item.created.v1` — **Planned**
 - `plm.bom.released.v2` — **Active** (Faza 1)
-- `plm.eco.approved.v1` — **Planned**
+- `plm.eco.approved.v1` — **Active** (Enterprise Q1 — outbox on ECO approve)
 - `plm.bom.changed.v1` — **Planned**
 
 ### Inventory

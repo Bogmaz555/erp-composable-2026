@@ -12,6 +12,7 @@ export interface MrpNetLine {
   supplierCode?: string;
 }
 
+/** Read-only residual (Q1 R-Q1-1 / E1.5): HTTP GET for on-hand — never POST/PATCH to INV. */
 const INV_URL = process.env.INV_SERVICE_URL || 'http://127.0.0.1:4003';
 const DEFAULT_LEAD_DAYS = 14;
 
@@ -21,6 +22,7 @@ export class MrpNettingService {
 
   constructor(private readonly prisma: PrismaService) {}
 
+  /** GET-only projection input; stock mutations must use events (proc.material.received.v1 etc.). */
   private async fetchOnHandBySku(): Promise<Record<string, number>> {
     const map: Record<string, number> = {};
     try {

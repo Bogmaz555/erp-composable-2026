@@ -88,7 +88,11 @@ export class ProjectController {
     });
   }
 
-  /** Earned Value Management — PV/EV/AC/CPI/SPI dla projektów ETO */
+  /**
+   * Earned Value Management — PV/EV/AC/CPI/SPI for ETO projects (Q1 KD-E1.2).
+   * PV = baselineCost (fallback budget); EV = PV × WBS % complete;
+   * AC = actualLaborCost only (no toy buffer×1000 formula). Full GL AC → Q2.
+   */
   @Get(':id/evm')
   async getEvm(@Param('id') projectId: string) {
     const project = await this.prisma.project.findUnique({
@@ -96,18 +100,28 @@ export class ProjectController {
       include: { wbsElements: true, tasks: true },
     });
     if (!project) return { error: 'Project not found' };
-    // Decimal at rest (KD-5) → number for EVM math and JSON wire
-    const pv = Number(project.budget ?? 0);
+    const baseline = Number(project.baselineCost ?? 0);
+    const budget = Number(project.budget ?? 0);
+    const pv = baseline > 0 ? baseline : budget;
     const wbs = project.wbsElements;
     const done = wbs.filter((w) => w.status === 'DONE' || w.status === 'COMPLETED').length;
-    const pct = wbs.length ? done / wbs.length : (project.tasks.filter((t) => t.status === 'DONE').length / Math.max(project.tasks.length, 1));
+    const taskDone = project.tasks.filter((t) => t.status === 'DONE' || t.status === 'COMPLETED').length;
+    const pct = wbs.length
+      ? done / wbs.length
+      : project.tasks.length
+        ? taskDone / project.tasks.length
+        : 0;
     const ev = pv * pct;
-    const ac = (project.usedBufferDays ?? 0) * 1000 + done * 5000;
-    const cpi = ac > 0 ? ev / ac : 0;
+    // Honest AC: project-local actuals only (never invent usedBufferDays * 1000)
+    const ac = Number(project.actualLaborCost ?? 0);
+    const cpi = ac > 0 ? ev / ac : ev > 0 ? 1 : 0;
     const spi = pv > 0 ? ev / pv : 0;
+    const totalBuffer = project.totalBufferDays ?? 0;
+    const usedBuffer = project.usedBufferDays ?? 0;
+    const bufferUsedPct = totalBuffer > 0 ? usedBuffer / totalBuffer : 0;
     return {
       projectId,
-      plannedValue: pv,
+      plannedValue: Math.round(pv),
       earnedValue: Math.round(ev),
       actualCost: Math.round(ac),
       percentComplete: Math.round(pct * 100),
@@ -115,6 +129,14 @@ export class ProjectController {
       spi: Math.round(spi * 100) / 100,
       cpiStatus: cpi >= 1 ? 'GREEN' : cpi >= 0.9 ? 'AMBER' : 'RED',
       spiStatus: spi >= 1 ? 'GREEN' : spi >= 0.9 ? 'AMBER' : 'RED',
+      ccpm: {
+        totalBufferDays: totalBuffer,
+        usedBufferDays: usedBuffer,
+        bufferUsedPct: Math.round(bufferUsedPct * 100) / 100,
+        feverZone: project.feverZone ?? 'GREEN',
+        totalChainDays: project.totalChainDays ?? 0,
+      },
+      formula: 'PV=baselineCost|budget; EV=PV*%WBS; AC=actualLaborCost',
     };
   }
 
