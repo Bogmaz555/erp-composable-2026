@@ -1,14 +1,14 @@
 # Enterprise 2.0 — automation status
 
 ```
-updated: 2026-08-02T11:22:15.000Z
+updated: 2026-08-02T11:23:40.665Z
 program: enterprise-2.0
 baseline_tag: pilot-v1.1.0
 target_tag: enterprise-2.0.0
 tenancy: DEDICATED_STACK
 automation_mode: full
 branch: enterprise-0.1-platform
-sha: cc552cd
+sha: ec39c5a
 milestone: Q0
 phase: GATE
 milestone_index: 0
@@ -55,3 +55,5 @@ See `docs/enterprise-2.0/milestones.json` for milestone definitions and gates.
 | 2026-08-02T11:11:06.850Z | STATUS reset for full automation Q0 DESIGN |
 | 2026-08-02T11:14:28.873Z | Q0 DESIGN complete → IMPLEMENT |
 | 2026-08-02T11:22:00.000Z | Q0 IMPLEMENT: E0.1–E0.6 platform workstreams (JetStream enterprise, outbox lockedAt/By, processed_events, secrets B guard, auth iss/aud/azp, rate-limit, ADR-009) → GATE |
+
+| 2026-08-02T11:23:40.665Z | Q0 IMPLEMENT PR1-3 done (lockedAt reclaim green; tests 29/29) |
