@@ -3,6 +3,7 @@ import { CqrsModule, CommandBus } from '@nestjs/cqrs';
 import { FinanceController } from '../src/finance.controller';
 import { PrismaService } from '../src/prisma.service';
 import { ProjectAccountingService } from '../src/project-accounting.service';
+import { PeriodCloseService } from '../src/period-close.service';
 
 describe('Finance: Idempotency & Chaos Engineering', () => {
   let controller: FinanceController;
@@ -30,6 +31,7 @@ describe('Finance: Idempotency & Chaos Engineering', () => {
     const moduleRef: TestingModule = await Test.createTestingModule({
       controllers: [FinanceController],
       providers: [
+        { provide: PeriodCloseService, useValue: { assertPostingAllowed: jest.fn().mockResolvedValue(undefined), assertOpenForPosting: jest.fn().mockResolvedValue({ status: 'OPEN' }), ensureOpenPeriod: jest.fn().mockResolvedValue({ status: 'OPEN' }) } },
         { provide: CommandBus, useValue: commandBus },
         { provide: PrismaService, useValue: mockPrisma },
         { provide: ProjectAccountingService, useValue: {} },

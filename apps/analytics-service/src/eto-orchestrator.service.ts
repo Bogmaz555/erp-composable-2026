@@ -86,6 +86,7 @@ export class EtoOrchestratorService implements OnModuleInit {
   /**
    * Publish in-scope pilot compensation (finance.wip.cost.reversed).
    * Failures are logged — never swallowed with empty catch (G-lite).
+   * Enterprise Q2: also publish step-specific matrix compensations (revenue / reservation / commitment).
    */
   private async publishWipCompensation(
     job: { correlationId: string; projectId: string; tenantId: string; step: string },
@@ -108,6 +109,8 @@ export class EtoOrchestratorService implements OnModuleInit {
       this.logger.warn(
         `Compensation published (${reason}) correlationId=${job.correlationId} projectId=${job.projectId} step=${job.step}`,
       );
+      // Full financial matrix (KD-Q2-4) — best-effort additional subjects
+      await this.publishMatrixCompensations(job, reason);
       return true;
     } catch (e) {
       this.logger.error(
@@ -115,6 +118,63 @@ export class EtoOrchestratorService implements OnModuleInit {
         e instanceof Error ? e.stack : undefined,
       );
       return false;
+    }
+  }
+
+  /** Publish revenue reverse / reservation restore / commitment release based on failed step. */
+  private async publishMatrixCompensations(
+    job: { correlationId: string; projectId: string; tenantId: string; step: string },
+    reason: string,
+  ): Promise<void> {
+    const step = (job.step || '').toLowerCase();
+    const extras: string[] = [];
+    if (
+      step.includes('ksef') ||
+      step.includes('revenue') ||
+      step.includes('milestone') ||
+      step.includes('invoice') ||
+      step.includes('tax.')
+    ) {
+      extras.push('finance.revenue.reversed.v1');
+    }
+    if (
+      step.includes('reservation') ||
+      step.includes('inventory') ||
+      step.includes('stock.reserved')
+    ) {
+      extras.push('inventory.reservation.restored');
+    }
+    if (
+      step.includes('purchaseorder') ||
+      step.includes('proc.') ||
+      step.includes('commitment')
+    ) {
+      extras.push('finance.commitment.released.v1');
+    }
+    for (const subject of extras) {
+      try {
+        const ok = await this.nats.publishCompensation(
+          subject,
+          job.correlationId,
+          job.projectId,
+          job.step,
+          job.tenantId || 'default',
+        );
+        if (!ok) {
+          this.logger.error(
+            `Matrix compensation publish failed (${reason}) subject=${subject} correlationId=${job.correlationId}`,
+          );
+        } else {
+          this.logger.warn(
+            `Matrix compensation published (${reason}) subject=${subject} correlationId=${job.correlationId}`,
+          );
+        }
+      } catch (e) {
+        this.logger.error(
+          `Matrix compensation threw (${reason}) subject=${subject}: ${(e as Error).message}`,
+          e instanceof Error ? e.stack : undefined,
+        );
+      }
     }
   }
 

@@ -11,7 +11,14 @@ describe('Finance: finance.payment.milestone.reached.v1', () => {
       $transaction: jest.fn(async (cb: (tx: typeof store) => Promise<unknown>) => cb(store)),
     };
     const commandBus = { execute: jest.fn() };
-    const controller = new MilestoneIntegrationController(prisma as any, commandBus as any);
+    const periods = { assertOpenForPosting: jest.fn(), assertPostingAllowed: jest.fn() };
+    const arAp = { createArInvoice: jest.fn() };
+    const controller = new MilestoneIntegrationController(
+      prisma as any,
+      commandBus as any,
+      periods as any,
+      arAp as any,
+    );
     await controller.handleMilestoneReached({
       projectId: 'proj-1',
       milestone: 'SAT',

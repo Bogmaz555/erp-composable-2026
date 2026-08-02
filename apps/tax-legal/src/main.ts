@@ -2,8 +2,11 @@ import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Transport, MicroserviceOptions } from '@nestjs/microservices';
 import { TaxLegalModule } from './tax-legal.module';
+import { assertKsefEnterpriseBoot } from './ksef-enterprise-boot';
 
 async function bootstrap() {
+  assertKsefEnterpriseBoot();
+
   const app = await NestFactory.create<NestFastifyApplication>(
     TaxLegalModule,
     new FastifyAdapter(),

@@ -26,21 +26,35 @@ export class TaxLegalController {
 
   @Get('ksef/status')
   ksefStatus() {
-    return this.ksef.getStatus();
+    const status = this.ksef.getStatus();
+    const mode = process.env.KSEF_MODE || 'sandbox';
+    return {
+      ...status,
+      mode: status.mode || mode,
+      defaultMode: 'sandbox',
+      enterpriseFailClosed:
+        mode === 'production' &&
+        (process.env.ENTERPRISE === '1' ||
+          process.env.ENTERPRISE === 'true' ||
+          process.env.ERP_PROFILE === 'enterprise'),
+      checkedAt: new Date().toISOString(),
+    };
   }
 
   @Get('ksef/production/profile')
   ksefProductionProfile() {
     const mode = process.env.KSEF_MODE || 'sandbox';
     const status = this.ksef.getStatus();
+    const configured = !!(process.env.KSEF_API_URL && process.env.KSEF_TOKEN);
     return {
       mode,
       faSchema: 'FA(3)',
       production: status,
-      profileReady:
-        mode === 'production'
-          ? !!(process.env.KSEF_API_URL && process.env.KSEF_TOKEN)
-          : true,
+      profileReady: mode === 'production' ? configured : true,
+      failClosed: mode === 'production' && !configured,
+      secretsInGit: false,
+      requiredEnv: mode === 'production' ? ['KSEF_API_URL', 'KSEF_TOKEN'] : [],
+      runbook: 'docs/enterprise-2.0/KSEF-RUNBOOK.md',
       checkedAt: new Date().toISOString(),
     };
   }

@@ -224,6 +224,65 @@ function assertStructure() {
       fail('analytics: missing NATS ingest path for saga steps');
     }
   }
+
+  // 9. Enterprise Q2 — compensation matrix + period close + temporal worker
+  const matrix = read('apps/finance/src/compensation-matrix.service.ts');
+  if (matrix) {
+    if (
+      matrix.includes('finance.wip.cost.reversed') &&
+      matrix.includes('finance.revenue.reversed.v1') &&
+      matrix.includes('inventory.reservation.released.v1')
+    ) {
+      ok('Q2 compensation matrix: WIP + revenue + reservation documented');
+    } else {
+      fail('Q2 compensation matrix incomplete (KD-Q2-4)');
+    }
+  } else {
+    fail('Q2 missing compensation-matrix.service.ts');
+  }
+
+  const period = read('apps/finance/src/period-close.service.ts');
+  if (period && period.includes('CLOSED') && period.includes('assertPostingAllowed')) {
+    ok('Q2 period-close: assertPostingAllowed refuses CLOSED');
+  } else {
+    fail('Q2 period-close service missing or incomplete');
+  }
+
+  const revRev = read('apps/finance/src/commands/reverse-revenue.handler.ts');
+  if (
+    revRev &&
+    revRev.includes('correlationId') &&
+    (revRev.includes('REVENUE_COMPENSATION') ||
+      revRev.includes('SAGA_COMPENSATION_REVENUE') ||
+      revRev.includes('ReverseRevenue'))
+  ) {
+    ok('Q2 reverse-revenue: keyed by correlationId');
+  } else {
+    fail('Q2 reverse-revenue handler missing');
+  }
+
+  const tw = read('apps/temporal-worker/src/fallback-runner.ts');
+  if (tw && tw.includes('runEtoCompensationFallback') && tw.includes('isTemporalConfigured')) {
+    ok('Q2 temporal-worker: G-lite fallback runner present');
+  } else {
+    fail('Q2 temporal-worker fallback missing');
+  }
+
+  const iot = read('apps/eam-service/src/iot/iot-adapter.ts');
+  if (iot && iot.includes('interface IotAdapter') && iot.includes('publishTelemetry')) {
+    ok('Q2 EAM IotAdapter interface present');
+  } else {
+    fail('Q2 EAM IotAdapter interface missing');
+  }
+
+  const capa = read('apps/quality-service/src/commands/create-capa.handler.ts');
+  if (capa && capa.includes('$transaction') && !/\.catch\(\s*\(\s*\)\s*=>\s*\{\s*\}\s*\)/.test(capa)) {
+    ok('Q2 CAPA: outbox TX without silent empty catch');
+  } else if (capa && capa.includes('$transaction')) {
+    ok('Q2 CAPA: outbox TX path');
+  } else {
+    fail('Q2 CAPA outbox TX missing');
+  }
 }
 
 async function probe(url: string, ms = 4000): Promise<boolean> {

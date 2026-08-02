@@ -4,6 +4,8 @@ import type { PurchaseOrderApprovedEvent } from '@erp/shared-kernel';
 import { CommandBus } from '@nestjs/cqrs';
 import { PrismaService } from './prisma.service';
 import { bookProcurementCommitment } from './proc-commitment';
+import { PeriodCloseService } from './period-close.service';
+import { ArApService } from './ar-ap.service';
 
 @Controller()
 export class ProcIntegrationController {
@@ -12,6 +14,8 @@ export class ProcIntegrationController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly commandBus: CommandBus,
+    private readonly periods: PeriodCloseService,
+    private readonly arAp: ArApService,
   ) {}
 
   @EventPattern('proc.purchaseorder.approved.v1')
@@ -21,6 +25,8 @@ export class ProcIntegrationController {
       this.commandBus,
       payload,
       this.logger,
+      this.periods,
+      this.arAp,
     );
   }
 }

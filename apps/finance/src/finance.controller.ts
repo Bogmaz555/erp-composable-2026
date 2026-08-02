@@ -21,6 +21,7 @@ import { ProjectAccountingService } from './project-accounting.service';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { RolesGuard } from './auth/roles.guard';
 import { Roles } from './auth/roles.decorator';
+import { PeriodCloseService } from './period-close.service';
 
 // Guards only on HTTP mutations — do NOT apply at class level (NATS EventPattern + health).
 @Controller('fin')
@@ -31,6 +32,7 @@ export class FinanceController {
     private readonly commandBus: CommandBus,
     private readonly prisma: PrismaService,   // for real ProjectCost / WIP accounting (ETO)
     private readonly projectAccounting: ProjectAccountingService,
+    private readonly periods: PeriodCloseService,
   ) {}
 
   @Get('health')
@@ -339,16 +341,19 @@ export class FinanceController {
     });
   }
 
-  /** HTTP WIP / GL write — only mutation guarded (ETO matrix FIN_WIP_WRITE). */
+  /** HTTP WIP / GL write — only mutation guarded (ETO matrix FIN_WIP_WRITE). Period must be OPEN. */
   @Post('journal')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(...ETO_MUTATION_ROLES.FIN_WIP_WRITE)
-  async postJournal(@Body() body: { accountCode: string; amount: number; type: 'DEBIT' | 'CREDIT'; description?: string; referenceId?: string }) {
+  async postJournal(@Body() body: { accountCode: string; amount: number; type: 'DEBIT' | 'CREDIT'; description?: string; referenceId?: string; tenantId?: string }) {
+    const tenantId = body.tenantId || 'default';
+    await this.periods.assertOpenOrHttp(tenantId);
     await this.seedDefaultAccounts();
     const account = await this.prisma.account.findUnique({ where: { code: body.accountCode } });
     if (!account) throw new Error(`Konto ${body.accountCode} nie istnieje`);
     const entry = await this.prisma.journalEntry.create({
       data: {
+        tenantId,
         accountId: account.id,
         amount: body.amount,
         type: body.type as EntryType,

@@ -4,15 +4,32 @@ import type { CommandBus } from '@nestjs/cqrs';
 import { RecordTransactionCommand } from './commands/record-transaction.handler';
 import { computeMaterialCommitmentPln } from './eto-project-costing';
 import { ensureAccount } from './finance-accounts';
+import type { PeriodCloseService } from './period-close.service';
+import { PeriodClosedError } from './period-close.service';
+import type { ArApService } from './ar-ap.service';
 
 export async function bookProcurementCommitment(
   prisma: PrismaService,
   commandBus: CommandBus,
   payload: PurchaseOrderApprovedEvent,
   logger: { log: (m: string) => void; warn: (m: string) => void },
+  periods?: PeriodCloseService,
+  arAp?: ArApService,
 ) {
   const amount = computeMaterialCommitmentPln(payload.quantity);
   const tenantId = 'default';
+
+  if (periods) {
+    try {
+      await periods.assertOpenForPosting(tenantId);
+    } catch (e) {
+      if (e instanceof PeriodClosedError) {
+        logger.warn(`[Finance] PO commitment refused (period closed): ${e.message}`);
+        return { ok: false, reason: 'period_closed', periodCode: e.periodCode };
+      }
+      throw e;
+    }
+  }
 
   if (payload.projectId) {
     try {
@@ -77,5 +94,26 @@ export async function bookProcurementCommitment(
     logger.warn(`[Finance] Payable create failed: ${(e as Error).message}`);
   }
 
+  // Q2 PR2: AP bill skeleton linked to journal
+  if (arAp) {
+    try {
+      const due = new Date();
+      due.setDate(due.getDate() + 14);
+      await arAp.createApBill({
+        tenantId,
+        vendor: payload.sku || 'vendor',
+        amount,
+        currency: 'PLN',
+        orderRef: payload.orderId,
+        correlationId: payload.orderId,
+        dueDate: due,
+        postToJournal: true,
+      });
+    } catch (e) {
+      logger.warn(`[Finance] ApBill create failed: ${(e as Error).message}`);
+    }
+  }
+
   logger.log(`[Finance] Procurement commitment ${amount} PLN for PO ${payload.orderId}`);
+  return { ok: true, amount };
 }
