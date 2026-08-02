@@ -1,16 +1,16 @@
 # Enterprise 2.0 — automation status
 
 ```
-updated: 2026-08-02T11:54:25.554Z
+updated: 2026-08-02T12:05:36.655Z
 program: enterprise-2.0
 baseline_tag: pilot-v1.1.0
 target_tag: enterprise-2.0.0
 tenancy: DEDICATED_STACK
 automation_mode: full
 branch: enterprise-0.3-finance-compliance
-sha: f68832e
+sha: 0daa02c
 milestone: Q2
-phase: IMPLEMENT
+phase: GATE
 milestone_index: 1
 phase_index: 1
 state: READY
@@ -23,8 +23,10 @@ checklist: Q0: done
   Q5: pending
   automation_scaffold: true
 last_error: none
-next_action: Execute docs/enterprise-2.0/NEXT_AGENT_PROMPT.md (Q2/IMPLEMENT)
+next_action: Execute docs/enterprise-2.0/NEXT_AGENT_PROMPT.md (Q2/GATE)
 resume_prompt: |
+  RESUME Enterprise 2.0. checkout current branch. Read docs/ENTERPRISE-2.0-STATUS.md.
+  milestone=Q2 phase=GATE. Continue autonomy. No confirmation pauses.
   RESUME Enterprise 2.0. checkout current branch. Read docs/ENTERPRISE-2.0-STATUS.md.
   milestone=Q2 phase=IMPLEMENT. Continue autonomy. No confirmation pauses.
   RESUME Enterprise 2.0. checkout current branch. Read docs/ENTERPRISE-2.0-STATUS.md.
@@ -76,3 +78,4 @@ See `docs/enterprise-2.0/milestones.json` for milestone definitions and gates.
 | 2026-08-02T11:53:25.457Z | Q1 RELEASE complete; Q2 DESIGN next (finance compliance) |
 | 2026-08-02T11:53:37.044Z | on Q2 branch after Q1 release |
 | 2026-08-02T11:54:25.554Z | advance success: Q2/IMPLEMENT Q2 design ENTERPRISE-0.3-FINANCE-DESIGN.md complete |
+| 2026-08-02T12:05:36.655Z | advance success: Q2/GATE Q2 IMPLEMENT PR1-8: period close, AR/AP, KSeF fail-closed, compensations, CAPA outbox TX, IotAdapter, Temporal worker+fallback |
