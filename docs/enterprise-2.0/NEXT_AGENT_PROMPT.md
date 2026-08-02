@@ -1,25 +1,21 @@
-<!-- generated 2026-08-02T11:27:13.821Z milestone=Q0 phase=GATE sha=fac21c5 -->
+<!-- generated 2026-08-02T11:27:54.919Z milestone=Q0 phase=RELEASE sha=fac21c5 -->
 <!-- Unattended: paste into Grok OR run /workflow enterprise-20-step|continuous -->
 
-# AGENT MISSION — Q0 GATE (autonomous)
+# AGENT MISSION — Q0 RELEASE (autonomous)
 
 Repo: /home/bogdan-mazur/PROGRAMY/ERP/erp-composable-2026
 Branch: `enterprise-0.1-platform`
+Tag: **enterprise-0.1-platform**
 
 ## Task
-1. Run: `bash scripts/enterprise-2.0/gate-check.sh Q0`
-2. Also run live commands if stack available:
-  - `pnpm run smoke:pilot`
-  - `REQUIRE_LIVE=1 REQUIRE_LIVE_STRICT=1 pnpm run smoke:pilot`
-  - `REQUIRE_LIVE=1 npx tsx scripts/smoke-outbox-live-hard.ts`
-  - `REQUIRE_LIVE=1 REQUIRE_LIVE_STRICT=1 npx tsx scripts/smoke-saga-compensation.ts`
-  - `bash scripts/ci-no-secrets.sh`
-  - `pnpm run db:check:baselines`
-  - `pnpm run check:no-float-money`
-3. If fail: fix (max 3 attempts), re-gate; if still fail STATUS state=BLOCKED with last_error
-4. If pass: STATUS phase=RELEASE, commit, push
+1. Ensure gates green
+2. `gh pr create --base master --head enterprise-0.1-platform` (or update existing)
+3. Merge when required CI green (admin OK if only optional red)
+4. Tag `enterprise-0.1-platform` on merge commit; push tag
+5. Advance STATUS to next milestone DESIGN (or DONE if Q5)
+6. Commit STATUS on master or automation branch; push
 
-Boot stack if needed: `bash scripts/boot-pilot-complete.sh` (or enterprise boot when exists).
+Milestone order: Q0→Q1→Q2→Q3→Q4→Q5→DONE
 
 START NOW.
 
