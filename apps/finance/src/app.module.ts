@@ -39,6 +39,9 @@ import { FinWipJetStreamConsumer } from './jetstream-fin-wip.consumer';
     FixedAssetsService,
     UniversalJournalService,
     ProjectAccountingService,
+    // Controllers also as providers so FinWipJetStreamConsumer can inject them
+    FinanceController,
+    UniversalJournalController,
     FinWipJetStreamConsumer,
   ],
 })

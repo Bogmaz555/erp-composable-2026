@@ -1,19 +1,15 @@
 [
   {
     "correlationId": "eto-demo-chain",
-    "projectId": "proj-eto-live",
+    "projectId": "proj-eto-demo",
     "status": "ACTIVE",
     "completedSteps": [
-      "plm.bom.released.v2",
-      "mes.production.recorded.v1",
-      "inventory.reservation.created.v1",
       "inventory.reservation.released.v1",
-      "pm.material.requested.v1",
-      "mes.workorder.planned",
-      "finance.wip.cost.recorded"
+      "inventory.reservation.created.v1",
+      "mes.production.recorded.v1"
     ],
-    "lastEventAt": "2026-08-02T09:14:47.700Z",
-    "percentComplete": 100
+    "lastEventAt": "2026-08-02T10:39:07.257Z",
+    "percentComplete": 43
   },
   {
     "correlationId": "6c5e06ea-4489-4df3-9e0d-6a8b5d709864",
@@ -594,5 +590,21 @@
     ],
     "lastEventAt": "2026-06-05T16:19:33.925Z",
     "percentComplete": 43
+  },
+  {
+    "correlationId": "saga-glite-1785667111731",
+    "projectId": "proj-glite-1785667111731",
+    "status": "ACTIVE",
+    "completedSteps": [],
+    "lastEventAt": "2026-08-02T10:38:31.808Z",
+    "percentComplete": 0
+  },
+  {
+    "correlationId": "saga-glite-1785667128777",
+    "projectId": "proj-glite-1785667128777",
+    "status": "ACTIVE",
+    "completedSteps": [],
+    "lastEventAt": "2026-08-02T10:38:48.846Z",
+    "percentComplete": 0
   }
 ]

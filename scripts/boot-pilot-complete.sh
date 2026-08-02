@@ -64,25 +64,22 @@ kill_port() { fuser -k "$1/tcp" 2>/dev/null || true; }
 for p in 4001 4002 4003 4004 4005 4006 4007 4010 4011; do kill_port "$p"; done
 sleep 1
 
-start() {
-  local name="$1"; shift
-  nohup env "$@" bash -c "$*" >"$LOG/${name}.log" 2>&1 &
+start_bg() {
+  local name="$1"
+  shift
+  nohup bash -c "$*" >"$LOG/${name}.log" 2>&1 &
   echo $! >"$LOG/${name}.pid"
   log "started $name pid=$(cat "$LOG/${name}.pid")"
 }
 
-start gateway AUTH_ENFORCE=true USE_KEYCLOAK_JWKS=true NATS_JETSTREAM=true MEILI_MASTER_KEY="$MEILI_MASTER_KEY" \
-  "pnpm run start:gateway"
-start pm PM_DATABASE_URL="$PM_DATABASE_URL" NATS_JETSTREAM=true DEFAULT_TENANT_ID="$DEFAULT_TENANT_ID" \
-  "pnpm run start:pm"
-start inv NATS_JETSTREAM=true "pnpm run start:inv"
-start proc PROC_DATABASE_URL="$PROC_DATABASE_URL" NATS_JETSTREAM=true "pnpm run start:proc"
-start plm NATS_JETSTREAM=true "pnpm run start:plm"
-start mes NATS_JETSTREAM=true "pnpm run start:mes"
-start finance NATS_JETSTREAM=true "pnpm run start:fin:prod || pnpm run start:fin"
-start analytics ANALYTICS_DATABASE_URL="$ANALYTICS_DATABASE_URL" DATABASE_URL="$ANALYTICS_DATABASE_URL" \
-  ANALYTICS_NATS_DISABLE=true NATS_JETSTREAM=true \
-  "node apps/analytics-service/dist/main.js 2>/dev/null || (cd apps/analytics-service && npx tsc -p tsconfig.json && node dist/main.js)"
+start_bg gateway "export AUTH_ENFORCE=true USE_KEYCLOAK_JWKS=true NATS_JETSTREAM=true MEILI_MASTER_KEY='$MEILI_MASTER_KEY' NATS_URL='$NATS_URL' HOST='$HOST'; pnpm run start:gateway"
+start_bg pm "export PM_DATABASE_URL='$PM_DATABASE_URL' NATS_JETSTREAM=true DEFAULT_TENANT_ID='$DEFAULT_TENANT_ID' NATS_URL='$NATS_URL' HOST='$HOST'; pnpm run start:pm"
+start_bg inv "export NATS_JETSTREAM=true NATS_URL='$NATS_URL' HOST='$HOST'; pnpm run start:inv"
+start_bg proc "export PROC_DATABASE_URL='$PROC_DATABASE_URL' NATS_JETSTREAM=true NATS_URL='$NATS_URL' HOST='$HOST'; pnpm run start:proc"
+start_bg plm "export NATS_JETSTREAM=true NATS_URL='$NATS_URL' HOST='$HOST'; pnpm run start:plm"
+start_bg mes "export NATS_JETSTREAM=true NATS_URL='$NATS_URL' HOST='$HOST'; pnpm run start:mes"
+start_bg finance "export NATS_JETSTREAM=true NATS_URL='$NATS_URL' HOST='$HOST' FINANCE_DATABASE_URL='$FINANCE_DATABASE_URL'; pnpm run start:fin:prod || pnpm run start:fin"
+start_bg analytics "export ANALYTICS_DATABASE_URL='$ANALYTICS_DATABASE_URL' DATABASE_URL='$ANALYTICS_DATABASE_URL' ANALYTICS_NATS_DISABLE=true NATS_JETSTREAM=true HOST='$HOST'; if [ -f apps/analytics-service/dist/main.js ]; then node apps/analytics-service/dist/main.js; else (cd apps/analytics-service && npx tsc -p tsconfig.json && node dist/main.js); fi"
 
 log "wait health matrix"
 declare -A PORTS=([gateway]=4005 [pm]=4002 [inv]=4003 [proc]=4004 [mes]=4006 [plm]=4007 [fin]=4010 [analytics]=4011)
