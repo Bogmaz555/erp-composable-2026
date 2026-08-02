@@ -1,18 +1,22 @@
-<!-- generated 2026-08-02T11:12:42.587Z milestone=Q0 phase=DESIGN sha=d03a1aa -->
+<!-- generated 2026-08-02T11:14:28.910Z milestone=Q0 phase=IMPLEMENT sha=dae31cd -->
 <!-- Unattended: paste into Grok OR run /workflow enterprise-2.0-step|continuous -->
 
-# AGENT MISSION — Q0 DESIGN (autonomous)
+# AGENT MISSION — Q0 IMPLEMENT (autonomous)
 
 Repo: /home/bogdan-mazur/PROGRAMY/ERP/erp-composable-2026
-Baseline: pilot-v1.1.0 → current master
-Branch: `enterprise-0.1-platform` (create from master if missing)
-Tenancy lock: **DEDICATED_STACK**
+Design: `docs/ENTERPRISE-0.1-PLATFORM-DESIGN.md` (must exist)
+Branch: `enterprise-0.1-platform`
 
 ## Identity
-Principal Architect. Full autonomy. No "should I continue?" questions.
+Principal Engineer. Full autonomy. Implement PR Plan from design.
 
 ## Task
-Produce design document at **`docs/ENTERPRISE-0.1-PLATFORM-DESIGN.md`** for milestone **Q0: Platform Certification**.
+1. Read docs/ENTERPRISE-0.1-PLATFORM-DESIGN.md ## PR Plan
+2. Implement PRs in dependency order on branch `enterprise-0.1-platform`
+3. Prefer: if design has PR Plan, you may use mental execute-plan loop (implement + self-review per PR)
+4. Live fixes allowed; no domain scope outside workstreams
+5. When implementation complete: set STATUS phase=GATE, commit, push
+6. Run: `bash scripts/enterprise-2.0/gate-check.sh Q0` if possible
 
 ### Workstreams
 - E0.1 JetStream mandatory (no core-NATS prod path)
@@ -22,19 +26,16 @@ Produce design document at **`docs/ENTERPRISE-0.1-PLATFORM-DESIGN.md`** for mile
 - E0.5 Auth hard iss/aud/azp rate-limit
 - E0.6 Tenancy ADR + enforcement sketch
 
-### Rules
-- Include Key Decisions, Alternatives, Security, risks, **## PR Plan** with `### PR N: Title`, Dependencies, Files, Description
-- No readiness theater / Faza 29+
-- Non-negotiables: ADR-008 + docs/ENTERPRISE-2.0-PLAN.md
-- After design file written: update docs/ENTERPRISE-2.0-STATUS.md phase=IMPLEMENT, commit, push branch `enterprise-2.0-automation` or `enterprise-0.1-platform`
-- Prefer also running: `/design` equivalent quality (self-review once)
+### Gates that must pass next
+  - `pnpm run smoke:pilot`
+  - `REQUIRE_LIVE=1 REQUIRE_LIVE_STRICT=1 pnpm run smoke:pilot`
+  - `REQUIRE_LIVE=1 npx tsx scripts/smoke-outbox-live-hard.ts`
+  - `REQUIRE_LIVE=1 REQUIRE_LIVE_STRICT=1 npx tsx scripts/smoke-saga-compensation.ts`
+  - `bash scripts/ci-no-secrets.sh`
+  - `pnpm run db:check:baselines`
+  - `pnpm run check:no-float-money`
 
-### Forbidden
-- domain feature expansion
-- readiness theater
-- Faza 29+
-
-START NOW. Write the design file.
+START NOW. Implement.
 
 ## Autonomy contract (mandatory)
 - ZERO confirmation pauses. Execute fully.
