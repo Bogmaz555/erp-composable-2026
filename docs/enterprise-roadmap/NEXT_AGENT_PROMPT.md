@@ -1,21 +1,22 @@
-<!-- generated 2026-08-03T20:31:10.848Z milestone=E2 phase=IMPLEMENT sha=28aeb63 -->
+<!-- generated 2026-08-03T20:42:04.061Z milestone=E3 phase=DESIGN sha=b0fe55c -->
 <!-- Enterprise roadmap — paste into Grok or scheduler RESUME -->
 
-# AGENT MISSION — E2 IMPLEMENT
+# AGENT MISSION — E3 DESIGN
 
-Design: `docs/ENTERPRISE-ROADMAP-E2-DESIGN.md`
-Branch: `enterprise-roadmap-e2`
+Repo: /home/bogdan-mazur/PROGRAMY/ERP/erp-composable-2026
+Branch: `enterprise-roadmap-e3` from master
+Tenancy: **DEDICATED_STACK** · GA_LITE_SIGNED=true
 
-1. Implement ## PR Plan
-2. STATUS → GATE, commit, push
-3. Gate commands:
-  - `bash scripts/ci-no-secrets.sh`
-  - `bash scripts/enterprise-roadmap/check-e2-domain.sh`
+## Task
+Write **`docs/ENTERPRISE-ROADMAP-E3-DESIGN.md`** for **E3: Platform product** with Key Decisions, risks, **## PR Plan** and `### PR` sections.
 
 ### Workstreams
-- CRM→PM→PLM happy path
-- PROC→INV→MES depth
-- FIN period/AR-AP/compensation
-- Quality/EAM/DMS/webhooks
-- ETO week UX + RBAC nav
+- Helm/GitOps deploy path
+- Vault/external secrets story
+- Immutable backup + cutover v2
+- Pentest High closed or residual
+- DEDICATED_STACK provision script
+
+After design: advance STATUS to IMPLEMENT, commit, push, `pnpm run enterprise-roadmap:step`.
+Forbidden: reset 2.0/2.1 DONE, secrets, force-push master.
 START NOW.
