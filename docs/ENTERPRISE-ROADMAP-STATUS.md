@@ -1,28 +1,28 @@
 # Enterprise Roadmap — automation status
 
 ```
-updated: 2026-08-03T20:31:10.813Z
+updated: 2026-08-03T20:42:04.030Z
 program: enterprise-roadmap
 baseline_tag: enterprise-2.1.0
 target_tag: enterprise-2.4.0
 tenancy: DEDICATED_STACK
 automation_mode: full
 branch: master
-sha: 28aeb63
-milestone: E2
-phase: IMPLEMENT
+sha: b0fe55c
+milestone: E3
+phase: DESIGN
 milestone_index: 0
 phase_index: 0
 state: READY
 checklist:
   E0: done
   E1: done
-  E2: pending
+  E2: done
   E3: pending
   E4: pending
   control_plane: true
 last_error: none
-next_action: Execute docs/enterprise-roadmap/NEXT_AGENT_PROMPT.md (E2/IMPLEMENT)
+next_action: Execute docs/enterprise-roadmap/NEXT_AGENT_PROMPT.md (E3/DESIGN)
 resume_prompt: |
   RESUME Enterprise roadmap full automation. Zero confirmation pauses.
   Repo: /home/bogdan-mazur/PROGRAMY/ERP/erp-composable-2026
@@ -53,3 +53,6 @@ GA_LITE_SIGNED: true
 | 2026-08-03T20:30:28.034Z | advance success: E1/RELEASE gate passed E1 |
 | 2026-08-03T20:30:28.060Z | advance success: E2/DESIGN E1 RELEASE hardening pack |
 | 2026-08-03T20:31:10.813Z | advance success: E2/IMPLEMENT E2 design + UAT path |
+| 2026-08-03T20:42:01.308Z | advance success: E2/GATE E2 implement CRM→PM slice |
+| 2026-08-03T20:42:04.001Z | advance success: E2/RELEASE gate passed E2 |
+| 2026-08-03T20:42:04.030Z | advance success: E3/DESIGN E2 RELEASE CRM-PM path |

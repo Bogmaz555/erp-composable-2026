@@ -32,3 +32,9 @@ Docs only; STATUS → IMPLEMENT for code slices.
 
 ### PR 2–5
 See workstreams; each ends with gate slice green.
+
+## Delivery note (2026-08-03)
+
+**Shipped in first E2 code slice:** CRM pipeline ACCEPTED → outbox `crm.opportunity.won.v1` → PM project (NATS + HTTP `POST /projects/from-opportunity`), frontend CRM gateway URL fix, smoke-e2-crm-pm.
+
+**Residual PR 3–5:** PLM long-lead, INV/MES/FIN depth, UX RBAC polish — continue on E3 or follow-up E2.x if needed. Tag `enterprise-2.3.0` marks CRM→PM spine hardening + UAT path, not full domain complete.

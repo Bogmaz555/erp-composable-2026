@@ -5,6 +5,7 @@ import { GetProjectTasksQuery } from './queries/get-project-tasks.query';
 import { RequestMaterialCommand } from './commands/request-material.handler';
 import { ReleaseProjectCommand } from './commands/release-project.handler';
 import { ReachProjectMilestoneCommand } from './commands/reach-project-milestone.command';
+import { CreateProjectFromOpportunityCommand } from './commands/create-project-from-opportunity.command';
 import { ETO_MUTATION_ROLES, type MilestoneType } from '@erp/shared-kernel';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { RolesGuard } from './auth/roles.guard';
@@ -24,6 +25,33 @@ export class ProjectController {
     private readonly schedule: ScheduleService,
     private readonly mspXml: MspXmlService,
   ) {}
+
+  /**
+   * E2 sync path: CRM opportunity → PM project (idempotent by opportunityId).
+   * Complements NATS crm.opportunity.won.v1 consumer for UAT without waiting for relay.
+   */
+  @Post('from-opportunity')
+  @Roles(...ETO_MUTATION_ROLES.PM_MATERIAL_REQUEST, 'ADMIN', 'SALES')
+  async createFromOpportunity(
+    @Body()
+    body: {
+      opportunityId: string;
+      name?: string;
+      targetRevenue?: number;
+      baselineCost?: number;
+      bomItems?: unknown[];
+    },
+  ) {
+    return this.commandBus.execute(
+      new CreateProjectFromOpportunityCommand(
+        body.opportunityId,
+        body.name || 'Project from CRM opportunity',
+        Number(body.targetRevenue ?? 0),
+        Number(body.baselineCost ?? 0),
+        (body.bomItems as unknown[]) || [],
+      ),
+    );
+  }
 
   /** Harmonogram WBS + ścieżka krytyczna (CCPM/Gantt data) */
   @Get(':id/schedule')
