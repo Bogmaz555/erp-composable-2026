@@ -1,0 +1,107 @@
+{
+  "program": "enterprise-roadmap",
+  "baseline_tag": "enterprise-2.1.0",
+  "target_tag": "enterprise-2.4.0",
+  "tenancy_default": "DEDICATED_STACK",
+  "milestones": [
+    {
+      "id": "E0",
+      "name": "GA-lite sign-off",
+      "tag": "enterprise-2.1.0-signed",
+      "branch": "enterprise-roadmap-e0",
+      "design_doc": "docs/ENTERPRISE-ROADMAP-E0-DESIGN.md",
+      "phases": ["DESIGN", "IMPLEMENT", "GATE", "RELEASE"],
+      "workstreams": [
+        "Complete GA-LITE-SIGNOFF evidence pack",
+        "ci-no-secrets green",
+        "DR dry-run evidence on erp-pilot-dr",
+        "Secrets + on-call review recorded",
+        "Set GA_LITE_SIGNED=true when evidence honest"
+      ],
+      "gate_commands": [
+        "bash scripts/ci-no-secrets.sh",
+        "bash scripts/enterprise-roadmap/check-e0-signoff.sh"
+      ]
+    },
+    {
+      "id": "E1",
+      "name": "Production hardening",
+      "tag": "enterprise-2.2.0",
+      "branch": "enterprise-roadmap-e1",
+      "design_doc": "docs/ENTERPRISE-ROADMAP-E1-DESIGN.md",
+      "depends_on": ["E0"],
+      "phases": ["DESIGN", "IMPLEMENT", "GATE", "RELEASE"],
+      "workstreams": [
+        "JetStream HA live or residual sign-off update",
+        "Outbox lag metrics/alerts",
+        "JWT_AUDIENCE + JWT_AZP_ALLOWLIST staging/prod",
+        "Keycloak tenantId claim path",
+        "Backup core DBs + migrate deploy policy",
+        "OTel core + SLO + SBOM CI"
+      ],
+      "gate_commands": [
+        "bash scripts/ci-no-secrets.sh",
+        "bash scripts/ci-pilot-auth-env.sh",
+        "bash scripts/enterprise-roadmap/check-e1-hardening.sh"
+      ]
+    },
+    {
+      "id": "E2",
+      "name": "Domain depth ETO",
+      "tag": "enterprise-2.3.0",
+      "branch": "enterprise-roadmap-e2",
+      "design_doc": "docs/ENTERPRISE-ROADMAP-E2-DESIGN.md",
+      "depends_on": ["E1"],
+      "phases": ["DESIGN", "IMPLEMENT", "GATE", "RELEASE"],
+      "workstreams": [
+        "CRM→PM→PLM happy path",
+        "PROC→INV→MES depth",
+        "FIN period/AR-AP/compensation",
+        "Quality/EAM/DMS/webhooks",
+        "ETO week UX + RBAC nav"
+      ],
+      "gate_commands": [
+        "bash scripts/ci-no-secrets.sh",
+        "bash scripts/enterprise-roadmap/check-e2-domain.sh"
+      ]
+    },
+    {
+      "id": "E3",
+      "name": "Platform product",
+      "tag": "enterprise-2.4.0",
+      "branch": "enterprise-roadmap-e3",
+      "design_doc": "docs/ENTERPRISE-ROADMAP-E3-DESIGN.md",
+      "depends_on": ["E2"],
+      "phases": ["DESIGN", "IMPLEMENT", "GATE", "RELEASE"],
+      "workstreams": [
+        "Helm/GitOps deploy path",
+        "Vault/external secrets story",
+        "Immutable backup + cutover v2",
+        "Pentest High closed or residual",
+        "DEDICATED_STACK provision script"
+      ],
+      "gate_commands": [
+        "bash scripts/ci-no-secrets.sh",
+        "bash scripts/enterprise-roadmap/check-e3-platform.sh"
+      ]
+    },
+    {
+      "id": "E4",
+      "name": "Multi-tenant or deferred",
+      "tag": "enterprise-3.0.0",
+      "branch": "enterprise-roadmap-e4",
+      "design_doc": "docs/ENTERPRISE-ROADMAP-E4-DESIGN.md",
+      "depends_on": ["E3"],
+      "phases": ["DESIGN", "IMPLEMENT", "GATE", "RELEASE"],
+      "workstreams": [
+        "ADR tenancy SHARED_RLS or DEFER",
+        "If SHARED_RLS: tenantId all models + isolation tests",
+        "If DEDICATED_STACK: mark DEFERRED and close program"
+      ],
+      "gate_commands": [
+        "bash scripts/ci-no-secrets.sh",
+        "bash scripts/enterprise-roadmap/check-e4-tenancy.sh"
+      ]
+    }
+  ]
+}
