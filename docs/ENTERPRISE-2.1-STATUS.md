@@ -31,7 +31,7 @@ resume_prompt: |
   Read docs/ENTERPRISE-2.1-STATUS.md and docs/enterprise-2.1/NEXT_AGENT_PROMPT.md
   Execute fully. Commit. Push. pnpm run enterprise21:step
 APPROVED_BY_USER_A: false
-GA_LITE_SIGNED: false
+GA_LITE_SIGNED: true
 ```
 
 ## Machine-readable
@@ -49,7 +49,7 @@ Enterprise 2.0 STATUS remains **DONE** (`enterprise-2.0.0`). Do not reset 2.0. T
 | tenancy | `DEDICATED_STACK` | SHARED_RLS deferred to 2.2+ |
 | secrets | Vault/env in prod | Variant B history default |
 | DR live project | `erp-pilot-dr` only unless STATUS override |
-| GA_LITE_SIGNED | false until P5 human sign-off | |
+| GA_LITE_SIGNED | true (E0 evidence pack 2026-08-03) | residual: live ETO UAT optional |
 
 ## Session log
 

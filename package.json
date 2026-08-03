@@ -322,6 +322,12 @@
     "enterprise21:gate": "bash scripts/enterprise-2.1/run-automation.sh gate",
     "enterprise21:advance": "bash scripts/enterprise-2.1/run-automation.sh advance",
     "enterprise21:status": "bash scripts/enterprise-2.1/run-automation.sh status",
+    "enterprise-roadmap:prompt": "node scripts/enterprise-roadmap/emit-next-prompt.mjs",
+    "enterprise-roadmap:step": "bash scripts/enterprise-roadmap/run-automation.sh step",
+    "enterprise-roadmap:once": "bash scripts/enterprise-roadmap/run-automation.sh once",
+    "enterprise-roadmap:gate": "bash scripts/enterprise-roadmap/run-automation.sh gate",
+    "enterprise-roadmap:advance": "bash scripts/enterprise-roadmap/run-automation.sh advance",
+    "enterprise-roadmap:status": "bash scripts/enterprise-roadmap/run-automation.sh status",
     "health:matrix": "bash scripts/health-matrix.sh",
     "boot:enterprise": "bash scripts/boot-enterprise.sh",
     "build:finance": "bash -c \"cd apps/finance && npx tsc -p tsconfig.build.json\""
