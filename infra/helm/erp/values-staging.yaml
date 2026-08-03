@@ -21,7 +21,14 @@ enterprise:
   ENTERPRISE: "1"
   NATS_JETSTREAM: "true"
   AUTH_ENFORCE: "true"
+  USE_KEYCLOAK_JWKS: "true"
   TENANCY_MODEL: DEDICATED_STACK
+  DEFAULT_TENANT_ID: "default"
+  JWT_AUDIENCE: "erp-api"
+  JWT_AZP_ALLOWLIST: "erp-frontend,erp-gateway"
+  KEYCLOAK_ISSUER: "http://keycloak:8080/realms/erp"
+  JWT_ISSUER_EXTRA: "http://127.0.0.1:8080/realms/erp,http://localhost:8080/realms/erp"
+  MEILI_MASTER_KEY_SECRET_REF: "erp-meili-master-key"
 
 autoscaling:
   enabled: true
