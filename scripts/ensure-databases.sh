@@ -36,15 +36,62 @@ phase_docker() {
 phase_prisma() {
   if [ -f "$ROOT/.env" ]; then
     set -a
+    # shellcheck source=/dev/null
     source "$ROOT/.env"
     set +a
   fi
+
+  # Defaults for CI / clean shells (do not override if already set)
+  export CRM_DATABASE_URL="${CRM_DATABASE_URL:-postgresql://erp_user:erp_password@localhost:5433/crm_db?schema=public}"
+  export PM_DATABASE_URL="${PM_DATABASE_URL:-postgresql://erp_user:erp_password@localhost:5434/pm_db?schema=public}"
+  export INVENTORY_DATABASE_URL="${INVENTORY_DATABASE_URL:-postgresql://erp_user:erp_password@localhost:5436/inv_db?schema=public}"
+  export INV_DATABASE_URL="${INV_DATABASE_URL:-$INVENTORY_DATABASE_URL}"
+  export PROC_DATABASE_URL="${PROC_DATABASE_URL:-postgresql://erp_user:erp_password@localhost:5437/proc_db?schema=public}"
+  export FINANCE_DATABASE_URL="${FINANCE_DATABASE_URL:-postgresql://erp_user:erp_password@localhost:5438/fin_db?schema=public}"
+  export ANALYTICS_DATABASE_URL="${ANALYTICS_DATABASE_URL:-postgresql://erp_user:erp_password@localhost:5445/analytics_db?schema=public}"
+  export DATABASE_URL="${DATABASE_URL:-$PM_DATABASE_URL}"
 
   for svc in "${TARGETS[@]}"; do
     SCHEMA="${ROOT}/apps/${svc}/prisma/schema.prisma"
     [[ -f "$SCHEMA" ]] || continue
     log "prisma db push ${svc}"
-    (cd "${ROOT}/apps/${svc}" && npx prisma@5.22.0 db push --schema=prisma/schema.prisma 2>&1 | tail -4) | tee -a "$LOG" || true
+    # Per-service DATABASE_URL aliases for prisma env()
+    case "$svc" in
+      analytics-service)
+        export DATABASE_URL="$ANALYTICS_DATABASE_URL"
+        ;;
+      pm-service)
+        export DATABASE_URL="$PM_DATABASE_URL"
+        export PM_DATABASE_URL
+        ;;
+      crm-service)
+        export DATABASE_URL="$CRM_DATABASE_URL"
+        export CRM_DATABASE_URL
+        ;;
+      inv-service)
+        export DATABASE_URL="$INVENTORY_DATABASE_URL"
+        export INVENTORY_DATABASE_URL
+        export INV_DATABASE_URL
+        ;;
+      proc-service)
+        export DATABASE_URL="$PROC_DATABASE_URL"
+        export PROC_DATABASE_URL
+        ;;
+      finance)
+        export DATABASE_URL="$FINANCE_DATABASE_URL"
+        export FINANCE_DATABASE_URL
+        ;;
+    esac
+    (cd "${ROOT}/apps/${svc}" && \
+      ANALYTICS_DATABASE_URL="$ANALYTICS_DATABASE_URL" \
+      PM_DATABASE_URL="$PM_DATABASE_URL" \
+      CRM_DATABASE_URL="$CRM_DATABASE_URL" \
+      INVENTORY_DATABASE_URL="$INVENTORY_DATABASE_URL" \
+      INV_DATABASE_URL="$INV_DATABASE_URL" \
+      PROC_DATABASE_URL="$PROC_DATABASE_URL" \
+      FINANCE_DATABASE_URL="$FINANCE_DATABASE_URL" \
+      DATABASE_URL="$DATABASE_URL" \
+      npx prisma@5.22.0 db push --schema=prisma/schema.prisma --skip-generate 2>&1 | tail -6) | tee -a "$LOG" || true
     (cd "${ROOT}/apps/${svc}" && npx prisma@5.22.0 generate --schema=prisma/schema.prisma 2>&1 | tail -2) | tee -a "$LOG" || true
   done
 }

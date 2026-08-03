@@ -108,6 +108,13 @@ jobs:
       CI_AUTH_ENFORCE_KEYCLOAK: 'true'
       CI_AUTH_ENFORCE_PROD: 'true'
       AUTH_ENFORCE: 'true'
+      USE_KEYCLOAK_JWKS: 'true'
+      MEILI_MASTER_KEY: 'pilot-dev-meili-key-not-for-prod'
+      KEYCLOAK_ISSUER: 'http://127.0.0.1:8080/realms/erp'
+      JWT_ISSUER_EXTRA: 'http://localhost:8080/realms/erp'
+      DEFAULT_TENANT_ID: 'default'
+      ANALYTICS_DATABASE_URL: 'postgresql://erp_user:erp_password@localhost:5445/analytics_db?schema=public'
+      PM_DATABASE_URL: 'postgresql://erp_user:erp_password@localhost:5434/pm_db?schema=public'
     steps:
       - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v4
