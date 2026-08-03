@@ -26,7 +26,15 @@ enterprise:
   ENTERPRISE: "1"
   NATS_JETSTREAM: "true"
   AUTH_ENFORCE: "true"
+  USE_KEYCLOAK_JWKS: "true"
   TENANCY_MODEL: DEDICATED_STACK
+  DEFAULT_TENANT_ID: "default"
+  # Hard claims (gateway assertTokenHardClaims under ENTERPRISE)
+  JWT_AUDIENCE: "erp-api"
+  JWT_AZP_ALLOWLIST: "erp-frontend,erp-gateway"
+  KEYCLOAK_ISSUER: "https://keycloak.example.internal/realms/erp"
+  # Secret via ExternalSecret/Vault — never commit real value
+  MEILI_MASTER_KEY_SECRET_REF: "erp-meili-master-key"
 
 resources:
   requests:
