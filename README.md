@@ -143,6 +143,7 @@ pnpm run smoke:pilot
 
 | Path | Purpose |
 |------|---------|
+| `docs/APPLICATION-STATE.md` | **Snapshot stanu aplikacji** (tagi, porty, residuale, skala) |
 | `docs/ENTERPRISE-2.1-STATUS.md` | **Live automation status** (DONE / residuals) |
 | `docs/ENTERPRISE-2.1-PLAN.md` | 2.1 plan P0–P5 |
 | `docs/enterprise-2.1/milestones.json` | Machine-readable tags & gates |
